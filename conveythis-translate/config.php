@@ -11,7 +11,7 @@ if(
 define('CONVEYTHIS_LOADER', true);
 
 
-define('CONVEYTHIS_PLUGIN_VERSION', 238);
+define('CONVEYTHIS_PLUGIN_VERSION', 239);
 
 
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));
@@ -31,10 +31,8 @@ define('CONVEYTHIS_API_URL', 'https://api.conveythis.com'); //https://api.convey
 define('CONVEYTHIS_API_PROXY_URL', 'https://api-proxy.conveythis.com'); //https://api-proxy.conveythis.com
 define('CONVEYTHIS_API_PROXY_URL_FOR_EU', 'https://proxy-eu.conveythis.com'); //https://proxy-eu.conveythis.com
 
-//define('CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', '//cdn.conveythis.com/javascript/65');
-//define('DEV_CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', '//dev-cdn.conveythis.com/javascript');
+define('CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD', '//cdn.conveythis.com/javascript/65');
 define('CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', '//cdn.conveythis.com/javascript/');
-define('DEV_CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', '//dev-conveythis.ngrok.dev/javascript');
 
 define('CONVEYTHIS_JAVASCRIPT_LIGHT_PLUGIN_URL', '//cdn.conveythis.com/javascriptLight/3');
 

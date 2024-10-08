@@ -1,16 +1,16 @@
-﻿=== Translate WordPress with ConveyThis ===
+﻿=== Language Translate Widget for WP - ConveyThis ===
 Contributors: alexburan, conveythis
 Tags: language, translate, languages, translators, translator
 Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.5
 
-Stable tag: 238
+Stable tag: 239
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Translate WordPress with ConveyThis multilanguage plugin to make your website multilingual. Complete multilingual SEO solution for WordPress.
+Highest quality translation of your WordPress website using AI. No coding required. Add 120+ languages instantly. Free plan available.
 
 == Description ==
 
@@ -123,6 +123,9 @@ ConveyThis Translate is translated into Spanish and Russian languages so far.  H
 10.	The language button now appeared on your website.
 11.	You can switched to another language and see translated page
 12.	If you want to edit your translation go ["My Translation"](https://app.conveythis.com/domains) in your account
+
+= 239 =
+* New settings option
 
 = 238 =
 * New CDN connection

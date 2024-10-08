@@ -44,7 +44,10 @@
         <div class="radio-block">
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="style_text" id="full-text" value="full-text" <?php echo  $this->variables->style_text == 'full-text' ? 'checked' : '' ?> >
-                <label for="full-text">Full text</label></div>
+                <label for="full-text">Full text, in English (e.g., Spanish)</label></div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" name="style_text" id="full-text-native" value="full-text-native" <?php echo  $this->variables->style_text == 'full-text-native' ? 'checked' : '' ?> >
+                <label for="full-text-native">Full text, in native language (e.g., Español)</label></div>
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="style_text" id="short-text" value="short-text" <?php echo  $this->variables->style_text == 'short-text' ? 'checked' : '' ?> >
                 <label for="short-text">Short text</label></div>

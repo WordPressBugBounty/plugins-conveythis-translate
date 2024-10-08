@@ -1342,11 +1342,10 @@ class ConveyThis
 
 
         if (!empty($this->variables->api_key)) {
-            $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL);
+            $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
             $cdn_version = end($parts);
 
             wp_enqueue_script('conveythis-notranslate', plugin_dir_url(__DIR__).'widget/js/notranslate.js', [], CONVEYTHIS_PLUGIN_VERSION, false);
-//            wp_enqueue_script('conveythis-conveythis', DEV_CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
             wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
 
 //            if (!is_admin() && !empty($this->variables->language_code)) {

@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 239 =
+* New settings option
+
 = 238 =
 * New CDN connection
 
