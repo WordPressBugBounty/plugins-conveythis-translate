@@ -15,8 +15,6 @@ if ( isset($_POST['set_api_key']) && $_POST['set_api_key'] == 1 )
 	}
 }
 
-
-
 if( isset($_POST['ready_user']) ) //phpcs:ignore
 {
     update_option('conveythis_new_user', 0);

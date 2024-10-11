@@ -44,11 +44,6 @@
                 </div>
 
             </div>
-            <?php if($this->variables->target_languages):?>
-                <div class="btn-website-go">
-                    <a href="<?php echo esc_url(home_url()); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-primary conveythis_new_user">Visit my translated website</a>
-                </div>
-            <?php endif; ?>
             <div class="p-3 text-body-tertiary">
                 <a href="#" class="conveythis_new_user">View more settings</a>
             </div>

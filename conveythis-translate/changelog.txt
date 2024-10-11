@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 240 =
+* Optimized plugin activation process
+
 = 239 =
 * New settings option
 

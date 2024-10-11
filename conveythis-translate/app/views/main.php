@@ -18,12 +18,9 @@
                 <!--Separator-->
                 <div class="line-grey"></div>
 
-                <?php
-                    require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/menu.php');
-                ?>
+                <?php require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/menu.php'); ?>
 
                 <div class="row col-md-12">
-
                     <div class="col-md-8 tab-content" id="pills-tabContent">
                         <?php
                             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/main-configuration.php');
@@ -35,16 +32,12 @@
                             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/cache.php');
                         ?>
                     </div>
-
                     <div class="col-md-4 router-widget" style="display: flex; align-items: center; justify-content: center;">
                         <?php
                             require_once CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/widget.php';
                         ?>
                     </div>
-
                 </div>
-
-
                 <!--Separator-->
                 <div class="line-grey"></div>
 
@@ -79,29 +72,21 @@
             </div>
         </form>
     </div>
-
     <div class="my-5" style="font-size: 14px">
-
         <a href="https://wordpress.org/support/plugin/conveythis-translate/reviews/#postform" target="_blank">
             Love ConveyThis? Give us 5 stars on WordPress.org
         </a>
         <br>
         If you need any help, you can contact us via our live chat at <a href="https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress" target="_blank">www.ConveyThis.com</a> or email us at support@conveythis.com. You can also check our <a href="https://www.conveythis.com/faqs/?utm_source=widget&utm_medium=wordpress" target="_blank">FAQ</a>
-
     </div>
-
-
 </div>
-
-
-
 
 <script>
     jQuery(document).ready(function($) {
         let targetLanguages = <?php echo json_encode($this->variables->target_languages)?>;
         let show = <?php echo esc_html(get_option('is_translated'))?>;
 
-        if (targetLanguages.length !== 0 && show === 0){
+        if (targetLanguages.length !== 0 && show === 0) {
             $('#congrats-modal').modal({
                 backdrop: 'static',
                 keyboard: false
