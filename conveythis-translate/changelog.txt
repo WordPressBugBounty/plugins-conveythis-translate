@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 241 =
+* Loader updated
+
 = 240 =
 * Optimized plugin activation process
 

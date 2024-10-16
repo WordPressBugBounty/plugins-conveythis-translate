@@ -10,7 +10,7 @@
             </div>
 
             <div style="width: 100%; text-align: center;">
-                <p style="font-size: 15px; margin: 0; padding: 0;"><b>ConveyThis</b> - promote to the general public</p>
+                <p style="font-size: 15px; margin: 0; padding: 0;"><b>ConveyThis</b> - Multilingual Websites Fly Higher</p>
                 <span style="font-size: 10px"><b>Plugin version:</b> <?php echo esc_html(CONVEYTHIS_PLUGIN_VERSION) ?></span>
             </div>
         </div>
