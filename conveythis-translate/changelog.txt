@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 242 =
+* Plugin name updated
+
 = 241 =
 * Loader updated
 
