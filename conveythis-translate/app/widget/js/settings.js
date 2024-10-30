@@ -1032,7 +1032,7 @@ jQuery(document).ready(function($) {
 			
 			if(apiKey){
 				jQuery.ajax({
-					url: "https://api.conveythis.com/25/admin/account/plan/api-key/"+apiKey+"/",
+					url: "https://api.conveythis.com/admin/account/plan/api-key/"+apiKey+"/",
 					success: function(result){
 						if(result.data && result.data.languages){
 							const maxLanguages = result.data.languages;
@@ -1093,9 +1093,30 @@ jQuery(document).ready(function($) {
 								$('#conveythis_clear_cache').prop('disabled', true);
 							}
 
-							if(result.data.is_trial_expired == 1){
-								$('#conveythis-trial-expired-message').show();
+
+							const expiryDate = new Date(result.data.trial_expires_at);
+							const currentDate = new Date();
+
+							const diffInMs = expiryDate - currentDate;
+							const remainingDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+
+							if (remainingDays > 0) {
+								$('#trial-days').text(remainingDays);
+								$('#trial-period').text(' days');
+								$('#conveythis_trial_period').css('display', 'block');
+							} else if (remainingDays === 0) {
+								$('#trial-days').text('Less than 24');
+								$('#trial-period').text('hours');
+								$('#conveythis_trial_period').css('display', 'block');
+							} else {
+								console.log("Your trial has expired.");
 							}
+
+
+							if (result.data.is_trial_expired === "1") {
+								$('#conveythis_trial_finished').css('display', 'block')
+							}
+
 
 
 							if ( typeof(result.data.is_confirmed) !== "undefined" && result.data.is_confirmed !== null

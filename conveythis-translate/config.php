@@ -11,7 +11,8 @@ if(
 define('CONVEYTHIS_LOADER', true);
 
 
-define('CONVEYTHIS_PLUGIN_VERSION', 242);
+define('CONVEYTHIS_PLUGIN_VERSION', 243);
+
 
 
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));

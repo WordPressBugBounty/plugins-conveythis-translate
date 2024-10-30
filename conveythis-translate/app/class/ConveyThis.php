@@ -496,12 +496,12 @@ class ConveyThis
                 if(isset($_GET["settings-updated"])) //phpcs:ignore
                 {
                     $this->updateDataPlugin();
+                    $this->clearCacheButton();
                 }
 
                 $this->ConveyThisCache->clear_cached_translations(true);
 
             }
-
         }
     }
 
@@ -547,11 +547,15 @@ class ConveyThis
                 'style_widget' => $this->variables->style_widget,
                 'select_region' => $this->variables->select_region
             )
-
         ));
+    }
 
-
-
+    function clearCacheButton() {
+        $this->send( 'DELETE', '/plugin/clean-button-cache/', array(
+                'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
+                'api_key' => $this->variables->api_key
+            )
+        );
     }
 
     function reqOnGetSettingsUser() {

@@ -1,13 +1,3 @@
-<div id="conveythis-trial-expired-message" style="display: none;width:1000px;border: #C13C3C 2px solid;border-radius:8px;color: #000;padding-left: 10px;background: #fff;">
-    <p>
-        <?php
-        // translators: %1$s: Start tag for link to upgrade, %2$s: End tag for link
-        $message = __( 'ConveyThis error: Your 7 day trial period is over. You can %1$supgrade your plan%2$s to keep your site translated.', 'conveythis-translate' );
-        echo sprintf( esc_html($message), '<a target="_blank" href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress">', '</a>' );
-        ?>
-    </p>
-</div>
-
 <?php if (!empty($this->api_key) && $this->checkCachePlugin() && !$this->isDismiss('all_cache_notice')){ ?>
     <div class="row">
         <div class="col-md-12">

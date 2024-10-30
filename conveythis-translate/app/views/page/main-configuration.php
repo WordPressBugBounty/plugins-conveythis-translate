@@ -4,6 +4,12 @@
     <div class="alert alert-danger" id="conveythis_confirmation_message_danger" role="alert" style="display: none;border: #ce1717 2px solid;color: #000;padding-left: 10px;background: #fff;">
         We're sorry, you haven't verified your account. Follow the link in your email <span style="display: inline-block;"><b></b></span>
     </div>
+    <div class="alert alert-danger" id="conveythis_trial_finished" role="alert" style="display: none;border: #ce1717 2px solid;color: #000;padding-left: 10px;background: #fff;">
+        Your PRO trial has ended, and our widget on your site is currently inactive.<br> To republish the widget, please visit your <a href="http://app.conveythis.com/">dashboard</a> and select a plan.
+    </div>
+    <div class="alert alert-warning" id="conveythis_trial_period" role="alert" style="display: none;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
+        <span id="trial-days"></span><span id="trial-period"></span> left in the trial.<br> Your free trial is coming to an end. Click <a href="http://app.conveythis.com/dashboard/pricing/">here</a> to upgrade your plan.
+    </div>
     <div class="alert alert-warning" id="conveythis_confirmation_message_warning" role="alert" style="display: none;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
         Your account is not verified, you can use the plugin until <span></span> <br/>
 <!--        After verifying your email, you will receive your account credentials and can then log in to our <a href="--><?php //echo esc_url(CONVEYTHIS_APP_URL . '/account/login/')?><!--" target="_blank">website</a>.-->
