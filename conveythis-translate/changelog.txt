@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 244 =
+* Updated links to excluded pages
+
 = 243 =
 * Optimized saving of plugin settings
 

@@ -48,22 +48,25 @@ class ConveyThis
                 }
             }
         }
+
+        $this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
+
         $active_plugins = get_option('active_plugins');
 
-	    if (empty($this->variables->is_active)) {
-		    $url = home_url();
-		    $domain_name = $this->getPageHost($url);
+        if (empty($this->variables->is_active)) {
+            $url = home_url();
+            $domain_name = $this->getPageHost($url);
 
-		    $account = $this->getAccountByApiKey($this->variables->api_key);
+            $account = $this->getAccountByApiKey($this->variables->api_key);
 
-		    if (!empty($account)) {
-			    $domain = $this->getDomainDetails($account['account_id'], $domain_name);
-		    }
+            if (!empty($account)) {
+                $domain = $this->getDomainDetails($account['account_id'], $domain_name);
+            }
 
-		    if (!empty($domain) && $domain[0]['is_active'] === '1') {
-			    update_option('is_active_domain', ['is_active'=>1]);
-		    }
-	    }
+            if (!empty($domain) && $domain[0]['is_active'] === '1') {
+                update_option('is_active_domain', ['is_active'=>1]);
+            }
+        }
 
         add_filter( 'plugin_row_meta', array( $this, '_row_meta' ), 10, 2 );
         add_filter( 'wp_nav_menu', array( $this, '_menu_shortcode' ), 20, 2 );
@@ -443,7 +446,7 @@ class ConveyThis
         register_setting( 'my-plugin-settings-group', 'conveythis_lang_code_url' );
         register_setting( 'my-plugin-settings-group', 'conveythis_clear_cache' );
         register_setting( 'my-plugin-settings-group', 'conveythis_select_region' );
-	    register_setting( 'my-plugin-settings-group', 'is_active_domain' );
+        register_setting( 'my-plugin-settings-group', 'is_active_domain' );
 
         register_setting( 'my-plugin-settings-group', 'alternate' );
         register_setting( 'my-plugin-settings-group', 'accept_language' );
@@ -475,7 +478,7 @@ class ConveyThis
                     unset($this->variables->target_languages[$key]);
                 }
 
-	            $data = $this->send( 'PUT', '/website/update/', array(
+                $data = $this->send( 'PUT', '/website/update/', array(
                         'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
                         'source_language' => $this->variables->source_language ?: 'en',
                         'target_languages' => $this->variables->target_languages ?: ['en'],
@@ -484,14 +487,15 @@ class ConveyThis
                         'technology' => 'wordpress')
                 );
 
-	            if (!empty($data) && $data['domains_count'] > 0 && empty($this->variables->is_active))
-	            {
-		            $this->variables->is_active = [];
-	            }
+                if (!empty($data) && $data['domains_count'] > 0 && empty($this->variables->is_active))
+                {
+                    $this->variables->is_active = [];
+                }
 
-                $this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
+                //$this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
                 $this->variables->glossary = $this->send(  'GET', '/admin/account/domain/pages/glossary/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
                 $this->variables->exclusion_blocks = $this->send(  'GET', '/admin/account/domain/excluded/blocks/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
+
 
                 if(isset($_GET["settings-updated"])) //phpcs:ignore
                 {
@@ -717,17 +721,17 @@ class ConveyThis
         }
     }
 
-	public function getAccountByApiKey($apiKey)
-	{
-		$response = $this->send('GET', '/admin/account/api-key/'. $apiKey . '/');
-		return $response;
-	}
+    public function getAccountByApiKey($apiKey)
+    {
+        $response = $this->send('GET', '/admin/account/api-key/'. $apiKey . '/');
+        return $response;
+    }
 
-	public function getDomainDetails($accountId, $domainName)
-	{
-		$response = $this->send('GET', '/admin/account/'.$accountId.'/wordpress_domain/'.base64_encode($domainName).'/');
-		return $response;
-	}
+    public function getDomainDetails($accountId, $domainName)
+    {
+        $response = $this->send('GET', '/admin/account/'.$accountId.'/wordpress_domain/'.base64_encode($domainName).'/');
+        return $response;
+    }
 
     function getPageUrl( $str )
     {
@@ -1353,7 +1357,7 @@ class ConveyThis
             wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
 
 //            if (!is_admin() && !empty($this->variables->language_code)) {
-                //wp_enqueue_script('conveythis-update-cache', plugins_url('../widget/js/update-cache.js', __FILE__));
+            //wp_enqueue_script('conveythis-update-cache', plugins_url('../widget/js/update-cache.js', __FILE__));
 //            }
 
 
@@ -1368,7 +1372,7 @@ class ConveyThis
                 });
             ';
 
-	        wp_add_inline_script('conveythis-conveythis', $initScript);
+            wp_add_inline_script('conveythis-conveythis', $initScript);
         }
     }
 
@@ -1935,9 +1939,9 @@ class ConveyThis
                                 )
                                 ||
                                 (
-                                        strcasecmp( $metaAttributeName, 'description' ) === 0 ||
-                                        strcasecmp( $metaAttributeName, 'twitter:description' ) === 0 ||
-                                        strcasecmp( $metaAttributeName, 'og:description' ) === 0
+                                    strcasecmp( $metaAttributeName, 'description' ) === 0 ||
+                                    strcasecmp( $metaAttributeName, 'twitter:description' ) === 0 ||
+                                    strcasecmp( $metaAttributeName, 'og:description' ) === 0
                                 )
                                 ||
                                 strcasecmp( $metaAttributeName, 'keywords' ) === 0
@@ -1986,9 +1990,10 @@ class ConveyThis
 
     function replaceLink( $value, $language_code )
     {
+
         $aPos = strpos( $value, '//' );
 
-        if(in_array($value, $this->variables->blockpages)){
+        if(in_array($value, $this->variables->blockpages) || $this->isPageExcluded($value, $this->variables->exclusions) ){
             return $value;
         }
 
@@ -2272,7 +2277,7 @@ class ConveyThis
                             }
                         }
 
-	                    $this->variables->items = $this->removeDuplicates($this->variables->items, 'source_text');
+                        $this->variables->items = $this->removeDuplicates($this->variables->items, 'source_text');
 
                         if ($this->allowCache($this->variables->items)) {
                             $this->ConveyThisCache->save_cached_translations(
@@ -2309,20 +2314,20 @@ class ConveyThis
         return  $content;
     }
 
-	function removeDuplicates($array, $key) {
-		$tempArray = [];
-		$resultArray = [];
+    function removeDuplicates($array, $key) {
+        $tempArray = [];
+        $resultArray = [];
 
-		foreach ($array as $item) {
-			$value = $item[$key];
-			if (!in_array($value, $tempArray)) {
-				$tempArray[] = $value;
-				$resultArray[] = $item;
-			}
-		}
+        foreach ($array as $item) {
+            $value = $item[$key];
+            if (!in_array($value, $tempArray)) {
+                $tempArray[] = $value;
+                $resultArray[] = $item;
+            }
+        }
 
-		return $resultArray;
-	}
+        return $resultArray;
+    }
 
     function filterSegments($segments)
     {
@@ -2726,7 +2731,7 @@ class ConveyThis
         delete_option( 'style_corner_type');
         delete_option( 'style_widget');
         delete_option( 'conveythis_system_links');
-	    delete_option( 'is_active_domain' );
+        delete_option( 'is_active_domain' );
 
         self::sendEvent('uninstall');
     }
@@ -2877,6 +2882,49 @@ class ConveyThis
 
         }
 
+    }
+
+    private function isPageExcluded($pageUrl, $rules)
+    {
+
+        if (!is_array($rules)) {
+            return false;
+        }
+
+        $pageUrl = $this->getPageUrl($pageUrl);
+
+        foreach ($rules as $rule ) {
+            // $rowPageUrl = preg_quote(trim($rule['page_url']), '/');
+            $rowPageUrl = trim($rule['page_url']);
+            if ($rule['rule'] == "start") {
+                if (preg_match('~^' . $rowPageUrl . '~', $pageUrl)) {
+                    return true;
+                }
+            } else if ($rule['rule'] == "end") {
+                if (preg_match('~' . $rowPageUrl . '$~', $pageUrl)) {
+                    return true;
+                }
+            } else if ($rule['rule'] == "contain") {
+                if (preg_match('~' . $rowPageUrl . '~', $pageUrl)) {
+                    return true;
+                }
+            } else if ($rule['rule'] == "equal") {
+                $parsed_path = parse_url($rowPageUrl, PHP_URL_PATH);
+
+                if ($parsed_path === null || $parsed_path === '') {
+                    $parsed_path = '/';
+                }
+
+                $parsed_path = rtrim($parsed_path, '/');
+                $pageUrl = rtrim($pageUrl, '/');
+
+                if (strcasecmp($rule['page_url'], $pageUrl) == 0 || strcasecmp($parsed_path,  $pageUrl) == 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
 }
