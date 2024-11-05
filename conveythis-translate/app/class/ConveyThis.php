@@ -90,18 +90,21 @@ class ConveyThis
         if (in_array('seo-by-rank-math/rank-math.php', $active_plugins)) {
             add_action('init', array($this->ConveyThisSEO, 'rm_enable_custom_sitemap'));
             add_action('parse_query', array($this->ConveyThisSEO, 'rank_math_sitemap_init'), 0);
+            add_action('rank_math/sitemap/url', array($this->ConveyThisSEO, 'sitemap_add_translated_urls'), 10, 2);
+
+            // OpenGraph
+	        add_action( 'rank_math/opengraph/url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
         }
-        //OpenGraph
-        add_action( 'rank_math/opengraph/url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
 
         //Yoast sitemap
         if (in_array('wordpress-seo/wp-seo.php', $active_plugins)) {
             add_action('init', array($this->ConveyThisSEO, 'yo_enable_custom_sitemap'));
             add_action('pre_get_posts', array($this->ConveyThisSEO, 'wpseo_init_sitemap'), 1);
             add_action('wpseo_sitemap_url', array($this->ConveyThisSEO, 'sitemap_add_translated_urls'), 10, 2);
+
+            //OpenGraph
+	        add_action( 'wpseo_opengraph_url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
         }
-        //OpenGraph
-        add_action( 'wpseo_opengraph_url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
 
         //SeoPress sitemap
         if (in_array('wp-seopress/seopress.php', $active_plugins)) {
@@ -109,10 +112,11 @@ class ConveyThis
             add_filter('query_vars', array($this->ConveyThisSEO, 'sp_add_query_vars_filter'));
             add_filter('seopress_sitemaps_xml_index', array($this->ConveyThisSEO, 'sp_sitemaps_xml_index'));
             add_action('template_redirect', array($this->ConveyThisSEO, 'sp_serve_custom_sitemaps'));
+	        add_action( 'seopress_sitemaps_url', array( $this->ConveyThisSEO, 'sitemap_add_translated_urls' ), 10, 2 );
+	        //OpenGraph
+	        add_action( 'seopress_social_og_url', array( $this, 'seopress_opengraph_url' ), 10, 2 );
         }
 
-        //OpenGraph
-        add_action( 'seopress_social_og_url', array( $this, 'seopress_opengraph_url' ), 10, 2 );
 
         add_action('wp_ajax_conveythis_clear_all_cache', array('ConveyThisCache', 'clearAllCache'));
         add_action('wp_ajax_conveythis_dismiss_all_cache', array('ConveyThisCache', 'dismissAllCacheMessages'));
@@ -495,7 +499,6 @@ class ConveyThis
                 //$this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
                 $this->variables->glossary = $this->send(  'GET', '/admin/account/domain/pages/glossary/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
                 $this->variables->exclusion_blocks = $this->send(  'GET', '/admin/account/domain/excluded/blocks/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
-
 
                 if(isset($_GET["settings-updated"])) //phpcs:ignore
                 {
@@ -1990,10 +1993,9 @@ class ConveyThis
 
     function replaceLink( $value, $language_code )
     {
-
         $aPos = strpos( $value, '//' );
 
-        if(in_array($value, $this->variables->blockpages) || $this->isPageExcluded($value, $this->variables->exclusions) ){
+        if ($this->isBlockedPage($value, $this->variables->blockpages) || $this->isPageExcluded($value, $this->variables->exclusions)) {
             return $value;
         }
 
@@ -2925,6 +2927,11 @@ class ConveyThis
         }
 
         return false;
+    }
+
+    private function isBlockedPage($pageUrl, $blockPages)
+    {
+        return in_array($pageUrl, $blockPages) || in_array(rtrim($pageUrl, '/'), $blockPages);
     }
 
 }

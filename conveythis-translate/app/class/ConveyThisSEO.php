@@ -161,12 +161,12 @@ class ConveyThisSEO
             $query->the_post();
             $url = array(
                 "loc" => get_permalink(),
-                "mod" => get_the_modified_date('c'),
+                "mod" => $query->post->post_modified_gmt,
             );
             $sitemap_items = "
     <url>
         <loc>" . get_permalink() . "</loc>
-        <lastmod>" . get_the_modified_date('c') . "</lastmod>
+        <lastmod>" . $query->post->post_modified_gmt . "</lastmod>
     </url>";
 
             $sitemap_content .= $this->sitemap_add_translated_urls($sitemap_items, $url, $language);
@@ -276,28 +276,18 @@ class ConveyThisSEO
         $translatedOutputUrls = array();
 
         // add source language to alternate
-//        $alternate .= "\t<xhtml:link hreflang='" . $this->variables->source_language . "' href='" . $url['loc'] . "' rel='alternate'/>\n\t";
-        if (empty($language)) {
-            foreach ($this->variables->target_languages as $language) {
-                $modifiedResult = $this->modify_url($url, $language);
+	    $alternate .= "\t<xhtml:link hreflang='x-default' href='" . $url['loc'] . "' rel='alternate'/>\n\t";
+	    $alternate .= "\t<xhtml:link hreflang='" . $this->variables->source_language . "' href='" . $url['loc'] . "' rel='alternate'/>\n\t";
 
-                if (strpos($actual_link, '-' . $language . '-') === false) {
-                    $alternate .= $modifiedResult['alternate'];
-                    continue;
-                } else {
-                    $translatedUrl = $modifiedResult['translatedUrl'];
-                    $translatedOutputUrls = $modifiedResult['translatedOutputUrls'];
-                    $alternate .= $modifiedResult['alternate'];
-                }
-            }
-        } else {
+        foreach ($this->variables->target_languages as $language) {
             $modifiedResult = $this->modify_url($url, $language);
 
-            if (strpos($actual_link, '-' . $language . '-') === false) {
+            if (str_contains($actual_link, '-' . $language . '-') === false) {
                 $alternate .= $modifiedResult['alternate'];
+                continue;
             } else {
-                $translatedOutputUrls = $modifiedResult['translatedOutputUrls'];
                 $translatedUrl = $modifiedResult['translatedUrl'];
+                $translatedOutputUrls = $modifiedResult['translatedOutputUrls'];
                 $alternate .= $modifiedResult['alternate'];
             }
         }
@@ -340,8 +330,6 @@ class ConveyThisSEO
         }
         $translatedOutputUrls[] = "\t<url>\n" . $loc . $lasmod . $images . "\t</url>\n";
         $alternate = "\t<xhtml:link hreflang='" . $language . "' href='" . $translatedUrl . "' rel='alternate'/>\n\t";
-
-        ConveyThis::customLogs(array('translatedUrl' => $translatedUrl, 'translatedOutputUrls' => $translatedOutputUrls, 'alternate' => $alternate));
 
         return array('translatedUrl' => $translatedUrl, 'translatedOutputUrls' => $translatedOutputUrls, 'alternate' => $alternate);
     }

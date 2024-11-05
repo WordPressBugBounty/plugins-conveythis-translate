@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 245 =
+* Updated seo optimization
+
 = 244 =
 * Updated links to excluded pages
 
