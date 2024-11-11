@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 246 =
+* Updated language switcher
+
 = 245 =
 * Updated seo optimization
 

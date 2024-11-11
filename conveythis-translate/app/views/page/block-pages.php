@@ -1,41 +1,6 @@
 <div class="tab-pane fade" id="v-pills-block" role="tabpanel" aria-labelledby="block-pages-tab">
 
     <div class="title">Block pages</div>
-
-    <div class="form-group">
-        <div class="subtitle">Add alternative links for excluded pages</div>
-        <div class="radio-block">
-            <div class="form-check">
-                <input type="radio" class="form-check-input me-2" id="conveythis_lang_code_url_yes" name="conveythis_lang_code_url" value="1" <?php echo $this->variables->lang_code_url == 1 ? 'checked' : '' ?> <?php echo (is_array($this->variables->blockpages) ? count($this->variables->blockpages) : 0) <= 0 ? 'disabled' : '' ?> >
-                <label for="conveythis_lang_code_url_yes">Yes</label></div>
-            <div class="form-check">
-                <input type="radio" class="form-check-input me-2" id="conveythis_lang_code_url_no" name="conveythis_lang_code_url" value="0" <?php echo $this->variables->lang_code_url == 1 ? 'checked' : '' ?> <?php echo (is_array($this->variables->blockpages) ? count($this->variables->blockpages) : 0) <= 0 ? 'disabled' : '' ?>>
-                <label for="conveythis_lang_code_url_no">No</label></div>
-        </div>
-    </div>
-
-    <div class="form-group paid-function">
-        <div class="subtitle">Block pages</div>
-        <label>Add URL that you want to exclude from translations.</label>
-        <div id="blockpages_wrapper" class="w-100">
-            <?php if (is_array($this->variables->blockpages) && count($this->variables->blockpages) > 0) : ?>
-                <?php foreach( $this->variables->blockpages as $blockpage ): ?>
-                    <div class="blockpage position-relative w-100 pe-4">
-                        <button class="conveythis-delete-page"></button>
-                        <div class="ui input w-100">
-                            <input type="url" name="blockpages[]" class="w-100" placeholder="https://example.com" value="<?php echo  esc_url($blockpage);?>">
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-        <button class="btn-default" type="button" id="add_blockpage" style="color: #8A8A8A">Add more URLs</button>
-        <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
-    </div>
-
-    <!--Separator-->
-    <div class="line-grey mb-2"></div>
-
     <div class="form-group paid-function">
         <label>Add rule that you want to exclude from translations.</label>
         <div id="exclusion_wrapper" class="w-100">
@@ -56,7 +21,7 @@
                             </div>
                             <input type="hidden" class="exclusion_id" value="<?php echo (isset($exclusion['id']) ? esc_attr($exclusion['id']) : '') ?>"/>
                             <div class="ui input w-100">
-                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? esc_url($exclusion['page_url']) : '') ?>" class="page_url w-100" placeholder="https://example.com" value="">
+                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? $exclusion['page_url'] : '') ?>" class="page_url w-100" placeholder="https://example.com" value="">
                             </div>
                         </div>
                     <?php endif; ?>

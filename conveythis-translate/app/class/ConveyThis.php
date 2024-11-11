@@ -447,7 +447,6 @@ class ConveyThis
         register_setting( 'my-plugin-settings-group', 'translate_document' );
         register_setting( 'my-plugin-settings-group', 'translate_links' );
         register_setting( 'my-plugin-settings-group', 'change_direction' );
-        register_setting( 'my-plugin-settings-group', 'conveythis_lang_code_url' );
         register_setting( 'my-plugin-settings-group', 'conveythis_clear_cache' );
         register_setting( 'my-plugin-settings-group', 'conveythis_select_region' );
         register_setting( 'my-plugin-settings-group', 'is_active_domain' );
@@ -809,7 +808,9 @@ class ConveyThis
         $this->variables->referrer = '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 //        $this->choose_seo();
 
-        if( !is_admin() )
+        $isExcluded = $this->isPageExcluded($this->getPageUrl($this->variables->referrer), $this->variables->exclusions);
+
+        if( !is_admin() && !$isExcluded )
         {
             if(empty($this->variables->url_structure) || $this->variables->url_structure != "subdomain"){ // no need to do anything with subdomains
 
@@ -934,7 +935,7 @@ class ConveyThis
                     }
                 }
 
-                if( !empty( $this->variables->alternate ) )
+                if( !empty( $this->variables->alternate ))
                 {
                     add_action( 'wp_head', array( $this, '_alternate' ), 0 );
 
@@ -958,11 +959,16 @@ class ConveyThis
             }else{
                 if( !empty( $this->variables->source_language ) && !empty( $this->variables->target_languages ) ){
                     $this->getCurrentPlan();
-                    if( !empty( $this->variables->alternate ) )
+
+                    if( !empty( $this->variables->alternate ))
                         add_action( 'wp_head', array( $this, '_alternate' ), 0 );
+
                     add_action( 'wp_footer', array( $this, '_inline_script' ) );
                 }
             }
+
+            add_action( 'wp_footer', array( $this, '_html_plugin' ) );
+
         } else {
             new ConveyThisAdminNotices();
         }
@@ -1086,27 +1092,18 @@ class ConveyThis
                 {
                     $location = $this->getSubDomainLocation( $language['code2'], true );
                     echo '<link href="'. esc_attr($location) .'" hreflang="'. esc_attr( $language['code2'] ) .'"  rel="alternate">';
-//                    header('Link:<'.esc_attr($location).'>; rel="alternate"; hreflang="'.esc_attr( $language['code2'] ).'"', false);
                 }
                 else
                 {
-
-//                    if( $this->variables->language_code === $language['code2'] ) //|| $language['code2'] === $this->variables->source_language
-//                        continue;
-
-//                    if( empty($this->variables->language_code) && $language['code2'] === $this->variables->source_language )
-//                        continue;
-
                     $location = $this->getLocation( $prefix, $language['code2'], true );
 
-                    if( $language['code2'] !== $this->variables->source_language || $this->variables->lang_code_url )
+                    if( $language['code2'] !== $this->variables->source_language )
                     {
                         $_short_url = str_replace($site_domain . '/' . $language['code2'], '', esc_attr($site_domain . $location));
 
                         if(!in_array($_short_url, $_temp_blockpages))
                         {
                             echo '<link href="' . esc_attr($site_domain . $location) .'" hreflang="'. esc_attr( $language['code2'] ) .'" rel="alternate">';
-//                            header('Link:<'.esc_attr($site_domain . $location).'>; rel="alternate"; hreflang="'.esc_attr( $language['code2'] ).'"', false);
                         }
                         else
                             continue;
@@ -1117,6 +1114,86 @@ class ConveyThis
             echo "\n";
 
         }
+    }
+
+    public function _html_plugin()
+    {
+        $data = array_merge($this->variables->target_languages, [$this->variables->source_language]);
+
+        $site_url = home_url();
+        $site_url_parts = parse_url($site_url);
+        $site_domain = "{$site_url_parts["scheme"]}://{$site_url_parts["host"]}";
+
+        $prefix = $this->getPageUrl($site_url);
+        $languageList = [];
+        $linkList = ['current' => '', 'alternates' => ''];
+
+
+        foreach ($data as $value) {
+            $language = $this->searchLanguage($value);
+            if (!empty($language)) {
+                $language_code = $language['code2'];
+                $location = (!empty($this->variables->url_structure) && $this->variables->url_structure === "subdomain")
+                    ? $this->getSubDomainLocation($language_code, true)
+                    : $this->getLocation($prefix, $language_code, true);
+
+
+                $languageList[$this->getTitle($language)] = esc_attr($site_domain . $location);
+            }
+        }
+
+        $currentPageUrl = $this->getPageUrl($this->variables->referrer);
+
+        foreach ($languageList as $code => $href) {
+            $hrefPageUrl = $this->getPageUrl($href);
+
+            if ($hrefPageUrl === $currentPageUrl) {
+                $linkList['current'] .= "<a href='{$href}'>{$code}</a>";
+            } else {
+                $linkList['alternates'] .= PHP_EOL."<a href='{$href}'>{$code}</a>";
+            }
+        }
+
+        $conveythisLogo ='<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
+
+        $conveythisLogo = $this->variables->hide_conveythis_logo ? $conveythisLogo : "";
+
+        $languageHtml = '<div class="conveythis-widget-languages" id="language-list" style="display: none;">
+    '.$conveythisLogo.'
+    <div class="conveythis-widget-language" role="button" tabindex="0">'.$linkList['alternates'].PHP_EOL.'</div>
+</div>
+    <div class="conveythis-widget-current-language-wrapper" aria-controls="language-list" aria-expanded="false">
+        <div class="conveythis-widget-language" role="button" tabindex="0">'.$linkList['current'].'<div class="conveythis-language-arrow"></div></div>
+    </div>';
+
+        $pluginHtml = '<div id="conveythis-wrapper" class="conveythis-no-translate conveythis-source">
+        <div class="conveythis-widget-main">' . $languageHtml . '</div>
+</div>';
+
+        echo $pluginHtml;
+    }
+
+    private function getTitle($language) {
+        $title = '';
+        switch($this->variables->style_text) {
+            case 'full-text';
+                $title = $language['title_en'];
+                break;
+            case 'full-text-native';
+                $title = $language['title'];
+                break;
+            case 'short-text-alfa-2';
+                $title = $language['code2'];
+                break;
+            case 'short-text';
+                $title = $language['code3'];
+                break;
+            case 'without-text';
+                $title = $language['code2'];
+                break;
+        }
+
+        return $title;
     }
 
     private function deleteQueryParams($url, $alternate_link) {
@@ -1366,6 +1443,7 @@ class ConveyThis
 
             $initScript = '
                 document.addEventListener("DOMContentLoaded", function(e) {
+                    document.querySelectorAll(".conveythis-source").forEach(element => element.remove());
                     ConveyThis_Initializer.init({
                         api_key: "' . esc_attr($this->variables->api_key) . '",
                         is_wordpress: "' . $this->searchLanguage($current_language_code)['language_id'] . '",
@@ -2667,7 +2745,6 @@ class ConveyThis
         add_option( 'style_position_type', 'fixed' );
         add_option( 'style_position_vertical_custom', 'bottom' );
         add_option( 'style_selector_id', '' );
-        add_option( 'conveythis_lang_code_url', '1' );
         add_option( 'conveythis_clear_cache', '0' );
         add_option( 'conveythis_select_region', 'US' );
 
@@ -2722,7 +2799,6 @@ class ConveyThis
         delete_option( 'style_position_vertical_custom');
         delete_option( 'style_selector_id');
         delete_option( 'url_structure');
-        delete_option( 'conveythis_lang_code_url' );
         delete_option( 'conveythis_clear_cache' );
         delete_option( 'conveythis_select_region' );
 
@@ -2840,7 +2916,6 @@ class ConveyThis
 
     public static function modify_admin_bar($wp_admin_bar)
     {
-
         if (!is_admin_bar_showing()) {
             return;
         }
@@ -2881,9 +2956,7 @@ class ConveyThis
                     ConveyThis::customLogs("Function modify_admin_bar:\n" . $e);
                 }
             }
-
         }
-
     }
 
     private function isPageExcluded($pageUrl, $rules)

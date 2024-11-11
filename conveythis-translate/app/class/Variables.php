@@ -60,7 +60,6 @@ class Variables
     public $style_widget;
     public $blockpages_items;
     public $referrer;
-    public $lang_code_url;
     public $clear_cache;
     public $is_translated;
     public $shortcode_counter = 0;
@@ -496,7 +495,7 @@ class Variables
         $this->accept_language = get_option( 'accept_language', '0' );
         $this->blockpages = get_option( 'blockpages', array() );
         $this->show_javascript = get_option( 'show_javascript', '1' );
-        $this->lang_code_url = get_option( 'conveythis_lang_code_url', '1' );
+
         $this->clear_cache = get_option( 'conveythis_clear_cache', '0' );
 
 
