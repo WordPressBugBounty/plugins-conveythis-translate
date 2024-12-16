@@ -54,12 +54,6 @@
                             </div>
                             <div class="modal-body">
                                 <p class="fs-6 lead">Now that you've chosen your languages, get ready to make your website truly multilingual.</p>
-	                            <?php if (empty($this->variables->is_active)):?>
-                                    <p class="fs-6 lead">
-                                        Your domain is currently unpublished. Please visit our <a href="<?php echo esc_url('https://app.conveythis.com/domains/');?>" target="_blank">dashboard</a> to activate it with just one click.
-                                        Go to the Domains page and make your domain published.(<span class="text-success">Please ignore this message block if this is your <b>first</b> domain activation</span>)
-                                    </p>
-	                            <?php endif;?>
                                 <p class="fs-6 lead">Visit your webpage to locate our widget in the lower right corner and experience our translation service ;)</p>
                             </div>
                             <div class="modal-footer d-flex justify-content-center">

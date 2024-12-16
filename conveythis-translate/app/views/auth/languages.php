@@ -1,7 +1,7 @@
 <form id="login-form-settings" method="POST" action="options.php">
     <?php
-        settings_fields('my-plugin-settings');
-        do_settings_sections('my-plugin-settings');
+    settings_fields('my-plugin-settings');
+    do_settings_sections('my-plugin-settings');
     ?>
     <div class="key-block mt-5">
 
@@ -11,18 +11,26 @@
             </a>
         </div>
 
-        <div>Take a few steps to set up the plugin</div>
-        
         <div class="m-auto my-4 text-center" style="max-width: 500px;width: 100%">
-            <p>Paste Api key here</p>
-            <div class="ui input w-100">
-                <input type="text" name="api_key" id="conveythis_api_key" class="conveythis-input-text text-truncate" 
-                    value="<?php echo esc_html($this->variables->api_key) ?>"
-                    placeholder="pub_XXXXXXXXXXXXXXXX"
-                    <?php if($this->variables->api_key !== "") echo 'readonly' ?>
-                >
+
+            <div>Take a few steps to set up the plugin</div>
+
+            <div class="m-auto my-4 text-center">
+                <p>Enter the email you used to register in the ConveyThis dashboard</p>
+                <div class="ui input w-100">
+                    <input type="email" name="email" id="conveythis_email" class="conveythis-input-text text-truncate" value="" placeholder="Enter email" >
+                </div>
             </div>
-            <label class="validation-label" style="float: left; margin-top: 5px;">This field is required</label>
+
+            <div class="m-auto my-4 text-center">
+                <p>Api key</p>
+                <div class="ui input w-100">
+                    <input type="text" name="api_key" id="conveythis_api_key" class="conveythis-input-text text-truncate"
+                           value="<?php echo esc_html($this->variables->api_key) ?>"
+                           placeholder="pub_*********"
+                </div>
+                <label class="validation-label" style="float: left; margin-top: 5px;">Invalid Email or API Key. Please verify your credentials and try again.</label>
+            </div>
 
             <div class="lang-selection my-4" style="display: none">
                 <p>What is the source (current) language of your website?</p>
@@ -47,7 +55,7 @@
                     </svg>
                 </div>
             </div>
-            
+
             <div class="lang-selection my-4" style="display: none">
                 <p>Choose language you want to translate into</p>
                 <?php if($this->variables->api_key !== "") {?>
@@ -103,79 +111,95 @@
             <div class="my-4">
                 <input type="submit" name="submit" id="submit" class="btn btn-primary btn-custom" value="Continue">
             </div>
-
         </div>
-
     </div>
-
 </form>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
+    let submitBlocked = true;
 
-    var submitBlocked = true;
+    const handleValidationResponse = (data, form) => {
+        const validationLabel = form.querySelector('.validation-label');
+        const inputElementsApiKey = form.querySelector('input#conveythis_api_key');
+        const inputElementsEmail = form.querySelector('input#conveythis_email');
+        const dropdownElements = form.querySelectorAll('.lang-selection');
 
-    document.getElementById('login-form-settings').addEventListener('submit', function(e) {
+        if (data.data.check !== false) {
+            validationLabel.style.display = 'none';
+            inputElementsApiKey.classList.remove('validation-failed');
+            inputElementsEmail.classList.remove('validation-failed');
+
+            updateSettings(form, dropdownElements);
+        } else {
+            validationLabel.style.display = 'block';
+            inputElementsApiKey.classList.add('validation-failed');
+            inputElementsEmail.classList.add('validation-failed');
+        }
+    };
+
+    const updateSettings = (form, dropdownElements) => {
+        const apiKeyValue = form.elements['api_key'].value;
+
+        $.ajax({
+            url: 'options.php',
+            method: 'POST',
+            data: {
+                'api_key': apiKeyValue,
+                'from_js': true
+            },
+            success: (response) => {
+                if (response !== "null") {
+                    const data = JSON.parse(response);
+
+                    $('.dropdown-current-language').dropdown('set selected', data.source_language);
+                    $('.dropdown-target-languages').dropdown('set selected', data.target_language);
+                }
+
+                $('#submit').val('Save Settings');
+                dropdownElements.forEach(block => block.style.display = 'block');
+
+                $('#submit').off('click').on('click', () => {
+                    $('input[name="source_language"]').removeClass('first-submit');
+                    $('input[name="target_languages"]').removeClass('first-submit');
+                    submitBlocked = false;
+                    form.submit();
+                });
+            },
+            error: () => {
+                console.log('Failed to update settings. Please try again.');
+            }
+        });
+    };
+
+    const validateApiKey = (apiKeyValue, emailValue, form) => {
+        $.ajax({
+            url: 'https://api.conveythis.com/admin/accounts/check/',
+            method: 'POST',
+            data: { 'pub_key': apiKeyValue,  'email': emailValue  },
+            success: (response) => {
+                handleValidationResponse(response, form);
+            },
+            error: () => {
+                console.log('Server error, please contact support.');
+            }
+        });
+    };
+
+    document.getElementById('login-form-settings').addEventListener('submit', (e) => {
         if (submitBlocked) {
             e.preventDefault();
 
-            var apiKeyInput = e.target.elements['api_key'];
-            var apiKeyValue = apiKeyInput.value;
-            var validationLabel = e.target.querySelector('.validation-label');
-            var inputElements = e.target.querySelector('input#conveythis_api_key');
-            var dropdownElements = e.target.querySelectorAll('.lang-selection');
+            const form = e.target;
+            const apiKeyInput = form.elements['api_key'];
+            const apiKeyValue = apiKeyInput.value;
 
-            $.ajax({
-                url: 'https://api.conveythis.com/25/examination/pubkey/',
-                method: 'POST',
-                data: {'pub_key': apiKeyValue},
-                success: function(response) {
-                    let data = JSON.parse(JSON.stringify(response));
-                    if (data.data.check !== false) {
-                        validationLabel.style.display = 'none';
-                        inputElements.classList.remove('validation-failed');
+            const emailInput = form.elements['email'];
+            const emailValue = emailInput.value;
 
-                        $.ajax({
-                            url: 'options.php',
-                            method: 'POST',
-                            data: {
-                                'api_key': apiKeyValue,
-                                'from_js': true
-                            },
-                            success: function (response) {
-
-
-                                if (response !== "null") {
-                                    var data = JSON.parse(response);
-
-                                    $('.dropdown-current-language').dropdown('set selected', data.source_language);
-                                    $('.dropdown-target-languages').dropdown('set selected', data.target_language);
-                                }
-
-                                $('#submit').val('Save Settings');
-                                dropdownElements.forEach(block => block.style.display = 'block');
-
-                                $('#submit').click(function () {
-                                    $('input[name="source_language"]').removeClass('first-submit');
-                                    $('input[name="target_languages"]').removeClass('first-submit');
-                                    submitBlocked = false;
-                                    $('#login-form-settings').submit();
-                                })
-                            }
-                        })
-                    } else {
-                        validationLabel.style.display = 'block';
-                        inputElements.classList.add('validation-failed');
-                    }
-                },
-                error: function() {
-                    alert('Server error, please contact support');
-                }
-            });
+            validateApiKey(apiKeyValue, emailValue, form);
         } else {
             submitBlocked = true;
         }
     });
-
-
 </script>

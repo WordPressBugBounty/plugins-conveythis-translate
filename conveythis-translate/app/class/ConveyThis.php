@@ -93,7 +93,7 @@ class ConveyThis
             add_action('rank_math/sitemap/url', array($this->ConveyThisSEO, 'sitemap_add_translated_urls'), 10, 2);
 
             // OpenGraph
-	        add_action( 'rank_math/opengraph/url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
+            add_action( 'rank_math/opengraph/url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
         }
 
         //Yoast sitemap
@@ -103,7 +103,7 @@ class ConveyThis
             add_action('wpseo_sitemap_url', array($this->ConveyThisSEO, 'sitemap_add_translated_urls'), 10, 2);
 
             //OpenGraph
-	        add_action( 'wpseo_opengraph_url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
+            add_action( 'wpseo_opengraph_url', array( $this, 'rank_math_opengraph_url' ), 10, 2 );
         }
 
         //SeoPress sitemap
@@ -112,9 +112,9 @@ class ConveyThis
             add_filter('query_vars', array($this->ConveyThisSEO, 'sp_add_query_vars_filter'));
             add_filter('seopress_sitemaps_xml_index', array($this->ConveyThisSEO, 'sp_sitemaps_xml_index'));
             add_action('template_redirect', array($this->ConveyThisSEO, 'sp_serve_custom_sitemaps'));
-	        add_action( 'seopress_sitemaps_url', array( $this->ConveyThisSEO, 'sitemap_add_translated_urls' ), 10, 2 );
-	        //OpenGraph
-	        add_action( 'seopress_social_og_url', array( $this, 'seopress_opengraph_url' ), 10, 2 );
+            add_action( 'seopress_sitemaps_url', array( $this->ConveyThisSEO, 'sitemap_add_translated_urls' ), 10, 2 );
+            //OpenGraph
+            add_action( 'seopress_social_og_url', array( $this, 'seopress_opengraph_url' ), 10, 2 );
         }
 
 
@@ -1148,11 +1148,13 @@ class ConveyThis
             $hrefPageUrl = $this->getPageUrl($href);
 
             if ($hrefPageUrl === $currentPageUrl) {
-                $linkList['current'] .= "<a href='{$href}'>{$code}</a>";
+                $linkList['current'] .= "<a href='{$href}' translate='no'>{$code}</a>";
             } else {
-                $linkList['alternates'] .= PHP_EOL."<a href='{$href}'>{$code}</a>";
+                $linkList['alternates'] .= PHP_EOL."<a href='{$href}' translate='no'>{$code}</a>";
             }
         }
+
+
 
         $conveythisLogo ='<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
 
@@ -2073,7 +2075,7 @@ class ConveyThis
     {
         $aPos = strpos( $value, '//' );
 
-        if ($this->isBlockedPage($value, $this->variables->blockpages) || $this->isPageExcluded($value, $this->variables->exclusions)) {
+        if ($this->isPageExcluded($value, $this->variables->exclusions)) {
             return $value;
         }
 
@@ -2685,12 +2687,11 @@ class ConveyThis
         return $translateUrl;
     }
 
-
-
-    public function get_conveythis_shortcode(){
-
+    public function get_conveythis_shortcode()
+    {
+        $widgetPlaceholder = '<div id="conveythis_widget_placeholder_'.$this->variables->shortcode_counter.'" class="conveythis_widget_placeholder"></div>';
         $this->variables->shortcode_counter++;
-        return '<div id="conveythis_widget_placeholder_'.$this->variables->shortcode_counter.'" class="conveythis_widget_placeholder"></div>';
+        return $widgetPlaceholder;
     }
 
     public static function Instance()
@@ -3001,10 +3002,4 @@ class ConveyThis
 
         return false;
     }
-
-    private function isBlockedPage($pageUrl, $blockPages)
-    {
-        return in_array($pageUrl, $blockPages) || in_array(rtrim($pageUrl, '/'), $blockPages);
-    }
-
 }

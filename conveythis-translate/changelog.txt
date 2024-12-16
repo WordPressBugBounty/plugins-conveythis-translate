@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 247 =
+* Updated activation
+
 = 246 =
 * Updated language switcher
 

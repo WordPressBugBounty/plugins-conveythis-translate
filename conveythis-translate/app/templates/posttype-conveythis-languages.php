@@ -12,7 +12,6 @@
 
                 <input type="hidden" class="menu-item-classes" name="menu-item[<?php echo  esc_attr( $index + 1 ); ?>][menu-item-classes]" />
             </li>
-
             <?php endforeach; ?>
 
         </ul>
