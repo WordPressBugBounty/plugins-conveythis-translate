@@ -315,28 +315,4 @@ class ConveyThisCache
         }
         return false;
     }
-
-    public function clearCacheTime() {
-
-
-
-    }
-
-//    public function getCacheSize()
-//    {
-//        if ($this->variables->cacheTranslateSize == 0) {
-//            $iterator = new RecursiveIteratorIterator(
-//                new RecursiveDirectoryIterator(CONVEYTHIS_CACHE_TRANSLATIONS_PATH, FilesystemIterator::SKIP_DOTS)
-//            );
-//            $size = 0;
-//            foreach ($iterator as $file) {
-//                $size += $file->getSize();
-//            }
-//            if ($size > 0) {
-//                $size = (round($size / 1048576 * 100) / 100);//MB
-//            }
-//            $this->variables->cacheTranslateSize = $size;
-//        }
-//        return $this->variables->cacheTranslateSize;
-//    }
 }

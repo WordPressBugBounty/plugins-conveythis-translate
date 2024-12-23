@@ -4,8 +4,7 @@ require_once 'Variables.php';
 
 class ConveyThis
 {
-    static $instance;
-
+    public static $instance;
     private $variables;
     private $ConveyThisCache;
     private $ConveyThisSEO;
@@ -13,11 +12,9 @@ class ConveyThis
 
     function __construct()
     {
-
         $this->variables = new Variables();
         $this->ConveyThisCache = new ConveyThisCache();
         $this->ConveyThisSEO = new ConveyThisSEO();
-
 
         uasort($this->variables->languages, function($a, $b){
             if(strcmp($a['title_en'], $b['title_en']) > 0)
@@ -68,6 +65,9 @@ class ConveyThis
             }
         }
 
+        add_filter( 'conveythis_get_dom_checkers', array( $this, 'conveythis_register_default_dom_checkers'));
+        add_filter( 'conveythis_add_json_keys', array( $this, 'conveythis_add_default_json_keys'));
+
         add_filter( 'plugin_row_meta', array( $this, '_row_meta' ), 10, 2 );
         add_filter( 'wp_nav_menu', array( $this, '_menu_shortcode' ), 20, 2 );
 
@@ -84,6 +84,7 @@ class ConveyThis
 
         add_action( 'widgets_init', 'wp_register_widget' );
         add_shortcode('conveythis_switcher', array($this, 'get_conveythis_shortcode'));
+
 
         //RankMath
         //sitemap
@@ -141,7 +142,6 @@ class ConveyThis
                 echo json_encode(['clear_cache_translate' => $result]);
                 exit();
             }
-
         }
 
         $flag_replaces = ['NV2' => 'af', '5iM' => 'al', '5W5' => 'dz', '0Iu' => 'ad', 'R3d' => 'ao', '16M' => 'ag', 'V1f' => 'ar', 'q9U' => 'am', '2Os' => 'au', '8Dv' => 'at', 'Wg1' => 'az', '' => 'xk', '0qL' => 'bs', 'D9A' => 'bh', '63A' => 'bd', 'u7L' => 'bb', 'O8S' => 'by', '0AT' => 'be', 'lH4' => 'bz', 'I2x' => 'bj', 'D9z' => 'bt', '8Vs' => 'bo', 'Z1t' => 'ba', 'Vf3' => 'bw', '1oU' => 'br', '3rE' => 'bn', 'x8P' => 'bf', '5qZ' => 'bi', 'o8B' => 'kh', '3cO' => 'cm', 'P4g' => 'ca', 'R5O' => 'cv', 'kN9' => 'cf', 'V5u' => 'td', 'wY3' => 'cl', 'Z1v' => 'cn', 'a4S' => 'co', 'N6k' => 'km', 'WK0' => 'cg', 'PP7' => 'cr', '6PX' => 'ci', '7KQ' => 'hr', 'vU2' => 'cu', '1ZY' => 'cz', 'Kv5' => 'cd', 'Ro2' => 'dk', 'MS7' => 'dj', 'E7U' => 'dm', 'Eu2' => 'do', 'D90' => 'ec', '7LL' => 'eg', '0zL' => 'sv', 'b8T' => 'gq', '8Gl' => 'er', 'VJ8' => 'ee', 'ZH1' => 'et', 'E1f' => 'fj', 'nM4' => 'fi', 'E77' => 'fr', 'R1u' => 'ga', 'TZ6' => 'gm', '8Ou' => 'ge', '6Mr' => 'gh', 'kY8' => 'gr', 'yG1' => 'gd', 'aE8' => 'gt', '6Lm' => 'gn', 'I39' => 'gw', 'Mh5' => 'gy', 'Qx7' => 'ht', 'm5Q' => 'hn', 'OU2' => 'hu', 'Ho8' => 'is', 'My6' => 'in', 'G0m' => 'id', 'Vo7' => 'ir', 'z7I' => 'iq', '5Tr' => 'ie', '5KS' => 'il', 'BW7' => 'it', 'u6W' => 'jm', '4YX' => 'jp', 's2B' => 'jo', 'QA5' => 'kz', 'X3y' => 'ke', 'l2H' => 'ki', 'P5F' => 'kw', 'uP6' => 'kg', 'Qy5' => 'la', 'j1D' => 'lv', 'Rl2' => 'lb', 'lB1' => 'ls', '9Qw' => 'lr', 'v6I' => 'ly', '2GH' => 'li', 'uI6' => 'lt', 'EV8' => 'lu', '6GV' => 'mk', '4tE' => 'mg', 'O9C' => 'mw', 'C9k' => 'my', '1Q3' => 'mv', 'Yi5' => 'ml', 'N11' => 'mt', 'Z3x' => 'mh', 'F18' => 'mr', 'mH4' => 'mu', '8Qb' => 'mx', 'H6t' => 'fm', 'FD8' => 'md', 't0X' => 'mc', 'X8h' => 'mn', '61A' => 'me', 'M2e' => 'ma', 'J7N' => 'mz', 'YB9' => 'mm', 'r0H' => 'na', 'M09' => 'nr', 'E0c' => 'np', '8jV' => 'nl', '0Mi' => 'nz', '5dN' => 'ni', 'Rj0' => 'ne', '8oM' => 'ng', '3Yz' => 'kp', '4KE' => 'no', '8NL' => 'om', 'n4T' => 'pk', '8G2' => 'pw', '93O' => 'pa', 'FD4' => 'pg', 'y5O' => 'py', '4MJ' => 'pe', '2qL' => 'ph', 'j0R' => 'pl', '0Rq' => 'pt', 'a8S' => 'qa', 'nC7' => 'ro', 'D1H' => 'ru', '8UD' => 'rw', 'X2d' => 'kn', 'I5e' => 'lc', '3Kf' => 'vc', '54E' => 'ws', 'K4F' => 'sm', 'cZ9' => 'st', 'J06' => 'sa', 'x2O' => 'sn', 'GC6' => 'rs', 'JE6' => 'sc', 'mS4' => 'sl', 'O6e' => 'sg', 'Y2i' => 'sk', 'ZR1' => 'si', '0U1' => 'sb', '3fH' => 'so', '7xS' => 'za', '0W3' => 'kr', 'H4u' => 'ss', 'A5d' => 'es', '9JL' => 'lk', 'Wh1' => 'sd', '7Rb' => 'sr', 'f6L' => 'sz', 'oZ3' => 'se', '8aW' => 'ch', 'UZ9' => 'sy', '00T' => 'tw', '7Qa' => 'tj', 'VU7' => 'tz', 'V6r' => 'th', '52C' => 'tl', 'HH3' => 'tg', '8Ox' => 'to', 'oZ8' => 'tt', 'pD6' => 'tn', 'YZ9' => 'tr', 'Tm5' => 'tm', 'u0Y' => 'tv', 'eJ2' => 'ug', '2Mg' => 'ua', 'DT3' => 'ae', 'Dw0' => 'gb', 'R04' => 'us', 'aL9' => 'uy', 'zJ3' => 'uz', 'D0Y' => 'vu', 'FG2' => 'va', 'Eg6' => 've', 'l2A' => 'vn', 'YZ0' => 'ye', '9Be' => 'zm', '80Y' => 'zw', '00H' => 'hk', '00P' => 'ha'];
@@ -159,7 +159,11 @@ class ConveyThis
                 update_option('style_change_flag', $this->variables->style_change_flag );
             }
         }
+    }
 
+    public function conveythis_register_default_dom_checkers($content)
+    {
+        return $content;
     }
 
     public function clear_post($post_id, $post_data)
@@ -171,7 +175,8 @@ class ConveyThis
         }
     }
 
-    public function rank_math_opengraph_url($url){
+    public function rank_math_opengraph_url($url)
+    {
         if(!empty( $this->variables->language_code )){
             $urlParts = parse_url($url);
             if (isset($urlParts['host'])) {
@@ -181,9 +186,9 @@ class ConveyThis
         return $url;
     }
 
-    public function seopress_opengraph_url($html_url){
-
-        if(!empty( $this->variables->language_code )){
+    public function seopress_opengraph_url($html_url)
+    {
+        if (!empty( $this->variables->language_code )) {
             preg_match('/content="([^"]+)"/', $html_url, $matches);
             if (isset($matches[1])) {
                 $url = $matches[1];
@@ -251,10 +256,8 @@ class ConveyThis
                 {
                     $post->title = $icon;
                 }
-
             }
         }
-
         return $attr;
     }
 
@@ -321,7 +324,6 @@ class ConveyThis
             $current_language_code = $this->variables->source_language;
         }
 
-
         $language = $this->searchLanguage( $current_language_code );
 
         if( !empty( $language ) )
@@ -363,12 +365,10 @@ class ConveyThis
                 }
             }
         }
-
         require_once CONVEY_PLUGIN_ROOT_PATH . 'app/templates/posttype-conveythis-languages.php';
-
     }
 
-    function _row_meta( $links, $file )
+    public function _row_meta( $links, $file )
     {
         $plugin = plugin_basename( __FILE__ );
 
@@ -384,15 +384,12 @@ class ConveyThis
 
     public static function _settings_link( $links )
     {
-
         array_push( $links, '<a href="options-general.php?page=convey_this">' . __( 'Settings', 'conveythis-translate' ) . '</a>' );
-
         return $links;
     }
 
-    function _admin_menu()
+    public function _admin_menu()
     {
-
         add_menu_page(
             'ConveyThis Settings',
             'ConveyThis',
@@ -401,12 +398,10 @@ class ConveyThis
             array( $this, 'pluginOptions' ),
             'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMDFfODMpIj4KPG1hc2sgaWQ9Im1hc2swXzEwMV84MyIgc3R5bGU9Im1hc2stdHlwZTpsdW1pbmFuY2UiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjEwIiB3aWR0aD0iOTIiIGhlaWdodD0iODAiPgo8cGF0aCBkPSJNMCAxMEg5MS4xNTc4VjkwSDBWMTBaIiBmaWxsPSJ3aGl0ZSIvPgo8L21hc2s+CjxnIG1hc2s9InVybCgjbWFzazBfMTAxXzgzKSI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNjAuMDY4OSA4OS45MDg5QzU2LjA5MzUgODkuOTA4OSA1Mi4yNjEyIDg5LjM3ODUgNDguNjY4NSA4OC4zMjA1QzQ4LjMzMjYgODguMjIzOCA0OC4xNDEzIDg3Ljk4MzQgNDguMDQ2MyA4Ny42OTQ3QzQ3Ljk5ODEgODcuMzU3NyA0OC4wOTMxIDg3LjA2OSA0OC4zMzI2IDg2LjgyODdDNDguNzE2NyA4Ni40OTE3IDQ4Ljk1NjIgODYuMDExIDQ4Ljk1NjIgODUuNDMzNkM0OC45NTYyIDg0LjQyNCA0OC4xNDEzIDgzLjU1NzkgNDcuMDg4MyA4My41NTc5SDI5Ljg5MTNDMjguODg1IDgzLjU1NzkgMjguMDIxOSA4Mi43NDAyIDI4LjAyMTkgODEuNjgwOEMyOC4wMjE5IDgwLjY3MTEgMjguODM2OSA3OS44MDUxIDI5Ljg5MTMgNzkuODA1MUgzNS4zNTJDMzYuMzU4MiA3OS44MDUxIDM3LjIxOTkgNzguOTg3NCAzNy4yMTk5IDc3LjkyOEMzNy4yMTk5IDc2LjkxODMgMzYuNDA1IDc2LjA1MjMgMzUuMzUyIDc2LjA1MjNIMzAuMDM0NEgyOS45ODYzSDIzLjYxNTdDMjIuNjA5NCA3Ni4wNTIzIDIxLjc0NzggNzUuMjM0NiAyMS43NDc4IDc0LjE3NTFDMjEuNzQ3OCA3My4xNjU0IDIyLjU2MTMgNzIuMjk5NCAyMy42MTU3IDcyLjI5OTRIMjguNjQ1NUMyOS42NTE4IDcyLjI5OTQgMzAuNTEzNSA3MS40ODE3IDMwLjUxMzUgNzAuNDIyM0MzMC41MTM1IDY5LjQxMjYgMjkuNjk4NiA2OC41NDY2IDI4LjY0NTUgNjguNTQ2NkgyMC44ODQ3QzE5Ljg3OTggNjguNTQ2NiAxOS4wMTY3IDY3LjcyODkgMTkuMDE2NyA2Ni42NzA5QzE5LjAxNjcgNjUuNjU5OCAxOS44MzE2IDY0Ljc5MzcgMjAuODg0NyA2NC43OTM3SDM1LjMwMzhDMzYuMzEgNjQuNzkzNyAzNy4xNzE3IDYzLjk3NiAzNy4xNzE3IDYyLjkxOEMzNy4xNzE3IDYxLjkwNjkgMzYuMzU4MiA2MS4wNDA5IDM1LjMwMzggNjEuMDQwOUgxNi42MjE2QzE1LjYxNTMgNjEuMDQwOSAxNC43NTM2IDYwLjIyMzIgMTQuNzUzNiA1OS4xNjUyQzE0Ljc1MzYgNTguMTU0MSAxNS41Njg1IDU3LjI4OCAxNi42MjE2IDU3LjI4OEgyMi45NDUzQzIzLjk1MTYgNTcuMjg4IDI0LjgxMzMgNTYuNDcwMyAyNC44MTMzIDU1LjQxMjNDMjQuODEzMyA1NC40MDEyIDIzLjk5ODQgNTMuNTM1MiAyMi45NDUzIDUzLjUzNTJIMTYuMjg3MUMxNS4yODA4IDUzLjUzNTIgMTQuNDE3NyA1Mi43MTc1IDE0LjQxNzcgNTEuNjU5NUMxNC40MTc3IDUwLjY0ODQgMTUuMjMyNiA0OS43ODIzIDE2LjI4NzEgNDkuNzgyM0gyOS4wMjgyQzMwLjAzNDQgNDkuNzgyMyAzMC44OTYxIDQ4Ljk2NDcgMzAuODk2MSA0Ny45MDY2QzMwLjg5NjEgNDYuODk1NSAzMC4wODI2IDQ2LjAyOTUgMjkuMDI4MiA0Ni4wMjk1SDE5Ljc4MzRDMTguNzc3MiA0Ni4wMjk1IDE3LjkxNTUgNDUuMjExOCAxNy45MTU1IDQ0LjE1MzhDMTcuOTE1NSA0My4xNDI3IDE4LjcyOSA0Mi4yNzgxIDE5Ljc4MzQgNDIuMjc4MUgyMy4zMjhDMjQuMzM0MiA0Mi4yNzgxIDI1LjE5NTkgNDEuNDU5IDI1LjE5NTkgNDAuNDAwOUMyNS4xOTU5IDM5LjM5MTMgMjQuMzgyNCAzOC41MjUyIDIzLjMyOCAzOC41MjUySDE2LjA0NzZDMTUuMDQxMyAzOC41MjUyIDE0LjE3ODIgMzcuNzA2MSAxNC4xNzgyIDM2LjY0ODFDMTQuMTc4MiAzNS42Mzg0IDE0Ljk5MzEgMzQuNzcyNCAxNi4wNDc2IDM0Ljc3MjRIMzYuMTE4N0MzNy4xMjM1IDM0Ljc3MjQgMzcuOTg2NyAzMy45NTMzIDM3Ljk4NjcgMzIuODk1M0MzNy45ODY3IDMxLjk4MDkgMzcuMzE0OSAzMS4yMTE1IDM2LjQ1MzIgMzEuMDY3OUgzMC43NTNDMzAuNjU2NiAzMS4wNjc5IDMwLjU2MTcgMzEuMDY3OSAzMC40MTcxIDMxLjAxOTZIMjkuMjE5NUMyOS4xMjQ2IDMxLjAxOTYgMjkuMDI4MiAzMS4wNjc5IDI4Ljg4NSAzMS4wNjc5SDEzLjUwNzhDMTIuNTAxNiAzMS4wNjc5IDExLjYzOTkgMzAuMjQ4OCAxMS42Mzk5IDI5LjE5MDhDMTEuNjM5OSAyOC4xODExIDEyLjQ1NDggMjcuMzE1MSAxMy41MDc4IDI3LjMxNTFIMjguODg1QzI5LjAyODIgMjcuMzE1MSAyOS4xNzI4IDI3LjMxNTEgMjkuMzE1OSAyNy4zNjJIMzAuMjc0QzMwLjQxNzEgMjcuMzE1MSAzMC41NjE3IDI3LjMxNTEgMzAuNzA0OCAyNy4zMTUxSDMxLjYxNDdDMzIuNDI5NiAyNy4xMjE3IDMzLjAwNSAyNi40MDA3IDMzLjAwNSAyNS40ODYzQzMzLjAwNSAyNC41NzE5IDMyLjMzMzIgMjMuODAyNSAzMS40NzE1IDIzLjY1NzVIMjkuMzY0MUMyOC4zNTc4IDIzLjY1NzUgMjcuNDk2MSAyMi44Mzk4IDI3LjQ5NjEgMjEuNzgxOEMyNy40OTYxIDIwLjc3MDcgMjguMzA5NiAxOS45MDQ2IDI5LjM2NDEgMTkuOTA0Nkg0My44NzgyQzQ0Ljg4NDQgMTkuOTA0NiA0NS43NDYxIDE5LjA4NyA0NS43NDYxIDE4LjAyODlDNDUuNzQ2MSAxNy4xMTQ1IDQ1LjA3NTggMTYuMzQ1MiA0NC4yMTQxIDE2LjIwMDJIMzQuOTIxMUMzMy45MTQ5IDE2LjIwMDIgMzMuMDUxOCAxNS4zODI1IDMzLjA1MTggMTQuMzI0NEMzMy4wNTE4IDEzLjMxMzQgMzMuODY2NyAxMi40NDczIDM0LjkyMTEgMTIuNDQ3M0g0Ni41MTI5QzUwLjg3MjMgMTAuODYwMyA1NS42MTQ1IDEwLjA5MDkgNjAuNzM5MiAxMC4wOTA5QzY0LjI4MzggMTAuMDkwOSA2Ny41NDIxIDEwLjM3OTYgNzAuNTExMiAxMC45NTdDNzMuNDMzNiAxMS41MzQzIDc2LjExNjQgMTIuMzUyIDc4LjUxMTYgMTMuMzYxN0M4MC45MDY4IDE0LjM3MjggODMuMTEwNiAxNS42MjI4IDg1LjE2OTkgMTcuMDY2MkM4Ni45ODk2IDE4LjM2NiA4OC42NjYyIDE5Ljc2MSA5MC4yNDc5IDIxLjMwMTFDOTAuNTgyNCAyMS42MzY3IDkwLjU4MjQgMjIuMTY3MiA5MC4yOTQ3IDIyLjUwMjhMODAuNzE1NCAzMy41NjkzQzgwLjU3MDkgMzMuNzYxMyA4MC4zNzk1IDMzLjg1OCA4MC4xNCAzMy44NThDNzkuOTAwNSAzMy44NTggNzkuNzA5MiAzMy44MDk3IDc5LjUxNzkgMzMuNjY2Qzc2LjczODYgMzEuMjU5OSA3My45MTI2IDI5LjMzNTggNzEuMDg2NiAyNy44OTI0QzY4LjAyMTEgMjYuMzUyMyA2NC41MjMzIDI1LjU4MyA2MC42OTI1IDI1LjU4M0M1Ny40ODI0IDI1LjU4MyA1NC41MTE4IDI2LjIwNzMgNTEuODMwNCAyNy40NTg3QzQ5LjA5OTMgMjguNzEwMSA0Ni43NTI0IDMwLjM5MzggNDQuNzg4MSAzMi42MDY2QzQyLjgyMzcgMzQuODE5MyA0MS4yOTE3IDM3LjMyMjIgNDAuMTg5MSA0MC4yMDlDMzkuMDg3OSA0My4wOTU4IDM4LjU2MDYgNDYuMTc0NiAzOC41NjA2IDQ5LjQ0NjdWNDkuNjg3MUMzOC41NjA2IDUyLjk1NzggMzkuMDg3OSA1Ni4wODUgNDAuMTg5MSA1OC45NzE4QzQxLjI5MTcgNjEuOTA2OSA0Mi43NzcgNjQuNDU2NyA0NC42OTMxIDY2LjYyMjVDNDYuNjA5MiA2OC44MzUyIDQ4Ljk1NjIgNzAuNTY3MyA1MS42ODU4IDcxLjgxODdDNTQuNDE2OSA3My4xMTcxIDU3LjM4NiA3My43NDI4IDYwLjY5MjUgNzMuNzQyOEM2NS4wNTA1IDczLjc0MjggNjguNzM5NiA3Mi45MjUxIDcxLjc1NyA3MS4zMzY3Qzc0LjU4MyA2OS44NDQ5IDc3LjM2MjIgNjcuODI1NiA4MC4xNCA2NS4zMjI3QzgwLjQ3NTkgNjQuOTg1NyA4MS4wMDE3IDY1LjAzNDEgODEuMzM3NiA2NS4zNzExTDkwLjgyMTkgNzQuOTk0MkM5MS4xNTc4IDc1LjMyOTggOTEuMTU3OCA3NS44NjAzIDkwLjgyMTkgNzYuMTk1OUM4OS4wNTAzIDc4LjA3MyA4Ny4xODI0IDc5Ljc1NjcgODUuMzEzIDgxLjI0ODVDODMuMjA1NiA4Mi45MzIyIDgwLjkwNjggODQuMzc1NiA3OC40MTUyIDg1LjU3ODdDNzUuOTI1MSA4Ni43ODA0IDczLjE0NTkgODcuNjk0NyA3MC4xNzY3IDg4LjMyMDVDNjcuMTExMiA4OS42MjAyIDYzLjc1OCA4OS45MDg5IDYwLjA2ODkgODkuOTA4OVpNMy4zNTMyMiA0Ni40MTQ5SDQuMDIzNThDNS4wMjk4MyA0Ni40MTQ5IDUuODkxNTIgNDcuMjMyNiA1Ljg5MTUyIDQ4LjI5MkM1Ljg5MTUyIDQ5LjMwMTcgNS4wNzgwMiA1MC4xNjc3IDQuMDIzNTggNTAuMTY3N0gzLjM1MzIyQzIuMzQ2OTcgNTAuMTY3NyAxLjQ4NTI4IDQ5LjM1IDEuNDg1MjggNDguMjkyQzEuNTMyMDUgNDcuMjMyNiAyLjM0Njk3IDQ2LjQxNDkgMy4zNTMyMiA0Ni40MTQ5Wk05LjI0NDc1IDQ2LjQxNDlIMTEuOTc1OEMxMi45ODA2IDQ2LjQxNDkgMTMuODQzNyA0Ny4yMzI2IDEzLjg0MzcgNDguMjkyQzEzLjg0MzcgNDkuMzAxNyAxMy4wMjg4IDUwLjE2NzcgMTEuOTc1OCA1MC4xNjc3SDkuMjQ0NzVDOC4yMzg1IDUwLjE2NzcgNy4zNzY4MSA0OS4zNSA3LjM3NjgxIDQ4LjI5MkM3LjM3NjgxIDQ3LjIzMjYgOC4xOTE3MyA0Ni40MTQ5IDkuMjQ0NzUgNDYuNDE0OVpNOS43NzE5NiAyMC40MzUxSDEyLjE2NzFDMTMuMTczNCAyMC40MzUxIDE0LjAzNTEgMjEuMjUyOCAxNC4wMzUxIDIyLjMxMDhDMTQuMDM1MSAyMy4zMjE5IDEzLjIyMDEgMjQuMTg3OSAxMi4xNjcxIDI0LjE4NzlIOS43NzE5NkM4Ljc2NTcxIDI0LjE4NzkgNy45MDQwMiAyMy4zNjg4IDcuOTA0MDIgMjIuMzEwOEM3LjkwNDAyIDIxLjMwMTEgOC43NjU3MSAyMC40MzUxIDkuNzcxOTYgMjAuNDM1MVpNMTcuMTQ4OCAyMC40MzUxSDI0LjE0MjlDMjUuMTQ3OCAyMC40MzUxIDI2LjAxMDkgMjEuMjUyOCAyNi4wMTA5IDIyLjMxMDhDMjYuMDEwOSAyMy4zMjE5IDI1LjE5NTkgMjQuMTg3OSAyNC4xNDI5IDI0LjE4NzlIMTcuMTQ4OEMxNi4xNDI1IDI0LjE4NzkgMTUuMjgwOCAyMy4zNjg4IDE1LjI4MDggMjIuMzEwOEMxNS4yODA4IDIxLjMwMTEgMTYuMDk0MyAyMC40MzUxIDE3LjE0ODggMjAuNDM1MVpNMjAuODM3OSA3OS45MDA0SDIyLjk0NTNDMjMuOTUxNiA3OS45MDA0IDI0LjgxMzMgODAuNzE5NSAyNC44MTMzIDgxLjc3NzVDMjQuODEzMyA4Mi43ODcyIDIzLjk5ODQgODMuNjUzMiAyMi45NDUzIDgzLjY1MzJIMjAuODM3OUMxOS44MzE2IDgzLjY1MzIgMTguOTY4NSA4Mi44MzU1IDE4Ljk2ODUgODEuNzc3NUMxOC45Njg1IDgwLjcxOTUgMTkuODMxNiA3OS45MDA0IDIwLjgzNzkgNzkuOTAwNFpNNi4xMzEwNCA1Ny41NzY3SDEwLjY4MThDMTEuNjg4MSA1Ny41NzY3IDEyLjU0OTggNTguMzk0NCAxMi41NDk4IDU5LjQ1MzhDMTIuNTQ5OCA2MC40NjM1IDExLjczNjMgNjEuMzI5NiAxMC42ODE4IDYxLjMyOTZINi4xMzEwNEM1LjEyNDc5IDYxLjMyOTYgNC4yNjMxIDYwLjUxMTkgNC4yNjMxIDU5LjQ1MzhDNC4yNjMxIDU4LjM5NDQgNS4xMjQ3OSA1Ny41NzY3IDYuMTMxMDQgNTcuNTc2N1pNMjcuNTQyOSAxMy4wMjQ3SDMwLjI3NEMzMS4yODAyIDEzLjAyNDcgMzIuMTQxOSAxMy44NDM4IDMyLjE0MTkgMTQuOTAxOEMzMi4xNDE5IDE1LjkxMTUgMzEuMzI4NCAxNi43Nzc1IDMwLjI3NCAxNi43Nzc1SDI3LjU0MjlDMjYuNTM4MSAxNi43Nzc1IDI1LjY3NSAxNS45NTk4IDI1LjY3NSAxNC45MDE4QzI1LjY3NSAxMy44OTA3IDI2LjUzODEgMTMuMDI0NyAyNy41NDI5IDEzLjAyNDdaTTEuODY3OTQgMzUuMjA0N0g5LjA1MzQyQzEwLjA1OTcgMzUuMjA0NyAxMC45MjE0IDM2LjAyMjQgMTAuOTIxNCAzNy4wODE4QzEwLjkyMTQgMzguMDkxNSAxMC4xMDc5IDM4Ljk1NzUgOS4wNTM0MiAzOC45NTc1SDEuODY3OTRDMC44MTM1MDQgMzguOTU3NSAwIDM4LjA5MTUgMCAzNy4wODE4QzAgMzYuMDcwNyAwLjgxMzUwNCAzNS4yMDQ3IDEuODY3OTQgMzUuMjA0N1pNNy40NzMxOCA2NC45ODU3SDkuODY4MzRDMTAuODczMiA2NC45ODU3IDExLjczNjMgNjUuODA0OCAxMS43MzYzIDY2Ljg2MjhDMTEuNzM2MyA2Ny44NzI1IDEwLjkyMTQgNjguNzM4NSA5Ljg2ODM0IDY4LjczODVINy40NzMxOEM2LjQ2NjkzIDY4LjczODUgNS42MDM4MiA2Ny45MjA5IDUuNjAzODIgNjYuODYyOEM1LjYwMzgyIDY1Ljg1MTcgNi40MTg3NCA2NC45ODU3IDcuNDczMTggNjQuOTg1N1oiIGZpbGw9IiNBQUFBQUEiLz4KPC9nPgo8bWFzayBpZD0ibWFzazFfMTAxXzgzIiBzdHlsZT0ibWFzay10eXBlOmx1bWluYW5jZSIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iNTciIHk9IjM3IiB3aWR0aD0iNDQiIGhlaWdodD0iMjYiPgo8cGF0aCBkPSJNNTcuMTg3NyAzNy40NzAxSDEwMFY2Mi41ODgxSDU3LjE4NzdWMzcuNDcwMVoiIGZpbGw9IndoaXRlIi8+CjwvbWFzaz4KPGcgbWFzaz0idXJsKCNtYXNrMV8xMDFfODMpIj4KPHBhdGggZD0iTTk5LjYzNDQgNDguOTk4N0M5OS4yODI5IDQ4LjM0MTcgOTguNTc3MSA0OC4wNDAyIDk3Ljk3NDggNDcuNjc0N0M5MC43NTk2IDQzLjQxNDIgODIuNDU1OSA0MS4wNjc4IDc0LjA5ODMgNDAuOTI0MkM3Mi43MjA3IDM4Ljg1NjUgNzAuMzExNCAzNy41Mjk3IDY3LjgzODMgMzcuNTIyNkM2NC43MTMzIDM3LjUyMTEgNjEuNTg2OCAzNy40ODg0IDU4LjQ2MDMgMzcuNTA2OUM1Ny41MDIzIDM3LjUzOTYgNTcuMDQ0NSAzOC45Mjc2IDU3LjgwMTMgMzkuNTMwNUM1OS42NTY1IDQwLjk0MjYgNjEuNTU4NCA0Mi4yOTA4IDYzLjQyNSA0My42ODcyQzY0LjcwNDggNDQuNjg1NSA2NS40ODk5IDQ2LjI5NjcgNjUuNDg1NyA0Ny45Mjc5QzY1LjQ5NDIgNDkuMzU0MiA2NS40OTEzIDUwLjc3OTEgNjUuNDk3IDUyLjIwNTRDNjUuNDkxMyA1My44MDI0IDY0LjczNDUgNTUuMzgyNCA2My40NzYgNTYuMzU3OUM2MS42MDgxIDU3Ljc1NzIgNTkuNzAwNCA1OS4xMDI1IDU3Ljg0MSA2MC41MTE4QzU3LjA2NzIgNjEuMTQ3NCA1Ny42MDU3IDYyLjU3MjMgNTguNjAyMSA2Mi41Mjk3QzYxLjY4MDMgNjIuNTQ5NiA2NC43NiA2Mi41NDUzIDY3LjgzODMgNjIuNTU4MUM3MC4zMTE0IDYyLjU2OTUgNzIuNzM0OSA2MS4yNzQgNzQuMTI5NSA1OS4yMTM0QzgyLjgzOTkgNTkuMDYyNyA5MS41MjIgNTYuNjAxMSA5OC45NTcgNTEuOTk2NEM5OS45MjM1IDUxLjM4MDYgMTAwLjIyMyA0OS45NzcxIDk5LjYzNDQgNDguOTk4N1oiIGZpbGw9IiNBQUFBQUEiLz4KPC9nPgo8cGF0aCBkPSJNNjAuNTE4MyA1MS4yMTcyQzYxLjAzNDIgNTEuMjY0MiA2MS41NTQzIDUwLjk0NTYgNjEuNzI0NCA1MC40NDc5QzYxLjk1ODIgNDkuODUyIDYxLjYxMjQgNDkuMTE4MyA2MS4wMDU5IDQ4LjkyMzRDNTkuMTAyNSA0OC43ODQxIDU3LjE3NjQgNDguODg5MyA1NS4yNjMxIDQ4Ljg0ODFDNTQuNjA4NCA0OC44ODUgNTMuNzk5MSA0OC42NjMyIDUzLjMxNDQgNDkuMjUwNUM1Mi42NzUyIDQ5LjkxODkgNTMuMTg4MyA1MS4xODQ1IDU0LjExMDkgNTEuMTg4OEM1Ni4yNDY3IDUxLjIxNTggNTguMzgxMSA1MS4yMDMgNjAuNTE4MyA1MS4yMTcyWiIgZmlsbD0iI0FBQUFBQSIvPgo8cGF0aCBkPSJNNjAuOTE1IDQ1LjA2NjhDNTcuNDEwMiA0NC45ODQzIDUzLjg5OTYgNDUuMDQyNiA1MC4zOTE5IDQ1LjAwNzFDNDkuODY0NyA0NC45NTczIDQ5LjMwMDYgNDUuMjI2MSA0OS4xMTUgNDUuNzQ5NEM0OC43OTc1IDQ2LjQ1MTkgNDkuMzcyOSA0Ny4zNTIxIDUwLjEzODIgNDcuMzQ3OEM1My42MDA2IDQ3LjM3MiA1Ny4wNjI5IDQ3LjM2NzcgNjAuNTI2NyA0Ny4zODM0QzYxLjA0NCA0Ny40MjYgNjEuNTcxMiA0Ny4xMTMyIDYxLjc0MTMgNDYuNjA4M0M2MS45ODM2IDQ1Ljk4MTIgNjEuNTcyNiA0NS4yMDE5IDYwLjkxNSA0NS4wNjY4WiIgZmlsbD0iI0FBQUFBQSIvPgo8cGF0aCBkPSJNNjAuOTE1IDUyLjc4NDRDNTcuNDEwMiA1Mi43MDE5IDUzLjg5OTYgNTIuNzYwMyA1MC4zOTE5IDUyLjcyNDdDNDkuODY0NyA1Mi42NzQ5IDQ5LjMwMDYgNTIuOTQyMyA0OS4xMTUgNTMuNDY3QzQ4Ljc5NzUgNTQuMTY4MSA0OS4zNzI5IDU1LjA2ODMgNTAuMTM4MiA1NS4wNjU0QzUzLjYwMDYgNTUuMDg5NiA1Ny4wNjI5IDU1LjA4MzkgNjAuNTI2NyA1NS4xMDFDNjEuMDQ0IDU1LjE0MjIgNjEuNTcxMiA1NC44MzA4IDYxLjc0MTMgNTQuMzI0NUM2MS45ODM2IDUzLjY5NzQgNjEuNTcyNiA1Mi45MTk1IDYwLjkxNSA1Mi43ODQ0WiIgZmlsbD0iI0FBQUFBQSIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzEwMV84MyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo='
         );
-
     }
 
-    function _admin_notices()
+    public function _admin_notices()
     {
-
         if( !extension_loaded('xml') )
         {
             ?>
@@ -419,20 +414,16 @@ class ConveyThis
         }
     }
 
-    function _admin_init()
+    public function _admin_init()
     {
-
         register_setting( 'my-plugin-settings', 'api_key', array( $this, '_check_api_key' ) );
-
         register_setting( 'my-plugin-settings', 'source_language' );
         register_setting( 'my-plugin-settings', 'target_languages', array( $this, '_check_target_languages' ) );
-
         register_setting( 'my-plugin-settings-group', 'api_key', array( $this, '_check_api_key' ) );
         register_setting( 'my-plugin-settings-group', 'source_language' );
         register_setting( 'my-plugin-settings-group', 'target_languages', array( $this, '_check_target_languages' ) );
         register_setting( 'my-plugin-settings-group', 'target_languages_translations' );
         register_setting( 'my-plugin-settings-group', 'default_language' );
-
         register_setting( 'my-plugin-settings-group', 'style_change_language', array( $this, '_check_style_change_language' ) );
         register_setting( 'my-plugin-settings-group', 'style_change_flag', array( $this, '_check_style_change_flag' ) );
         register_setting( 'my-plugin-settings-group', 'style_flag' );
@@ -450,33 +441,26 @@ class ConveyThis
         register_setting( 'my-plugin-settings-group', 'conveythis_clear_cache' );
         register_setting( 'my-plugin-settings-group', 'conveythis_select_region' );
         register_setting( 'my-plugin-settings-group', 'is_active_domain' );
-
         register_setting( 'my-plugin-settings-group', 'alternate' );
         register_setting( 'my-plugin-settings-group', 'accept_language' );
         register_setting( 'my-plugin-settings-group', 'blockpages', array( $this, '_check_blockpages' ) );
         register_setting( 'my-plugin-settings-group', 'show_javascript' );
-
         register_setting( 'my-plugin-settings-group', 'style_position_type' );
         register_setting( 'my-plugin-settings-group', 'style_position_vertical_custom' );
         register_setting( 'my-plugin-settings-group', 'style_selector_id' );
-
         register_setting( 'my-plugin-settings-group', 'url_structure' );
-
         register_setting( 'my-plugin-settings-group', 'style_background_color' );
         register_setting( 'my-plugin-settings-group', 'style_hover_color' );
         register_setting( 'my-plugin-settings-group', 'style_border_color' );
         register_setting( 'my-plugin-settings-group', 'style_text_color' );
         register_setting( 'my-plugin-settings-group', 'style_corner_type' );
         register_setting( 'my-plugin-settings-group', 'style_widget' );
-
         register_setting( 'my-plugin-settings-group', 'conveythis_system_links');
 
         if( !empty( $_REQUEST['page'] ) && $_REQUEST['page'] == 'convey_this' ) //phpcs:ignore
         {
-
             if( !empty( $this->variables->api_key ) )
             {
-
                 if (($key = array_search($this->variables->source_language, $this->variables->target_languages)) !== false) { //remove source_language from target_languages
                     unset($this->variables->target_languages[$key]);
                 }
@@ -506,13 +490,12 @@ class ConveyThis
                 }
 
                 $this->ConveyThisCache->clear_cached_translations(true);
-
             }
         }
     }
 
-    function updateDataPlugin() {
-
+    public function updateDataPlugin()
+    {
         if (($key = array_search($this->variables->source_language, $this->variables->target_languages)) !== false) { //remove source_language from target_languages
             unset($this->variables->target_languages[$key]);
         }
@@ -556,7 +539,8 @@ class ConveyThis
         ));
     }
 
-    function clearCacheButton() {
+    function clearCacheButton()
+    {
         $this->send( 'DELETE', '/plugin/clean-button-cache/', array(
                 'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
                 'api_key' => $this->variables->api_key
@@ -564,7 +548,8 @@ class ConveyThis
         );
     }
 
-    function reqOnGetSettingsUser() {
+    function reqOnGetSettingsUser()
+    {
         $api_key = $this->variables->api_key;
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
 
@@ -591,17 +576,13 @@ class ConveyThis
         ], false);
 
         $body = $response['body'];
-
-
-
         $data = json_decode( $body, true );
 
         return (!empty($data['data']) ? $data['data'] : Array());
-
     }
 
-    function writeDataInBD($from_js=false) {
-
+    public function writeDataInBD($from_js=false)
+    {
         $data = $this->reqOnGetSettingsUser();
 
         foreach ($data as $option_name => $new_value) {
@@ -619,7 +600,7 @@ class ConveyThis
         if ($from_js) return $data;
     }
 
-    function getSettingsOnStart($api_key, $from_js)
+    public function getSettingsOnStart($api_key, $from_js)
     {
         $this->variables->api_key = $api_key;
 
@@ -631,13 +612,11 @@ class ConveyThis
         }
     }
 
-    function dataCheckAPI() {
-
+    public function dataCheckAPI() {
         $this->writeDataInBD();
-
     }
 
-    function _check_style_change_language( $value )
+    public function _check_style_change_language( $value )
     {
         if( !is_array( $value ) )
         {
@@ -647,7 +626,7 @@ class ConveyThis
         return $value;
     }
 
-    function _check_style_change_flag( $value )
+    public function _check_style_change_flag( $value )
     {
         if( !is_array( $value ) )
         {
@@ -657,7 +636,7 @@ class ConveyThis
         return $value;
     }
 
-    function _check_blockpages( $value )
+    public function _check_blockpages( $value )
     {
         if( !is_array( $value ) )
         {
@@ -667,7 +646,7 @@ class ConveyThis
         return $value;
     }
 
-    function _check_api_key($value)
+    public function _check_api_key($value)
     {
         $pattern = '/^(pub_)?[a-zA-Z0-9]{32}$/';
 
@@ -681,9 +660,8 @@ class ConveyThis
         }
     }
 
-    function _check_target_languages( $value )
+    public function _check_target_languages( $value )
     {
-
         if( !empty( $value ) )
         {
             $target_languages = array();
@@ -799,9 +777,6 @@ class ConveyThis
             get_template_part( 404 );
             return;
         }
-
-        //$_SERVER["REQUEST_URI"] = preg_replace('/[^a-zA-Z0-9\-_\/.%:&=?#а-яА-ЯёЁ]/u', '', $_SERVER["REQUEST_URI"]);
-
         $this->variables->site_url = home_url();
         $this->variables->site_host = $this->getPageHost( $this->variables->site_url );
         $this->variables->site_prefix = $this->getPageUrl( $this->variables->site_url );
@@ -814,7 +789,7 @@ class ConveyThis
         {
             if(empty($this->variables->url_structure) || $this->variables->url_structure != "subdomain"){ // no need to do anything with subdomains
 
-                if( $this->variables->auto_translate && isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ){
+                if ($this->variables->auto_translate && isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
 
                     if( class_exists('Locale') ){
                         $browserLanguage = locale_accept_from_http($_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -829,7 +804,6 @@ class ConveyThis
                         if (empty($_SESSION['conveythis-autoredirected'])){
 
                             $_SESSION['conveythis-autoredirected'] = true;
-
 
                             $preventAutoRedirect = false;
                             foreach ($this->variables->target_languages as $key => $language) {	//check if already contains translate language prefix
@@ -848,7 +822,6 @@ class ConveyThis
                             }
                         }
                     }
-
                 }
 
                 if (!empty($this->variables->target_languages)) {
@@ -856,8 +829,6 @@ class ConveyThis
                     $tempRequestUri = $_SERVER["REQUEST_URI"];
                     if (substr($tempRequestUri, -1) != "/")
                         $tempRequestUri .= "/";
-
-                    //$this->target_languages_translations
 
                     preg_match('/^(' . str_replace('/', '\/', $this->variables->site_prefix) . '([^\/]+)\/)(.*)/', $tempRequestUri, $matches);
 
@@ -920,23 +891,17 @@ class ConveyThis
                     }
                 }
 
-
-                if( !empty( $this->variables->source_language ) && !empty( $this->variables->target_languages ) )
-                {
+                if (!empty($this->variables->source_language ) && !empty($this->variables->target_languages)) {
                     $page_url = $this->getPageUrl( $this->variables->referrer );
 
                     if( !in_array( $page_url, $this->variables->blockpages_items ) )
                     {
-                        // if( !empty( $this->variables->show_javascript ) )
-                        // {
                         $this->getCurrentPlan();
                         add_action( 'wp_footer', array( $this, '_inline_script' ) );
-                        // }
                     }
                 }
 
-                if( !empty( $this->variables->alternate ))
-                {
+                if (!empty( $this->variables->alternate)) {
                     add_action( 'wp_head', array( $this, '_alternate' ), 0 );
 
                     if( !empty( $this->variables->language_code ) )
@@ -956,11 +921,11 @@ class ConveyThis
                 if (substr($local_lang, 0, 2) != $this->variables->source_language) {
                     ob_start( array( $this, '_translatePage' ) );
                 }
-            }else{
-                if( !empty( $this->variables->source_language ) && !empty( $this->variables->target_languages ) ){
+            } else {
+                if (!empty( $this->variables->source_language ) && !empty( $this->variables->target_languages )) {
                     $this->getCurrentPlan();
 
-                    if( !empty( $this->variables->alternate ))
+                    if (!empty( $this->variables->alternate))
                         add_action( 'wp_head', array( $this, '_alternate' ), 0 );
 
                     add_action( 'wp_footer', array( $this, '_inline_script' ) );
@@ -972,12 +937,13 @@ class ConveyThis
         } else {
             new ConveyThisAdminNotices();
         }
-
     }
 
-    function haveOptionEndSlash(){
+    function haveOptionEndSlash()
+    {
         $haveSlash = true;
         $permalinkStructure = get_transient('convey_permalink_structure');
+
         if ($permalinkStructure === false) {
             $permalinkStructure = get_option('permalink_structure');
             set_transient('convey_permalink_structure', $permalinkStructure, 12 * HOUR_IN_SECONDS);
@@ -989,8 +955,8 @@ class ConveyThis
         return $haveSlash;
     }
 
-    function getCurrentPlan(){
-
+    function getCurrentPlan()
+    {
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
 
         $protocol = 'http://';
@@ -1005,13 +971,12 @@ class ConveyThis
 
         $responseBody = wp_remote_retrieve_body( $response );
 
-        if(!empty($responseBody)){
-
+        if (!empty($responseBody)) {
             $json = json_decode($responseBody);
-            if(!empty($json->code)){
-                if(strpos($json->code, "conveythis_trial_expired") !== false){
+            if (!empty($json->code)) {
+                if (strpos($json->code, "conveythis_trial_expired") !== false) {
                     $this->variables->plan = 'trial-expired';
-                }else{
+                } else {
                     $this->variables->plan = 'paid';
                 }
                 if (preg_match('/no_translate_element_ids:\s*(\[.+\])/U', $json->code, $matches))  {
@@ -1020,27 +985,22 @@ class ConveyThis
                 if (preg_match('/is_exceeded:/U', $json->code, $matches))  {
                     $this->variables->exceeded = true;
                 }
-            }else{
+            } else {
                 $this->variables->show_widget = false;
             }
-
         }
-
     }
 
     public function languageAccept( $data, $value )
     {
         $languages = explode( ',', $value );
 
-        if( !empty( $languages ) )
-        {
-            foreach( $languages as $language )
-            {
+        if (!empty($languages)) {
+            foreach ($languages as $language) {
                 $tmp = explode( ';', $language );
                 $code = explode( '-', $tmp[0] );
 
-                if( in_array( $code[0], $this->variables->target_languages ) )
-                {
+                if (in_array( $code[0], $this->variables->target_languages)) {
                     $location = $this->replaceLink( $data, $code[0] );
 
                     header('Location: ' . $location );
@@ -1112,7 +1072,6 @@ class ConveyThis
                 }
             }
             echo "\n";
-
         }
     }
 
@@ -1127,7 +1086,6 @@ class ConveyThis
         $prefix = $this->getPageUrl($site_url);
         $languageList = [];
         $linkList = ['current' => '', 'alternates' => ''];
-
 
         foreach ($data as $value) {
             $language = $this->searchLanguage($value);
@@ -1154,23 +1112,21 @@ class ConveyThis
             }
         }
 
-
-
         $conveythisLogo ='<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
 
         $conveythisLogo = $this->variables->hide_conveythis_logo ? $conveythisLogo : "";
 
         $languageHtml = '<div class="conveythis-widget-languages" id="language-list" style="display: none;">
-    '.$conveythisLogo.'
-    <div class="conveythis-widget-language" role="button" tabindex="0">'.$linkList['alternates'].PHP_EOL.'</div>
-</div>
-    <div class="conveythis-widget-current-language-wrapper" aria-controls="language-list" aria-expanded="false">
-        <div class="conveythis-widget-language" role="button" tabindex="0">'.$linkList['current'].'<div class="conveythis-language-arrow"></div></div>
-    </div>';
+                            ' . $conveythisLogo . '
+                            <div class="conveythis-widget-language" role="button" tabindex="0">' . $linkList['alternates'] . PHP_EOL . '</div>
+                        </div>
+                        <div class="conveythis-widget-current-language-wrapper" aria-controls="language-list" aria-expanded="false">
+                            <div class="conveythis-widget-language" role="button" tabindex="0">' . $linkList['current'] . '<div class="conveythis-language-arrow"></div></div>
+                        </div>';
 
         $pluginHtml = '<div id="conveythis-wrapper" class="conveythis-no-translate conveythis-source">
-        <div class="conveythis-widget-main">' . $languageHtml . '</div>
-</div>';
+                            <div class="conveythis-widget-main">' . $languageHtml . '</div>
+                       </div>';
 
         echo $pluginHtml;
     }
@@ -1206,10 +1162,8 @@ class ConveyThis
 
             parse_str($parsedUrl['query'], $queryParams);
 
-            foreach ($this->variables->query_params_block as $param)
-            {
-                if(array_key_exists($param, $queryParams))
-                {
+            foreach ($this->variables->query_params_block as $param) {
+                if(array_key_exists($param, $queryParams)) {
                     unset($queryParams[$param]);
                 }
             }
@@ -1253,23 +1207,16 @@ class ConveyThis
             {
                 return substr_replace( $_url, $prefix . '' . $language_code . '/', 0, strlen( $prefix ) );
             }
-
         }
-
     }
 
     public function getSubDomainLocation( $language_code, $alternative_link=false )
     {
-
         $_url = $this->deleteQueryParams($_SERVER["REQUEST_URI"], $alternative_link);
 
-        if( $this->variables->source_language == $language_code )
-        {
+        if( $this->variables->source_language == $language_code ) {
             return $_SERVER["REQUEST_SCHEME"]."://".$_SERVER["HTTP_HOST"].$_url;
-        }
-
-        else
-        {
+        } else {
             return $_SERVER["REQUEST_SCHEME"]."://".$language_code.".".$_SERVER["HTTP_HOST"].$_url;
         }
     }
@@ -1302,36 +1249,29 @@ class ConveyThis
 
         $languages = array();
 
-        if( !empty( $this->variables->language_code ) )
-        {
+        if (!empty($this->variables->language_code)) {
             $current_language_code = $this->variables->language_code;
-        }
-
-        else
-        {
+        } else {
             $current_language_code = $this->variables->source_language;
         }
 
         $language = $this->searchLanguage( $current_language_code );
 
-        if( !empty( $language ) )
-        {
-            if(!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
-                $location = $this->getSubDomainLocation( $language['code2'] );
-            else
-                $location = $this->getLocation( $prefix, $language['code2'] );
+        if (!empty($language)) {
+            if(!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
+                $location = $this->getSubDomainLocation($language['code2']);
+            } else {
+                $location = $this->getLocation($prefix, $language['code2']);
+            }
 
             $languages[] = '{"id":"'. esc_attr( $language['language_id'] ) .'", "location":"'. esc_attr( $location ) .'", "active":true}';
-
         }
 
-        if( !empty( $this->variables->language_code ) )
-        {
+        if (!empty($this->variables->language_code)) {
             $language = $this->searchLanguage( $this->variables->source_language );
 
-            if( !empty( $language ) )
-            {
-                if(!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
+            if (!empty($language)) {
+                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
                     $location = $this->getSubDomainLocation( $language['code2'] );
                 else
                     $location = $this->getLocation( $prefix, $language['code2'] );
@@ -1344,18 +1284,16 @@ class ConveyThis
             unset($this->variables->target_languages[$key]);
         }
 
-        foreach( $this->variables->target_languages as $language_code )
-        {
+        foreach ($this->variables->target_languages as $language_code) {
             $language = $this->searchLanguage( $language_code );
 
-            if( !empty( $language ) )
-            {
-                if( $current_language_code != $language['code2'] )
-                {
-                    if(!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
-                        $location = $this->getSubDomainLocation( $language['code2'] );
-                    else
-                        $location = $this->getLocation( $prefix, $language['code2'] );
+            if (!empty($language)) {
+                if ($current_language_code != $language['code2']) {
+                    if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
+                        $location = $this->getSubDomainLocation($language['code2']);
+                    } else {
+                        $location = $this->getLocation($prefix, $language['code2']);
+                    }
 
                     $languages[] = '{"id":"'. esc_attr( $language['language_id'] ) .'", "location":"'. esc_attr( $location ) .'", "active":false}';
                 }
@@ -1364,12 +1302,9 @@ class ConveyThis
 
         $source_language_id = 0;
 
-        if( !empty( $this->variables->source_language ) )
-        {
+        if (!empty( $this->variables->source_language)) {
             $language = $this->searchLanguage( $this->variables->source_language );
-
-            if( !empty( $language ) )
-            {
+            if (!empty($language)) {
                 $source_language_id = $language['language_id'];
             }
         }
@@ -1378,10 +1313,8 @@ class ConveyThis
 
         $temp = array();
 
-        while( $i < 5 )
-        {
-            if( !empty( $this->variables->style_change_language[$i] ) )
-            {
+        while( $i < 5 ) {
+            if( !empty( $this->variables->style_change_language[$i] ) ) {
                 $temp[] = '"' . $this->variables->style_change_language[$i] . '":"' . $this->variables->style_change_flag[$i] . '"';
             }
             $i++;
@@ -1394,7 +1327,7 @@ class ConveyThis
         $positionLeft = 'null';
         $positionRight = 'null';
 
-        if($this->variables->style_position_type == 'custom' && $this->variables->style_selector_id != '') {
+        if ($this->variables->style_position_type == 'custom' && $this->variables->style_selector_id != '') {
             if ($this->variables->style_position_vertical_custom == 'top') {
                 $positionTop = 50;
                 $positionBottom = "null";
@@ -1429,19 +1362,12 @@ class ConveyThis
             return;
         }
 
-
-
         if (!empty($this->variables->api_key)) {
             $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
             $cdn_version = end($parts);
 
             wp_enqueue_script('conveythis-notranslate', plugin_dir_url(__DIR__).'widget/js/notranslate.js', [], CONVEYTHIS_PLUGIN_VERSION, false);
             wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
-
-//            if (!is_admin() && !empty($this->variables->language_code)) {
-            //wp_enqueue_script('conveythis-update-cache', plugins_url('../widget/js/update-cache.js', __FILE__));
-//            }
-
 
             $initScript = '
                 document.addEventListener("DOMContentLoaded", function(e) {
@@ -1464,35 +1390,36 @@ class ConveyThis
         $innerHTML = "";
         $children  = $element->childNodes;
 
-        foreach ($children as $child)
-        {
+        foreach ($children as $child) {
             $innerHTML .= $element->ownerDocument->saveHTML($child);
         }
 
         return $innerHTML;
     }
 
-    function shouldTranslateWholeTag($element){
-        for($i = 0; $i < count($element->childNodes); $i++){
+    function shouldTranslateWholeTag($element)
+    {
+        for ($i = 0; $i < count($element->childNodes); $i++) {
             $child = $element->childNodes->item($i);
 
-            if(in_array(strtoupper($child->nodeName), $this->variables->siblingsAvoidArray)){
+            if (in_array(strtoupper($child->nodeName), $this->variables->siblingsAvoidArray)) {
                 return false;
             }
         }
         return true;
     }
 
-    function allowTranslateWholeTag($element){
-        for($i = 0; $i < count($element->childNodes); $i++){
+    function allowTranslateWholeTag($element)
+    {
+        for ($i = 0; $i < count($element->childNodes); $i++) {
             $child = $element->childNodes->item($i);
 
-            if(in_array(strtoupper($child->nodeName), $this->variables->siblingsAllowArray)){
+            if (in_array(strtoupper($child->nodeName), $this->variables->siblingsAllowArray)) {
                 $outerHTML = $element->ownerDocument->saveHTML($child);
 
-                if(preg_match("/>(\s*[^<>\s]+[\s\S]*?)</", $outerHTML)){
+                if (preg_match("/>(\s*[^<>\s]+[\s\S]*?)</", $outerHTML)) {
                     return true;
-                }else if(strtoupper($child->nodeName) == "BR"){
+                } else if (strtoupper($child->nodeName) == "BR") {
                     $innerHTML = $this->DOMinnerHTML($element);
 
                     if(preg_match("/\s*[^<>\s]+\s*<br>\s*[^<>\s]+/i", $innerHTML)){
@@ -1504,7 +1431,8 @@ class ConveyThis
         return false;
     }
 
-    function isTextNodeExists($element){
+    function isTextNodeExists($element)
+    {
         for($i = 0; $i < count($element->childNodes); $i++){
             $child = $element->childNodes->item($i);
 
@@ -1516,7 +1444,6 @@ class ConveyThis
     }
 
     // DOM
-
     function domRecursiveRead( $doc )
     {
         foreach( $doc->childNodes as $child )
@@ -1638,7 +1565,6 @@ class ConveyThis
                     }
 
                     if($child->nodeName == 'img'){
-
                         if($this->variables->translate_media){
                             $src = $child->getAttribute("src");
                             $ext = strtolower(pathinfo($src, PATHINFO_EXTENSION));
@@ -1649,9 +1575,7 @@ class ConveyThis
                                 $this->collectNode( $child, 'src', $src );
                             }
                         }
-
                     }
-
 
                     $shouldReadChild = true;
 
@@ -2137,7 +2061,6 @@ class ConveyThis
 
     function unparse_url( $parsed_url )
     {
-
         $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
         $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
         $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
@@ -2228,7 +2151,7 @@ class ConveyThis
         }
     }
 
-    function is_wordpress_url($url) {
+    public function is_wordpress_url($url) {
 
         foreach ($this->variables->wp_patterns as $pattern) {
             if (preg_match($pattern, $url)) {
@@ -2237,7 +2160,6 @@ class ConveyThis
         }
 
         return false;
-
     }
 
     private function checkRequestURI() {
@@ -2255,7 +2177,7 @@ class ConveyThis
         return true;
     }
 
-    function _translatePage($content){
+    public function _translatePage($content){
 
         if(
             $this->checkRequestURI()
@@ -2396,7 +2318,7 @@ class ConveyThis
         return  $content;
     }
 
-    function removeDuplicates($array, $key) {
+    public function removeDuplicates($array, $key) {
         $tempArray = [];
         $resultArray = [];
 
@@ -2411,7 +2333,7 @@ class ConveyThis
         return $resultArray;
     }
 
-    function filterSegments($segments)
+    public function filterSegments($segments)
     {
         $res = [];
 
@@ -2425,12 +2347,12 @@ class ConveyThis
         return $res;
     }
 
-    function allowCache($items)
+    public function allowCache($items)
     {
         return count($items) == count($this->variables->segments) ? true : false;
     }
 
-    function comparisonSegments($response_value, $segments_value)
+    public function comparisonSegments($response_value, $segments_value)
     {
         $source_text = html_entity_decode($segments_value);
         $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
@@ -2476,7 +2398,7 @@ class ConveyThis
         return false;
     }
 
-    function recursiveReplaceLinks(&$data)
+    public function recursiveReplaceLinks(&$data)
     {
         foreach ($data as &$val) {
             if (is_array($val)) {
@@ -2493,7 +2415,7 @@ class ConveyThis
         return $data;
     }
 
-    static function customLogs($message) {
+    public static function customLogs($message) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         WP_Filesystem();
         global $wp_filesystem;
@@ -2540,7 +2462,6 @@ class ConveyThis
                 'blocks' => $rules
             ));
         }
-
     }
 
     private function send($request_method = 'GET', $request_uri = '', $query = [], $return_error = false)
@@ -2621,8 +2542,8 @@ class ConveyThis
         return null;
     }
 
-    private static function httpRequest( $url, $args = [], $proxy = true, $region = 'US' ) {
-
+    private static function httpRequest( $url, $args = [], $proxy = true, $region = 'US' )
+    {
         $args['timeout'] = 1;
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
@@ -2639,7 +2560,8 @@ class ConveyThis
         return $response;
     }
 
-    private function find_translation($slug, $source_language, $target_language, $referer) {
+    private function find_translation($slug, $source_language, $target_language, $referer)
+    {
         $response = $this->send('POST', '/website/find-translation/', array(
             'referrer' => $referer,
             'source_language' => $source_language,
@@ -2652,7 +2574,8 @@ class ConveyThis
         return false;
     }
 
-    private function find_original_slug($slug, $source_language, $target_language, $referer) {
+    private function find_original_slug($slug, $source_language, $target_language, $referer)
+    {
         $original_slug = $this->ConveyThisCache->get_cached_slug($slug, $target_language, $source_language);
 
         if (!$original_slug) {
@@ -2710,9 +2633,9 @@ class ConveyThis
 
     public static function plugin_activate()
     {
-
         $defaultTargetLng = 'en';
         $lng = explode("_", (get_locale()));
+
         if(is_array($lng) && isset($lng[0]) && strlen($lng[0]) == 2){
             $defaultTargetLng = $lng[0];
         }
@@ -2748,9 +2671,7 @@ class ConveyThis
         add_option( 'style_selector_id', '' );
         add_option( 'conveythis_clear_cache', '0' );
         add_option( 'conveythis_select_region', 'US' );
-
         add_option( 'url_structure', 'regular' );
-
         add_option( 'style_background_color', '#ffffff' );
         add_option( 'style_hover_color', '#f6f6f6' );
         add_option( 'style_border_color', '#e0e0e0' );
@@ -2760,7 +2681,6 @@ class ConveyThis
         add_option( 'conveythis_system_links', [] );
 
         self::sendEvent('activate');
-
     }
 
     public static function plugin_deactivate()
@@ -2817,7 +2737,6 @@ class ConveyThis
 
     static function plugin_update_option($optionName, $oldValue, $newValue)
     {
-
         self::optionPermalinkChanged($optionName, $oldValue, $newValue);
 
         $pluginOption = false;
@@ -2962,7 +2881,6 @@ class ConveyThis
 
     private function isPageExcluded($pageUrl, $rules)
     {
-
         if (!is_array($rules)) {
             return false;
         }
@@ -2970,7 +2888,6 @@ class ConveyThis
         $pageUrl = $this->getPageUrl($pageUrl);
 
         foreach ($rules as $rule ) {
-            // $rowPageUrl = preg_quote(trim($rule['page_url']), '/');
             $rowPageUrl = trim($rule['page_url']);
             if ($rule['rule'] == "start") {
                 if (preg_match('~^' . $rowPageUrl . '~', $pageUrl)) {
@@ -3001,5 +2918,10 @@ class ConveyThis
         }
 
         return false;
+    }
+
+    public function getVariables()
+    {
+        return $this->variables;
     }
 }

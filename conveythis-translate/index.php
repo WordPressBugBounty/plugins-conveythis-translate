@@ -3,9 +3,7 @@
 Plugin Name: ConveyThis Translate
 Plugin URI: https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress
 Description: Translate your WordPress site into over 100 languages using professional and instant machine translation technology. ConveyThis will help provide you with an SEO-friendy, multilingual website in minutes with no coding required.
-
-Version: 247
-
+Version: 248
 
 Author: ConveyThis Translate Team
 Author URI: https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress
@@ -33,6 +31,7 @@ require_once plugin_dir_path(__FILE__) . 'app/class/ConveyThisAdminNotices.php';
 require_once plugin_dir_path(__FILE__) . 'app/class/ConveyThisCache.php';
 require_once plugin_dir_path(__FILE__) . 'app/class/ConveyThisCron.php';
 require_once plugin_dir_path(__FILE__) . 'app/class/ConveyThisSEO.php';
+require_once plugin_dir_path(__FILE__) . 'app/class/ConveyThisHelper.php';
 
 if (
     isset($_POST['convey_event']) && strlen($_POST['convey_event_name'] ) > 0 //phpcs:ignore

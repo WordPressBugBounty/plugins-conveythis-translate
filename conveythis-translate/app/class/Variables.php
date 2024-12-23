@@ -495,17 +495,11 @@ class Variables
         $this->accept_language = get_option( 'accept_language', '0' );
         $this->blockpages = get_option( 'blockpages', array() );
         $this->show_javascript = get_option( 'show_javascript', '1' );
-
         $this->clear_cache = get_option( 'conveythis_clear_cache', '0' );
-
-
-
         $this->style_position_type = get_option( 'style_position_type', 'fixed' );
         $this->style_position_vertical_custom = get_option( 'style_position_vertical_custom', 'bottom' );
         $this->style_selector_id = get_option( 'style_selector_id', '' );
-
         $this->url_structure = get_option( 'url_structure', 'regular' );
-
         $this->style_background_color = get_option( 'style_background_color', '#ffffff' );
         $this->style_hover_color = get_option( 'style_hover_color', '#f6f6f6' );
         $this->style_border_color = get_option( 'style_border_color', '#e0e0e0' );
@@ -516,8 +510,28 @@ class Variables
 	    $this->is_active = get_option('is_active_domain', array());
         $this->system_links = get_option( 'conveythis_system_links', array() );
         $this->system_links = $this->system_links ? json_decode($this->system_links, true) : array();
-
     }
 
+    public function __call($name, $arguments)
+    {
+        if (strpos($name, 'get') === 0) {
 
+            $property = lcfirst(
+                self::camelToSnake(substr($name, 3))
+            );
+
+            if (property_exists($this, $property)) {
+                return $this->$property;
+            }
+
+            throw new \Exception("Property $property does not exist " . __CLASS__);
+        }
+
+        throw new \BadMethodCallException("Method $name not found in class " . __CLASS__);
+    }
+
+    private static function camelToSnake($input)
+    {
+        return  strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $input));
+    }
 }

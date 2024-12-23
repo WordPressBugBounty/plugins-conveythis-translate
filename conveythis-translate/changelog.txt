@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 248 =
+* Added helpers methods
+
 = 247 =
 * Updated activation
 
