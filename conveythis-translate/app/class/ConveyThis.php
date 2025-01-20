@@ -179,7 +179,7 @@ class ConveyThis
     {
         if(!empty( $this->variables->language_code )){
             $urlParts = parse_url($url);
-            if (isset($urlParts['host'])) {
+            if (isset($urlParts['host']) && isset($urlParts['path'])) {
                 $url = $urlParts['scheme'] . '://' . $urlParts['host'] . '/' . $this->variables->language_code . $urlParts['path'];
             }
         }
@@ -1184,7 +1184,6 @@ class ConveyThis
     {
         $_url = $this->deleteQueryParams($_SERVER["REQUEST_URI"], $alternate_link);
 
-
         if( $this->variables->source_language == $language_code )
         {
             return $_url;
@@ -1205,7 +1204,10 @@ class ConveyThis
             }
             else
             {
-                return substr_replace( $_url, $prefix . '' . $language_code . '/', 0, strlen( $prefix ) );
+                if ($_url === '/') {
+	                return substr_replace( $_url, $prefix . '' . $language_code , 0, strlen( $prefix ) );
+                }
+                return substr_replace( $_url, $prefix . '' . $language_code . '/' , 0, strlen( $prefix ) );
             }
         }
     }
@@ -1755,11 +1757,11 @@ class ConveyThis
 
             $urlComponents = parse_url($currentHref);
 
-            if(isset($this->variables->language_code))
-                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code;
-            else
-                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'];
 
+//            if(isset($this->variables->language_code))
+//                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code;
+//            else
+                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'];
 
             if (!empty($urlComponents['path'])) {
                 $newHref .= $urlComponents['path'];
@@ -1777,9 +1779,9 @@ class ConveyThis
 
             $path = isset($urlComponents['path']) ? ltrim($urlComponents['path'], '/') : '';
 
-            if(isset($this->variables->language_code))
-                $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code . '/' . $path;
-            else
+//            if(isset($this->variables->language_code))
+//                $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code . '/' . $path;
+//            else
                 $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $path;
 
             if (!empty($urlComponents['query'])) {
@@ -1787,7 +1789,7 @@ class ConveyThis
             }
 
             $head = $doc->getElementsByTagName('head')->item(0);
-            if (!empty($head)) {
+            if (!empty($head) && isset($modifiedUrl)) {
                 $newCanonical = $doc->createElement('link');
                 $newCanonical->setAttribute('rel', 'canonical');
                 $newCanonical->setAttribute('href', $modifiedUrl);
@@ -2049,9 +2051,11 @@ class ConveyThis
                     }
                 }
             }
-
-            $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
-
+            if ($link['path'] === '/') {
+	            $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code  , 0, strlen( $this->variables->site_prefix ) );
+            } else {
+	            $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
+            }
 
             return $this->unparse_url( $link );
         }

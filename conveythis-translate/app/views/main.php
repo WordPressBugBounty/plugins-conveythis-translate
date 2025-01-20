@@ -79,8 +79,9 @@
     jQuery(document).ready(function($) {
         let targetLanguages = <?php echo json_encode($this->variables->target_languages)?>;
         let show = <?php echo esc_html(get_option('is_translated'))?>;
+        let domainAlreadyExist = <?php echo isset($_COOKIE['ct_domain_already_exist']) ?>;
 
-        if (targetLanguages.length !== 0 && show === 0) {
+        if (targetLanguages.length !== 0 && show === 0 && !domainAlreadyExist) {
             $('#congrats-modal').modal({
                 backdrop: 'static',
                 keyboard: false

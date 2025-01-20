@@ -24,8 +24,15 @@
             Please select your source and target languages at this stage.
         </div>
     <?php endif;?>
+
     <div class="alert alert-danger" id="conveythis_word_translation_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        Your translation word limit has been exceeded, please upgrade your plan <span></span>
+        Your translation word limit has been exceeded. Please upgrade your plan. <span></span>
+    </div>
+    <div class="alert alert-danger" id="conveythis_views_limit_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
+        Your page view limit has been exceeded. Please upgrade your plan. <span></span>
+    </div>
+    <div class="alert alert-danger" id="conveythis_languages_limit_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
+        Your languages limit has been exceeded, please upgrade your plan. <span></span>
     </div>
 
     <div class="form-group" id="apiKey">

@@ -1138,6 +1138,14 @@ jQuery(document).ready(function($) {
 							if(typeof(result.data.word_limit) !== "undefined" && result.data.word_limit){
 								$('#conveythis_word_translation_exceeded_warning').show();
 							}
+
+							if(typeof(result.data.views_limit_exceeded) !== "undefined" && result.data.views_limit_exceeded){
+								$('#conveythis_views_limit_exceeded_warning').show();
+							}
+
+							if(typeof(result.data.languages_limit_exceeded) !== "undefined" && result.data.languages_limit_exceeded){
+								$('#conveythis_languages_limit_exceeded_warning').show();
+							}
 						}
 					}
 				});

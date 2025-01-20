@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 249 =
+* Updated notification
+
 = 248 =
 * Added helpers methods
 
