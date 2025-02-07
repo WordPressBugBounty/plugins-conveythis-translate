@@ -473,7 +473,7 @@ jQuery(document).ready(function($) {
 	$('.conveythis-delete-page').on('click', function(e) {
 		//e.preventDefault();
 		$(this).parent().remove();
-		$(".autoSave").click();
+	//	$(".autoSave").click();
 	});
 
 	$('#add_blockpage').on('click', function(e) {
@@ -692,39 +692,23 @@ jQuery(document).ready(function($) {
 	});
 
 	$('#clear_translate_cache').on('click', function (e) {
-		var btn = $(this);
 		jQuery.ajax({
 			url: 'options.php',
 			method: 'POST',
 			data: { 'clear_translate_cache': true },
+			beforeSend: function () {
+				$('.spinner-cache').removeClass('d-none')
+				$('.clear-success').addClass('d-none')
+				$('.clear-failure').addClass('d-none')
+			},
 			success: function(result){
+				$('.spinner-cache').addClass('d-none')
 
-				showNotification(result);
-
-				function showNotification(result) {
-
-					var button = document.getElementById('clear_translate_cache');
-
-					if(result.clear_cache_translate) {
-
-						button.classList.add('green-border');
-
-						setTimeout(function() {
-							button.classList.remove('green-border');
-						}, 2000);
-
-					} else {
-
-						button.classList.add('red-border', 'shake');
-
-						setTimeout(function() {
-							button.classList.remove('red-border', 'shake');
-						}, 2000);
-
-					}
-
+				if(result.clear_cache_translate) {
+					$('.clear-success').removeClass('d-none')
+				} else {
+					$('.clear-failure').removeClass('d-none')
 				}
-
 			}
 		})
 	});

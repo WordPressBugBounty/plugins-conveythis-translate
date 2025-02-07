@@ -9,7 +9,7 @@
             <i class="dropdown icon"></i>
             <div class="default text"><?php echo esc_html(__('Select widget style', 'conveythis-translate')); ?></div>
             <div class="menu" id="style_widget_list">
-                <div class="item" data-value="">No value</div>
+                <!-- <div class="item" data-value="">No value</div> -->
                 <?php foreach ($this->getWidgetStyles() as $styleCode => $styleName): ?>
                     <div class="item" data-value="<?php echo esc_attr($styleCode); ?>">
                         <?php echo esc_html($styleName, 'conveythis-translate'); ?>
@@ -108,51 +108,51 @@
             <?php
             $i = 0;
             while( $i < (count($this->variables->style_change_language)) ): ?>
-            <?php if($this->variables->style_change_language[$i] > 0): ?>
-                <div class="style-language w-100 position-relative">
-                    <button class="conveythis-delete-page"></button>
-                    <div class="row w-100">
-                        <div class="col-md-6">
-                            <div class="ui fluid search selection dropdown change_language">
-                                <input type="hidden" name="style_change_language[]" value="<?php echo  (!empty($this->variables->style_change_language[$i])) ? esc_attr($this->variables->style_change_language[$i]): "" ; ?>">
-                                <i class="dropdown icon"></i>
-                                <div class="default text"><?php echo esc_html(__( 'Select language', 'conveythis-translate' )); ?></div>
-                                <div class="menu">
+                <?php if($this->variables->style_change_language[$i] > 0): ?>
+                    <div class="style-language w-100 position-relative">
+                        <button class="conveythis-delete-page"></button>
+                        <div class="row w-100">
+                            <div class="col-md-6">
+                                <div class="ui fluid search selection dropdown change_language">
+                                    <input type="hidden" name="style_change_language[]" value="<?php echo  (!empty($this->variables->style_change_language[$i])) ? esc_attr($this->variables->style_change_language[$i]): "" ; ?>">
+                                    <i class="dropdown icon"></i>
+                                    <div class="default text"><?php echo esc_html(__( 'Select language', 'conveythis-translate' )); ?></div>
+                                    <div class="menu">
 
-                                    <?php foreach( $this->variables->matchingLanguages as $id => $language ): ?>
+                                        <?php foreach( $this->variables->matchingLanguages as $id => $language ): ?>
 
-                                        <div class="item" data-value="<?php echo  esc_attr($id); ?>">
-                                            <?php echo esc_html( $language['title_en'], 'conveythis-translate' ); ?>
-                                        </div>
+                                            <div class="item" data-value="<?php echo  esc_attr($id); ?>">
+                                                <?php echo esc_html( $language['title_en'], 'conveythis-translate' ); ?>
+                                            </div>
 
-                                    <?php endforeach; ?>
+                                        <?php endforeach; ?>
 
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="ui fluid search selection dropdown change_flag">
-                                <input type="hidden" name="style_change_flag[]" value="<?php echo  (!empty($this->variables->style_change_flag[$i])) ? esc_attr($this->variables->style_change_flag[$i]) : ""; ?>">
-                                <i class="dropdown icon"></i>
-                                <div class="default text"><?php echo  esc_html(__( 'Select Flag', 'conveythis-translate' )); ?></div>
-                                <div class="menu">
-                                    <?php $languageId = $this->variables->style_change_language[$i];?> 
-                                    <?php $flagsArr = $this->variables->flags;?>
+                            <div class="col-md-6">
+                                <div class="ui fluid search selection dropdown change_flag">
+                                    <input type="hidden" name="style_change_flag[]" value="<?php echo  (!empty($this->variables->style_change_flag[$i])) ? esc_attr($this->variables->style_change_flag[$i]) : ""; ?>">
+                                    <i class="dropdown icon"></i>
+                                    <div class="default text"><?php echo  esc_html(__( 'Select Flag', 'conveythis-translate' )); ?></div>
+                                    <div class="menu">
+                                        <?php $languageId = $this->variables->style_change_language[$i];?>
+                                        <?php $flagsArr = $this->variables->flags;?>
 
-                                    <?php foreach( $this->variables->matchingLanguageToFlag[$languageId] as $id ): ?>
+                                        <?php foreach( $this->variables->matchingLanguageToFlag[$languageId] as $id ): ?>
 
-                                        <div class="item" data-value="<?php echo  esc_attr( $flagsArr[$id]['code'] ); ?>">
-                                            <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%; background-size: contain; background-repeat: no-repeat; background-image: url('//cdn.conveythis.com/images/flags/svg/<?php echo  esc_attr($flagsArr[$id]['code']); ?>.svg')"></div>
-                                            <?php echo esc_html( $flagsArr[$id]['title'], 'conveythis-translate' ); ?>
-                                        </div>
+                                            <div class="item" data-value="<?php echo  esc_attr( $flagsArr[$id]['code'] ); ?>">
+                                                <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%; background-size: contain; background-repeat: no-repeat; background-image: url('//cdn.conveythis.com/images/flags/svg/<?php echo  esc_attr($flagsArr[$id]['code']); ?>.svg')"></div>
+                                                <?php echo esc_html( $flagsArr[$id]['title'], 'conveythis-translate' ); ?>
+                                            </div>
 
-                                    <?php endforeach; ?>
+                                        <?php endforeach; ?>
 
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 <?php endif; ?>
                 <?php $i++;?>
             <?php endwhile; ?>
@@ -174,7 +174,7 @@
                 <label>Background color of widget on hover</label>
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_hover_color" name="style_hover_color" value="<?php echo  esc_attr($this->variables->style_hover_color) ?>"
-                    data-default="#f6f6f6">
+                           data-default="#f6f6f6">
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>
@@ -301,7 +301,7 @@
             <div>
                 <input type="hidden" name="style_indenting_horizontal" value="<?php echo  esc_attr($this->variables->style_indenting_horizontal); ?>">
                 <span id="display-style-indenting-horizontal"><?php echo  esc_attr($this->variables->style_indenting_horizontal); ?></span>px
-            </div>    
+            </div>
             <div class="ui grey slider" id="range-style-indenting-horizontal">
                 <div class="inner">
                     <div class="track" style="height: 4px;"></div>

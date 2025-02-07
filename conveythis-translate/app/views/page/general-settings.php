@@ -166,6 +166,7 @@
 
         <div class="subtitle">Languages with a shortcode</div>
         <label for="">The ConveyThis shortcode [conveythis_switcher] can be placed in any location where you wish to display the widget.</label>
+        <label for=""><b>Note</b>: To ensure proper functionality, please use only one shortcode per page.</label>
 
     </div>
 

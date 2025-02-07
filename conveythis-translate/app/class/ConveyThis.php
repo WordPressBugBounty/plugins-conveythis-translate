@@ -1758,9 +1758,9 @@ class ConveyThis
             $urlComponents = parse_url($currentHref);
 
 
-//            if(isset($this->variables->language_code))
-//                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code;
-//            else
+            if(isset($this->variables->language_code))
+                $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code;
+            else
                 $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'];
 
             if (!empty($urlComponents['path'])) {
@@ -1779,9 +1779,9 @@ class ConveyThis
 
             $path = isset($urlComponents['path']) ? ltrim($urlComponents['path'], '/') : '';
 
-//            if(isset($this->variables->language_code))
-//                $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code . '/' . $path;
-//            else
+            if(isset($this->variables->language_code))
+                $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code . '/' . $path;
+            else
                 $modifiedUrl = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $path;
 
             if (!empty($urlComponents['query'])) {
@@ -1789,7 +1789,7 @@ class ConveyThis
             }
 
             $head = $doc->getElementsByTagName('head')->item(0);
-            if (!empty($head) && isset($modifiedUrl)) {
+            if (!empty($head)) {
                 $newCanonical = $doc->createElement('link');
                 $newCanonical->setAttribute('rel', 'canonical');
                 $newCanonical->setAttribute('href', $modifiedUrl);

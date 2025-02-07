@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 250 =
+* Updated canonicals
+
 = 249 =
 * Updated notification
 
