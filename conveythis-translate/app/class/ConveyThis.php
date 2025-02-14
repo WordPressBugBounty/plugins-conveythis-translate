@@ -1897,7 +1897,11 @@ class ConveyThis
 
                         if( $child->hasAttribute( 'href' ) )
                         {
-                            $href = preg_replace('/[^a-zA-Z0-9\-_\/.%:&=?#а-яА-ЯёЁ]/u', '', $child->hasAttribute( 'href' ));
+                            $href = $child->hasAttribute( 'href' );
+
+                            if (!filter_var($href, FILTER_VALIDATE_URL)){
+                                $href = preg_replace('/[^\p{L}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $href);
+                            }
 
                             $metaAttrValue = trim( $href );
 
@@ -2075,7 +2079,9 @@ class ConveyThis
         $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
         $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
 
-        $path = preg_replace('/[^a-zA-Z0-9\-_\/.%:&=?#а-яА-ЯёЁ]/u', '', $path);
+        if (!filter_var($path, FILTER_VALIDATE_URL)){
+            $path = preg_replace('/[^\p{L}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $path);
+        }
 
         return "$scheme$user$pass$host$port$path$query$fragment";
     }

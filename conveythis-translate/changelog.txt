@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 251 =
+* Updated translation options
+
 = 250 =
 * Updated canonicals
 
