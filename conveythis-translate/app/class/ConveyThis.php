@@ -434,6 +434,7 @@ class ConveyThis
         register_setting( 'my-plugin-settings-group', 'style_indenting_horizontal' );
         register_setting( 'my-plugin-settings-group', 'auto_translate' );
         register_setting( 'my-plugin-settings-group', 'hide_conveythis_logo' );
+        register_setting( 'my-plugin-settings-group', 'dynamic_translation' );
         register_setting( 'my-plugin-settings-group', 'translate_media' );
         register_setting( 'my-plugin-settings-group', 'translate_document' );
         register_setting( 'my-plugin-settings-group', 'translate_links' );
@@ -520,6 +521,7 @@ class ConveyThis
                 'style_indenting_horizontal' => $this->variables->style_indenting_horizontal,
                 'auto_translate' => $this->variables->auto_translate,
                 'hide_conveythis_logo' => $this->variables->hide_conveythis_logo,
+                'dynamic_translation' => $this->variables->dynamic_translation,
                 'translate_media' => $this->variables->translate_media,
                 'translate_document' => $this->variables->translate_document,
                 'translate_links' => $this->variables->translate_links,
@@ -2666,6 +2668,7 @@ class ConveyThis
         add_option( 'style_indenting_horizontal', '24' );
         add_option( 'auto_translate', '0' );
         add_option( 'hide_conveythis_logo', '0' );
+        add_option( 'dynamic_translation', '0' );
         add_option( 'translate_media', '0' );
         add_option( 'translate_document', '0' );
         add_option( 'translate_links', '0' );
@@ -2716,6 +2719,7 @@ class ConveyThis
         delete_option( 'style_indenting_horizontal' );
         delete_option( 'auto_translate' );
         delete_option( 'hide_conveythis_logo' );
+        delete_option( 'dynamic_translation' );
         delete_option( 'translate_media' );
         delete_option( 'translate_document' );
         delete_option( 'translate_links' );

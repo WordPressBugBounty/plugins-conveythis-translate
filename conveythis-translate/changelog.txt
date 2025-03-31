@@ -1,5 +1,11 @@
 == Changelog ==
 
+= 253 =
+* Updated dynamic translations, added Brazilian Portuguese
+
+= 252 =
+* Updated language options
+
 = 251 =
 * Updated translation options
 

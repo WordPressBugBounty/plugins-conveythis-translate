@@ -41,7 +41,7 @@
     <div class="form-group">
         <div class="subtitle">Text</div>
         <label for="">Display the text name of the language</label>
-        <div class="radio-block">
+        <div class="radio-block" style="flex-direction: column; gap: 20px">
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="style_text" id="full-text" value="full-text" <?php echo  $this->variables->style_text == 'full-text' ? 'checked' : '' ?> >
                 <label for="full-text">Full text, in English (e.g., Spanish)</label></div>
@@ -50,7 +50,7 @@
                 <label for="full-text-native">Full text, in native language (e.g., Español)</label></div>
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="style_text" id="short-text" value="short-text" <?php echo  $this->variables->style_text == 'short-text' ? 'checked' : '' ?> >
-                <label for="short-text">Short text</label></div>
+                <label for="short-text">Short text (e.g., SPA)</label></div>
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="style_text" id="without-text" value="without-text" <?php echo  $this->variables->style_text == 'without-text' ? 'checked' : '' ?> >
                 <label for="without-text">Without text</label></div>

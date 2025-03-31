@@ -32,7 +32,7 @@
                             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/cache.php');
                         ?>
                     </div>
-                    <div class="col-md-4 router-widget" style="display: flex; align-items: center; justify-content: center;">
+                    <div class="col-md-4 router-widget">
                         <?php
                             require_once CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/widget.php';
                         ?>

@@ -5,7 +5,7 @@ Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.5
 
-Stable tag: 251
+Stable tag: 253
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -123,6 +123,12 @@ ConveyThis Translate is translated into Spanish and Russian languages so far.  H
 10.	The language button now appeared on your website.
 11.	You can switched to another language and see translated page
 12.	If you want to edit your translation go ["My Translation"](https://app.conveythis.com/domains) in your account
+
+= 253 =
+* Updated dynamic translations, added Brazilian Portuguese
+
+= 252 =
+* Updated language options
 
 = 251 =
 * Updated translation options

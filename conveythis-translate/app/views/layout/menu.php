@@ -61,7 +61,7 @@
                     }
                     else if(event.target.id === value.tag+'-tab' && value.widget_preview)
                     {
-                        router.style.display = 'flex';
+                        router.style.display = 'block';
                         router.classList.add('col-md-4');
                         mainBlock.classList.add('col-md-8');
                         mainBlock.classList.remove('col-md-12');

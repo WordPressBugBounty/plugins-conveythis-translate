@@ -29,6 +29,17 @@
         </div>
     </div>
 
+    <div class="form-group">
+        <div class="subtitle">Allows the Translation of Dynamic Content (AJAX, WebSockets, etc.)</div>
+        <div class="radio-block">
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="dynamic_translation_yes" name="dynamic_translation" value="1" <?php echo $this->variables->dynamic_translation == 1 ? 'checked' : ''?>>
+                <label for="dynamic_translation_yes">Yes</label></div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="dynamic_translation_no" name="dynamic_translation" value="0" <?php echo $this->variables->dynamic_translation == 0 ? 'checked' : ''?>>
+                <label for="dynamic_translation_no">No</label></div>
+        </div>
+    </div>
 
     <div class="form-group">
         <div class="subtitle">Translate Media (adopt images for specific language)</div>

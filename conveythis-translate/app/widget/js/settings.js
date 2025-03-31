@@ -394,6 +394,8 @@ jQuery(document).ready(function($) {
 		813:{'title_en':'Uyghur','title':'ئۇيغۇر','code2':'ug','code3':'uig','flag':'Z1v'},
 		814:{'title_en':'Yoruba','title':'Yoruba','code2':'yo','code3':'yor','flag':'8oM'},
 		815:{'title_en':'Zulu','title':'Zulu','code2':'zu','code3':'zul','flag':'7xS'},
+		816:{'title_en':'Portuguese (PT)','title':'Português (PT)','code2':'pt-pt','code3':'por','flag':'1oU'},
+		817:{'title_en':'Portuguese (BR)','title':'Português (BR)','code2':'pt-br','code3':'por','flag':'1oU'},
     }
 
 	$("#range-style-indenting-vertical").slider({

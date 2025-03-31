@@ -24,6 +24,7 @@ class Variables
     public $site_host;
     public $site_prefix;
     public $plan = 'free';
+    public $dynamic_translation;
     public $translate_media;
     public $translate_document;
     public $translate_links;
@@ -221,6 +222,8 @@ class Variables
         813 => array('language_id' => 813, 'title_en' => 'Uyghur', 'title' => 'ئۇيغۇر', 'code2' => 'ug', 'code3' => 'uig', 'flag' => 'cn'),
         814 => array('language_id' => 814, 'title_en' => 'Yoruba', 'title' => 'Yoruba', 'code2' => 'yo', 'code3' => 'yor', 'flag' => 'ng'),
         815 => array('language_id' => 815, 'title_en' => 'Zulu', 'title' => 'Zulu', 'code2' => 'zu', 'code3' => 'zul', 'flag' => 'za'),
+        816 => array('language_id' => 816, 'title_en' => 'Portuguese (PT)', 'title' => 'Português (PT)','code2' => 'pt-pt', 'code3' => 'por', 'flag' => 'pt'),
+        817 => array('language_id' => 817, 'title_en' => 'Portuguese (BR)', 'title' => 'Português (BR)','code2' => 'pt-br', 'code3' => 'por', 'flag' => 'br'),
     );
 
     public $flags = array(
@@ -487,6 +490,7 @@ class Variables
         $this->auto_translate = get_option( 'auto_translate', '1' );
         $this->select_region = get_option( 'conveythis_select_region', 'US' );
         $this->hide_conveythis_logo = get_option( 'hide_conveythis_logo', '0' );
+        $this->dynamic_translation = get_option( 'dynamic_translation', '0' );
         $this->translate_media = get_option( 'translate_media', '0' );
         $this->translate_document = get_option( 'translate_document', '0' );
         $this->translate_links = get_option( 'translate_links', '0' );
