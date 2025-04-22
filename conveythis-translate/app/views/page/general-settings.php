@@ -154,18 +154,18 @@
     <div class="form-group mb-4">
         <div class="subtitle">Hreflang tags</div>
         <div class="form-check">
+            <input type="hidden" name="alternate" value="0">
             <input type="checkbox" class="form-check-input me-2" id="hreflang_tags" name="alternate" value="1" <?php checked( 1, $this->variables->alternate, true ); ?>>
             <label for="hreflang_tags">Add to all pages</label>
         </div>
     </div>
-
-
 
     <div class="title">Customize Languages</div>
 
     <div class="form-group">
         <div class="subtitle">Languages in selectbox</div>
         <div class="form-check">
+            <input type="hidden" name="show_javascript" value="0">
             <input type="checkbox" class="form-check-input me-2" id="selectbox" name="show_javascript" value="1"  <?php checked( 1, $this->variables->show_javascript, true ); ?>>
             <label for="selectbox">Show</label>
         </div>

@@ -16,7 +16,7 @@
         <div class="confetti-piece"></div>
         <div class="confetti-piece"></div>
             
-        <div>
+        <div class="wrap-congratulation">
 
             <div class="p-3">
                 <a href="https://www.conveythis.com/" target="_blank">
@@ -44,7 +44,8 @@
                 </div>
 
             </div>
-            <div class="p-3 text-body-tertiary">
+
+            <div class="p-3 text-body-tertiary view-more-settings">
                 <a href="#" class="conveythis_new_user">View more settings</a>
             </div>
 

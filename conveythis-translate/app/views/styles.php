@@ -23,6 +23,7 @@ wp_enqueue_script('conveythis-slider', plugins_url('../widget/js/slider.min.js',
 //wp_enqueue_script('conveythis-plugin', DEV_CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis.js?api_key=". $variables->api_key ."&preview=1", [], 65, false);
 wp_enqueue_script('conveythis-plugin', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis.js?api_key=". $variables->api_key ."&preview=1", [], 65, false);
 wp_enqueue_script('conveythis-settings', plugins_url('../widget/js/settings.js', __FILE__), array('jquery'), CONVEYTHIS_PLUGIN_VERSION, true);
+wp_localize_script('conveythis-settings', 'conveythis_plugin_ajax', array('ajax_url' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('conveythis_ajax_save')));
 
 wp_enqueue_script('conveythis-loader', plugins_url('../widget/js/' . (CONVEYTHIS_LOADER? "loader" : "loader-pause") . '.js', __FILE__), array(), CONVEYTHIS_PLUGIN_VERSION, true);
 

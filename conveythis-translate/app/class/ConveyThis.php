@@ -85,6 +85,7 @@ class ConveyThis
         add_action( 'widgets_init', 'wp_register_widget' );
         add_shortcode('conveythis_switcher', array($this, 'get_conveythis_shortcode'));
 
+        add_action('wp_ajax_conveythis_save_all_settings', array($this, 'ajax_conveythis_save_settings'));
 
         //RankMath
         //sitemap
@@ -159,6 +160,103 @@ class ConveyThis
                 update_option('style_change_flag', $this->variables->style_change_flag );
             }
         }
+    }
+
+    public function ajax_conveythis_save_settings()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Access denied');
+        }
+
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+        }
+
+        $fields = [
+            'api_key',
+            'source_language',
+            'target_languages',
+            'target_languages_translations',
+            'default_language',
+            'style_change_language', 'style_change_flag',
+            'style_flag',
+            'style_text',
+            'style_position_vertical',
+            'style_position_horizontal',
+            'style_indenting_vertical',
+            'style_indenting_horizontal',
+            'auto_translate',
+            'hide_conveythis_logo',
+            'dynamic_translation',
+            'translate_media',
+            'translate_document',
+            'translate_links',
+            'change_direction',
+            'conveythis_clear_cache',
+            'conveythis_select_region',
+            'is_active_domain',
+            'alternate',
+            'accept_language',
+            'blockpages',
+            'show_javascript',
+            'style_position_type',
+            'style_position_vertical_custom',
+            'style_selector_id',
+            'url_structure',
+            'style_background_color',
+            'style_hover_color',
+            'style_border_color',
+            'style_text_color',
+            'style_corner_type',
+            'style_widget',
+            'conveythis_system_links',
+            'exclusions',
+            'glossary',
+            'exclusion_blocks'
+        ];
+
+        $incoming = $_POST['settings'] ?? [];
+
+        $try_json = ['exclusions', 'glossary', 'exclusion_blocks', 'target_languages_translations'];
+
+        foreach ($try_json as $json_field) {
+            if (isset($incoming[$json_field]) && is_string($incoming[$json_field])) {
+                $incoming[$json_field] = json_decode(stripslashes($incoming[$json_field]), true);
+            }
+        }
+
+        $exclusions          = $incoming['exclusions'] ?? null;
+        $glossary            = $incoming['glossary'] ?? null;
+        $exclusion_blocks    = $incoming['exclusion_blocks'] ?? null;
+        $clear_translate_cache = $incoming['clear_translate_cache'] ?? null;
+
+        if ($exclusions) {
+            $this->updateRules($exclusions, 'exclusion');
+        }
+        if ($glossary) {
+            $this->updateRules($glossary, 'glossary');
+        }
+        if ($exclusion_blocks) {
+            $this->updateRules($exclusion_blocks, 'exclusion_blocks');
+        }
+
+        if ($clear_translate_cache) {
+            $this->ConveyThisCache->clear_cached_translations(true);
+        }
+
+        foreach ($fields as $field) {
+            if (isset($incoming[$field])) {
+                $value = maybe_unserialize(wp_unslash($incoming[$field]));
+                update_option($field, $value);
+            }
+        }
+
+        // update all parameters
+        $this->variables = new Variables();
+        $this->updateDataPlugin();
+        $this->clearCacheButton();
+
+        return wp_send_json_success('save');
     }
 
     public function conveythis_register_default_dom_checkers($content)
@@ -1207,7 +1305,7 @@ class ConveyThis
             else
             {
                 if ($_url === '/') {
-	                return substr_replace( $_url, $prefix . '' . $language_code , 0, strlen( $prefix ) );
+                    return substr_replace( $_url, $prefix . '' . $language_code , 0, strlen( $prefix ) );
                 }
                 return substr_replace( $_url, $prefix . '' . $language_code . '/' , 0, strlen( $prefix ) );
             }
@@ -2058,9 +2156,9 @@ class ConveyThis
                 }
             }
             if ($link['path'] === '/') {
-	            $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code  , 0, strlen( $this->variables->site_prefix ) );
+                $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code  , 0, strlen( $this->variables->site_prefix ) );
             } else {
-	            $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
+                $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
             }
 
             return $this->unparse_url( $link );

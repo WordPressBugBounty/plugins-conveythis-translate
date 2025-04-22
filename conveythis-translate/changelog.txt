@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 254 =
+* Improved widget preview, fast settings savings
+
 = 253 =
 * Updated dynamic translations, added Brazilian Portuguese
 

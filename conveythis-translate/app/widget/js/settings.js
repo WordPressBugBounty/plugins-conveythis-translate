@@ -1,4 +1,6 @@
 jQuery(document).ready(function($) {
+	var bootstrapDropdown = $.fn.dropdown.noConflict();
+	$.fn.bootstrapDropdown = bootstrapDropdown;
 
 	function checkTools() {
 		if (conveythisSettings.effect && conveythisSettings.view)
@@ -109,6 +111,37 @@ jQuery(document).ready(function($) {
 			data: {'convey_event': true, 'convey_event_name': 'eventSignupModal'}
 		})
 	})
+
+	$('#ajax-save-settings').on('click', function (e) {
+		e.preventDefault();
+
+		const $btn = $(this);
+		const form = $('#conveythis-settings-form');
+		const overlay = $('<div class="conveythis-overlay"></div>');
+
+		form.css('position', 'relative').append(overlay);
+
+		$btn.prop('disabled', true).val('Saving...');
+
+		prepareSettingsBeforeSave();
+
+		const data = Object.fromEntries(new FormData(form[0]));
+
+		$.post(conveythis_plugin_ajax.ajax_url, {
+			action: 'conveythis_save_all_settings',
+			nonce: data['conveythis_nonce'],
+			settings: data
+		}, function (response) {
+			$('.conveythis-overlay').remove();
+			$btn.prop('disabled', false).val('Save Settings');
+
+			if (response.success) {
+				toastr.success('Settings saved successfully');
+			} else {
+				toastr.error('Error saving settings: ' + response.data);
+			}
+		});
+	});
 
 	$('#register_form').submit((e) => {
 		e.preventDefault()
@@ -277,8 +310,6 @@ jQuery(document).ready(function($) {
 		$('#signUpModal').modal('show')
 	})
 
-	var bootstrapButton = $.fn.dropdown.noConflict() // return $.fn.button to previously assigned value
-	$.fn.bootstrapBtn = bootstrapButton // give $().bootstrapBtn the Bootstrap functionality
 	var languages = {
         703:{'title_en':'English','title':'English','code2':'en','code3':'eng','flag':'R04', 'flag_codes': {'us': 'United States of America', 'gb': ' United Kingdom', 'ca': 'Canada'}},
         704:{'title_en':'Afrikaans','title':'Afrikaans','code2':'af','code3':'afr','flag':'7xS'},
@@ -744,8 +775,12 @@ jQuery(document).ready(function($) {
 
 	});
 
+	$('.widget-trigger [name="style_widget"]').on('change', function(e) {
+		const customizePlugin =  $(".customize-view-button-wrapper")
+		customizePlugin.removeClass('widget-popup widget-dropdown widget-list');
+		customizePlugin.addClass('widget-'+$(this).val());
+	});
 
-	
 	function showPositionType(type){
 
 		if(type == 'custom'){
@@ -852,7 +887,6 @@ jQuery(document).ready(function($) {
 		return validation;
 	}
 
-
 	$('.conveythis-widget-option-form, #login-form-settings').submit( function(e){
 		let apiKey = $("#conveythis_api_key").val();
 		let validation = checkValidation();
@@ -872,6 +906,7 @@ jQuery(document).ready(function($) {
 				targetLanguagesTranslations[t.getAttribute('language_id')] = languageTranslation;
 			}
 		}
+
 		$('input[name="target_languages_translations"]').val(JSON.stringify(targetLanguagesTranslations));
 
 		let exclusions = [];
@@ -938,13 +973,76 @@ jQuery(document).ready(function($) {
 			}
 		})
 		$('input[name="conveythis_system_links"]').val(JSON.stringify(system_links));
-
 	});
 
+	function prepareSettingsBeforeSave() {
+		let targetLanguagesTranslations = {};
+		$("#target_languages_translations input[language_id]").each(function () {
+			const val = this.value.trim();
+			if (val.includes('/')) {
+				alert('Translation cannot contain slash: ' + val);
+				return false;
+			}
+			if (val) {
+				targetLanguagesTranslations[this.getAttribute('language_id')] = val;
+			}
+		});
+		$('input[name="target_languages_translations"]').val(JSON.stringify(targetLanguagesTranslations));
 
+		let exclusions = [];
+		$('div.exclusion').each(function () {
+			let rule = $(this).find('.rule select').val();
+			let pageUrl = $(this).find('input.page_url').val().trim();
+			if (rule && pageUrl) {
+				let ex = { rule, page_url: pageUrl };
+				let id = $(this).find('input.exclusion_id').val();
+				if (id) ex.id = id;
+				exclusions.push(ex);
+			}
+		});
+		$('input[name="exclusions"]').val(JSON.stringify(exclusions));
+
+		let glossary = [];
+		$('div.glossary').each(function () {
+			let rule = $(this).find('.rule select').val();
+			let source = $(this).find('input.source_text').val().trim();
+			let translate = $(this).find('input.translate_text').val().trim();
+			let lang = $(this).find('.target_language select').val().trim();
+			if (rule && source) {
+				let gl = { rule, source_text: source, translate_text: translate, target_language: lang };
+				let id = $(this).find('input.glossary_id').val();
+				if (id) gl.glossary_id = id;
+				glossary.push(gl);
+			}
+		});
+		$('input[name="glossary"]').val(JSON.stringify(glossary));
+
+		let exclusion_blocks = [];
+		$('div.exclusion_block').each(function () {
+			let idVal = $(this).find('input.id_value').val().trim();
+			if (idVal) {
+				let ex = { id_value: idVal };
+				let id = $(this).find('input.exclusion_block_id').val();
+				if (id) ex.id = id;
+				exclusion_blocks.push(ex);
+			}
+		});
+		$('input[name="exclusion_blocks"]').val(JSON.stringify(exclusion_blocks));
+
+		let system_links = [];
+		$('div.system_link').each(function () {
+			let link = $(this).find('input.link_text').val();
+			if (link) {
+				let sl = { link };
+				let id = $(this).find('input.system_link_id').val();
+				if (id) sl.link_id = id;
+				system_links.push(sl);
+			}
+		});
+		$('input[name="conveythis_system_links"]').val(JSON.stringify(system_links));
+	}
 
 	$('input[name=target_languages]').change();
-
 
 	function hideTargetLanguage(){
 		$('.dropdown-target-languages .item').show();
@@ -1056,6 +1154,11 @@ jQuery(document).ready(function($) {
 							} else {
 								$('.paid-function input').prop('disabled', true)
 								$('.paid-function button').prop('disabled', true)
+							}
+
+							if (result.data.meta.alias.includes('free')) {
+								$('input[name=hide_conveythis_logo][value = 1]').prop('disabled', true);
+								$('input[name=hide_conveythis_logo][value = 0]').prop('checked', true);
 							}
 
 							_alias = result.data.meta.alias;

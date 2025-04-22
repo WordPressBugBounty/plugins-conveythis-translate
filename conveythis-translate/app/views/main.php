@@ -3,8 +3,9 @@
     <?php require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/expired-message.php');?>
 
     <div class="settings-block">
-        <form method="post" class="conveythis-widget-option-form" action="options.php" class="w-100">
+        <form method="post" class="conveythis-widget-option-form w-100" id="conveythis-settings-form">
             <?php
+                wp_nonce_field('conveythis_ajax_save', 'conveythis_nonce');
                 settings_fields('my-plugin-settings-group');
                 do_settings_sections('my-plugin-settings-group');
             ?>
@@ -43,7 +44,7 @@
 
                 <div class="btn-box d-flex justify-content-start">
                     <!--Submit button-->
-                    <input type="submit" name="submit" id="submit" class="btn btn-primary btn-custom autoSave" value="Save settings">
+                    <input type="button" id="ajax-save-settings" class="btn btn-primary btn-custom autoSave" value="Save settings">
                 </div>
 
                 <div class="modal fade" tabindex="-1" id="congrats-modal" role="dialog" aria-hidden="true" data-backdrop="static">

@@ -4,7 +4,7 @@
 
     <div class="form-group">
         <div class="subtitle">Widget style (Optional)</div>
-        <div class="ui fluid search selection dropdown">
+        <div class="ui fluid search selection dropdown widget-trigger">
             <input type="hidden" name="style_widget" value="<?php echo esc_html($this->variables->style_widget); ?>">
             <i class="dropdown icon"></i>
             <div class="default text"><?php echo esc_html(__('Select widget style', 'conveythis-translate')); ?></div>
