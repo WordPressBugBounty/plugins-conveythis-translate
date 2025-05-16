@@ -16,14 +16,14 @@
             <div>Take a few steps to set up the plugin</div>
 
             <div class="m-auto my-4 text-center">
-                <p>Enter the email you used to register in the ConveyThis dashboard</p>
+                <p>Enter the email you used to register in the <a href="https://app.conveythis.com/dashboard/" class="api-key-setting" target="_blank">Conveythis dashboard</a></p>
                 <div class="ui input w-100">
                     <input type="email" name="email" id="conveythis_email" class="conveythis-input-text text-truncate" value="" placeholder="Enter email" >
                 </div>
             </div>
 
             <div class="m-auto my-4 text-center">
-                <p>Api key</p>
+                <p>Enter API key <span role="button" title="Paste your API key from Conveythis dashboard">❔<a href="https://app.conveythis.com/dashboard/" class="api-key-setting" target="_blank"> Get API key</a></span></p>
                 <div class="ui input w-100">
                     <input type="text" name="api_key" id="conveythis_api_key" class="conveythis-input-text text-truncate"
                            value="<?php echo esc_html($this->variables->api_key) ?>"

@@ -6,7 +6,7 @@ wp_enqueue_style('conveythis-confetti', plugins_url('../widget/css/confetti.min.
 wp_enqueue_style('conveythis-dropdown', plugins_url('../widget/css/dropdown.min.css', __FILE__), array(), CONVEYTHIS_PLUGIN_VERSION );
 wp_enqueue_style('conveythis-input', plugins_url('../widget/css/input.min.css', __FILE__), array(), CONVEYTHIS_PLUGIN_VERSION );
 wp_enqueue_style('conveythis-transition', plugins_url('../widget/css/transition.min.css',__FILE__), array(), CONVEYTHIS_PLUGIN_VERSION );
-wp_enqueue_style('conveythis-style', plugins_url('../widget/css/style.min.css',__FILE__), array(), CONVEYTHIS_PLUGIN_VERSION );
+wp_enqueue_style('conveythis-style', plugins_url('../widget/css/style.css',__FILE__), array(), CONVEYTHIS_PLUGIN_VERSION );
 wp_enqueue_style('conveythis-bootstrap-css', '//cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css', array(), '5.0.2');
 wp_enqueue_style('conveythis-toastr', '//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css', array(), '2.1.3');
 wp_enqueue_style('conveythis-slider', plugins_url('../widget/css/slider.min.css', __FILE__), array(), CONVEYTHIS_PLUGIN_VERSION);

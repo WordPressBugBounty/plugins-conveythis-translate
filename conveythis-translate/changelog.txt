@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 255 =
+* Improved activation process, "alt" tag translation, update for inner links, bug fixes
+
 = 254 =
 * Improved widget preview, fast settings savings
 

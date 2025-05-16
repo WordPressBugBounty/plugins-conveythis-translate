@@ -9,6 +9,7 @@ class ConveyThis
     private $ConveyThisCache;
     private $ConveyThisSEO;
     private $nodePathList = [];
+    private $nodePathListSpace = [];
 
     function __construct()
     {
@@ -1552,6 +1553,7 @@ class ConveyThis
         {
             if( $child->nodeType === 3 )
             {
+                $originalValue = $child->textContent;
                 $value = trim( $child->textContent );
                 // $value = htmlentities($child->textContent, null, 'utf-8');
                 // $value = str_ireplace("&nbsp;", " ", $value);
@@ -1565,15 +1567,15 @@ class ConveyThis
                             $value = trim($this->DOMinnerHTML($child->parentNode));
                             $value = preg_replace("/\<!--(.*?)\-->/", "", $value);
                             $this->variables->segments[$value] = $value;
-                            $this->collectNode( $child->parentNode, 'innerHTML', $value );
+                            $this->collectNode( $child->parentNode, 'innerHTML', $value, $originalValue);
                         } else {
                             $this->variables->segments[$value] = $value;
-                            $this->collectNode( $child, 'textContent', $value );
+                            $this->collectNode( $child, 'textContent', $value, $originalValue );
                         }
                     }
                     else {
                         $this->variables->segments[$value] = $value;
-                        $this->collectNode( $child, 'textContent', $value );
+                        $this->collectNode( $child, 'textContent', $value, $originalValue );
                     }
                 }
 
@@ -1586,7 +1588,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('title') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'title', $attrValue );
+                            $this->collectNode( $child, 'title', $attrValue, $originalValue);
                         }
                     }
 
@@ -1594,7 +1596,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('alt') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'alt', $attrValue );
+                            $this->collectNode( $child, 'alt', $attrValue, $originalValue );
                         }
                     }
 
@@ -1602,7 +1604,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('placeholder') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'placeholder', $attrValue );
+                            $this->collectNode( $child, 'placeholder', $attrValue, $originalValue );
                         }
                     }
 
@@ -1616,7 +1618,7 @@ class ConveyThis
                             {
                                 $attrValue = trim( $child->getAttribute( 'value' ) );
                                 if( !empty( $attrValue ) ) {
-                                    $this->collectNode( $child, 'value', $attrValue );
+                                    $this->collectNode( $child, 'value', $attrValue, $originalValue );
                                 }
                             }
                         }
@@ -1659,7 +1661,7 @@ class ConveyThis
                                     if( !empty( $metaAttrValue ) )
                                     {
                                         $this->variables->segments[$metaAttrValue] = $metaAttrValue;
-                                        $this->collectNode( $child, 'content', $metaAttrValue );
+                                        $this->collectNode( $child, 'content', $metaAttrValue, $originalValue );
                                     }
                                 }
                             }
@@ -1677,6 +1679,22 @@ class ConveyThis
                                 $this->collectNode( $child, 'src', $src );
                             }
                         }
+
+                        if($child->hasAttribute('title')) {
+                            $title = trim($child->getAttribute('title'));
+                            if(!empty($title)) {
+                                $this->variables->segments[$title] = $title;
+                                $this->collectNode($child, 'title', $title);
+                            }
+                        }
+
+                        if($child->hasAttribute('alt')) {
+                            $alt = trim($child->getAttribute('alt'));
+                            if(!empty($alt)) {
+                                $this->variables->segments[$alt] = $alt;
+                                $this->collectNode($child, 'alt', $alt);
+                            }
+                        }
                     }
 
                     $shouldReadChild = true;
@@ -1692,7 +1710,7 @@ class ConveyThis
 
                             if(in_array($ext, $this->variables->documentExt)){
                                 $this->variables->segments[$href] = $href;
-                                $this->collectNode( $child, 'href', $href );
+                                $this->collectNode( $child, 'href', $href, $originalValue );
                             }
                         }
 
@@ -1704,7 +1722,7 @@ class ConveyThis
                             if ((!$pageHost || $pageHost == $this->variables->site_host) && $link['path'] && $link['path'] != '/') {
                                 $this->variables->segments[$link['path']] = $link['path'];
                                 $this->variables->links[$link['path']] = $link['path'];
-                                $this->collectNode( $child, 'href', $link['path'] );
+                                $this->collectNode( $child, 'href', $link['path'], $originalValue );
                             }
                         }
 
@@ -1758,15 +1776,20 @@ class ConveyThis
         }
     }
 
-    private function collectNode( $item, $attr, $value ) {
+    private function collectNode( $item, $attr, $value, $originalValue='' ) {
         // Add node original value and attribute in list so then we can find the element by its DOM path and replace original content for each element with translation
         $path = $item->getNodePath();
+
+        $leftSpace  = preg_match('/^\s+/u', $originalValue, $l) ? $l[0] : '';
+        $rightSpace = preg_match('/\s+$/u', $originalValue, $r) ? $r[0] : '';
+
         if ( !isset( $this->nodePathList[$path] ) ) {
             $this->nodePathList[$path] = [];
+            $this->nodePathListSpace[$path] = [];
         }
 
-        $this->nodePathList[$path][$attr]  = $value;
-    }
+        $this->nodePathList[$path][$attr] = $value;
+        $this->nodePathListSpace[$path][$attr] = ['left' => $leftSpace, 'right' => $rightSpace];    }
 
     function replaceSegments( $doc )
     {
@@ -1785,6 +1808,15 @@ class ConveyThis
                 foreach ( $this->nodePathList[$node_path] as $attr => $value ) {
                     // If translation is found replace current text or attribute with translation
                     $segment = $this->searchSegment($value);
+
+                    if(isset($this->nodePathListSpace[$node_path][$attr])) {
+                        $space = $this->nodePathListSpace[$node_path][$attr];
+
+                        if(isset($space["left"]) && isset($space["right"])){
+                            $segment = $space["left"] . $segment . $space["right"];
+                        }
+                    }
+
                     if ($segment) {
                         if ($attr == 'innerHTML') {
                             $el->innerHTML = $segment;
@@ -1842,6 +1874,28 @@ class ConveyThis
                     $replaced_link = $this->replaceLink( $el->getAttribute( 'data-permalink' ), $this->variables->language_code );
                     if ( $replaced_link ) {
                         $el->setAttribute('data-permalink', $replaced_link );
+                    }
+                }
+            }
+        }
+
+        $anchors = $xpath->query('//a[@href]');
+        $language_code = $this->variables->language_code;
+
+        foreach ($anchors as $a) {
+            if ($a->getAttribute('translate') !== 'no') {
+                $href = $a->getAttribute('href');
+
+                $parsedHref = parse_url($href);
+                $path = isset($parsedHref['path']) ? $parsedHref['path'] : '';
+
+                $path_parts = explode('/', ltrim($path, '/'));
+                $firstSegment = isset($path_parts[0]) ? $path_parts[0] : '';
+
+                if ($firstSegment !== $language_code) {
+                    $newHref = $this->replaceLink($href, $language_code);
+                    if ($href !== $newHref) {
+                        $a->setAttribute('href', $newHref);
                     }
                 }
             }
@@ -2017,14 +2071,12 @@ class ConveyThis
                                         {
 
                                         }
-
                                         else
                                         {
                                             $temp = $this->replaceLink( $metaAttrValue, $this->variables->language_code );
                                             $child->setAttribute( 'href', $temp );
                                         }
                                     }
-
                                     else
                                     {
                                         $temp = $this->replaceLink( $metaAttrValue, $this->variables->language_code );

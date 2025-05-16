@@ -96,6 +96,7 @@
         $('#visitSite').click(function(e) {
             window.open(<?php echo json_encode(esc_url(home_url()))?>, '_blank');
             $('#congrats-modal').modal('hide');
+
         });
     });
 </script>
