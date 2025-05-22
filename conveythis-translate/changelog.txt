@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 256 =
+* Test for the newest Wordpress version, bug fixes
+
 = 255 =
 * Improved activation process, "alt" tag translation, update for inner links, bug fixes
 

@@ -1588,7 +1588,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('title') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'title', $attrValue, $originalValue);
+                            $this->collectNode( $child, 'title', $attrValue);
                         }
                     }
 
@@ -1596,7 +1596,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('alt') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'alt', $attrValue, $originalValue );
+                            $this->collectNode( $child, 'alt', $attrValue );
                         }
                     }
 
@@ -1604,7 +1604,7 @@ class ConveyThis
                     {
                         $attrValue = trim( $child->getAttribute('placeholder') );
                         if( !empty( $attrValue ) ) {
-                            $this->collectNode( $child, 'placeholder', $attrValue, $originalValue );
+                            $this->collectNode( $child, 'placeholder', $attrValue );
                         }
                     }
 
@@ -1618,7 +1618,7 @@ class ConveyThis
                             {
                                 $attrValue = trim( $child->getAttribute( 'value' ) );
                                 if( !empty( $attrValue ) ) {
-                                    $this->collectNode( $child, 'value', $attrValue, $originalValue );
+                                    $this->collectNode( $child, 'value', $attrValue );
                                 }
                             }
                         }
@@ -1661,7 +1661,7 @@ class ConveyThis
                                     if( !empty( $metaAttrValue ) )
                                     {
                                         $this->variables->segments[$metaAttrValue] = $metaAttrValue;
-                                        $this->collectNode( $child, 'content', $metaAttrValue, $originalValue );
+                                        $this->collectNode( $child, 'content', $metaAttrValue);
                                     }
                                 }
                             }
@@ -1710,7 +1710,7 @@ class ConveyThis
 
                             if(in_array($ext, $this->variables->documentExt)){
                                 $this->variables->segments[$href] = $href;
-                                $this->collectNode( $child, 'href', $href, $originalValue );
+                                $this->collectNode( $child, 'href', $href );
                             }
                         }
 
@@ -1722,7 +1722,7 @@ class ConveyThis
                             if ((!$pageHost || $pageHost == $this->variables->site_host) && $link['path'] && $link['path'] != '/') {
                                 $this->variables->segments[$link['path']] = $link['path'];
                                 $this->variables->links[$link['path']] = $link['path'];
-                                $this->collectNode( $child, 'href', $link['path'], $originalValue );
+                                $this->collectNode( $child, 'href', $link['path']);
                             }
                         }
 
@@ -1780,8 +1780,8 @@ class ConveyThis
         // Add node original value and attribute in list so then we can find the element by its DOM path and replace original content for each element with translation
         $path = $item->getNodePath();
 
-        $leftSpace  = preg_match('/^\s+/u', $originalValue, $l) ? $l[0] : '';
-        $rightSpace = preg_match('/\s+$/u', $originalValue, $r) ? $r[0] : '';
+        $leftSpace  = preg_match('/^\s+/u', (string)$originalValue, $l) ? $l[0] : '';
+        $rightSpace = preg_match('/\s+$/u', (string)$originalValue, $r) ? $r[0] : '';
 
         if ( !isset( $this->nodePathList[$path] ) ) {
             $this->nodePathList[$path] = [];
@@ -1789,7 +1789,8 @@ class ConveyThis
         }
 
         $this->nodePathList[$path][$attr] = $value;
-        $this->nodePathListSpace[$path][$attr] = ['left' => $leftSpace, 'right' => $rightSpace];    }
+        $this->nodePathListSpace[$path][$attr] = ['left' => $leftSpace, 'right' => $rightSpace];
+    }
 
     function replaceSegments( $doc )
     {
@@ -1809,15 +1810,16 @@ class ConveyThis
                     // If translation is found replace current text or attribute with translation
                     $segment = $this->searchSegment($value);
 
-                    if(isset($this->nodePathListSpace[$node_path][$attr])) {
-                        $space = $this->nodePathListSpace[$node_path][$attr];
-
-                        if(isset($space["left"]) && isset($space["right"])){
-                            $segment = $space["left"] . $segment . $space["right"];
-                        }
-                    }
-
                     if ($segment) {
+
+                        if(isset($this->nodePathListSpace[$node_path][$attr])) {
+                            $space = $this->nodePathListSpace[$node_path][$attr];
+
+                            if(isset($space["left"]) && isset($space["right"])){
+                                $segment =$space["left"] . $segment . $space["right"] ;
+                            }
+                        }
+
                         if ($attr == 'innerHTML') {
                             $el->innerHTML = $segment;
                         } elseif ($attr == 'textContent') {
@@ -1889,10 +1891,10 @@ class ConveyThis
                 $parsedHref = parse_url($href);
                 $path = isset($parsedHref['path']) ? $parsedHref['path'] : '';
 
-                $path_parts = explode('/', ltrim($path, '/'));
-                $firstSegment = isset($path_parts[0]) ? $path_parts[0] : '';
+                $path_parts = array_filter(explode('/', ltrim($path, '/')));
+                $alreadyHasLang = in_array($language_code, $path_parts, true);
 
-                if ($firstSegment !== $language_code) {
+                if (!$alreadyHasLang) {
                     $newHref = $this->replaceLink($href, $language_code);
                     if ($href !== $newHref) {
                         $a->setAttribute('href', $newHref);
