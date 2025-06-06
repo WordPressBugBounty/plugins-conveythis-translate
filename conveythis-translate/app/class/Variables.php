@@ -478,7 +478,6 @@ class Variables
         $this->target_languages = get_option( 'target_languages', array() );
         $this->default_language = get_option( 'default_language' );
         $this->target_languages_translations = get_option( 'target_languages_translations', array() );
-        $this->target_languages_translations = $this->target_languages_translations ? json_decode($this->target_languages_translations, true) : array();
         $this->style_change_language = get_option( 'style_change_language', array() );
         $this->style_change_flag = get_option( 'style_change_flag', array() );
         $this->style_flag = get_option( 'style_flag', 'rect' );
@@ -491,7 +490,7 @@ class Variables
         $this->select_region = get_option( 'conveythis_select_region', 'US' );
         $this->hide_conveythis_logo = get_option( 'hide_conveythis_logo', '0' );
         $this->dynamic_translation = get_option( 'dynamic_translation', '0' );
-        $this->translate_media = get_option( 'translate_media', '0' );
+        $this->translate_media = get_option( 'translate_media', '1' );
         $this->translate_document = get_option( 'translate_document', '0' );
         $this->translate_links = get_option( 'translate_links', '0' );
         $this->change_direction = get_option( 'change_direction', '0' );

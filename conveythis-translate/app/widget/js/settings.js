@@ -849,7 +849,7 @@ console.log("$('.api-key-setting').on('click'")
             $("#dns-setup-records").html("");
             for (language_id in languages) {
                 if (targetLanguages.includes(languages[language_id].code2)) {
-                    let row = "<tr><td>" + languages[language_id].title_en + "</td><td>" + languages[language_id].code2 + "." + location.hostname + "</td><td>dns1.conveythis.com</td></tr>";
+                    let row = "<tr data-domain='" + languages[language_id].code2 + "." + location.hostname + "'><td>" + languages[language_id].title_en + "</td><td>" + languages[language_id].code2 + "." + location.hostname + "</td><td>dns1.conveythis.com</td></tr>";
                     $("#dns-setup-records").append(row);
                 }
             }
@@ -864,6 +864,60 @@ console.log("$('.api-key-setting').on('click'")
 
     $('input[name=url_structure]').change(function () {
         showUrlStructureType(this.value);
+    });
+
+    $('#dns-check').click(function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: conveythis_plugin_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'check_dns',
+                _ajax_nonce: conveythis_plugin_ajax.nonce
+            },
+            beforeSend: function () {
+                $("#dns-setup-records .dns-status").remove();
+                $("#dns-setup #dns-check").hide();
+                $("#dns-setup #dns-loader").show();
+                $("#dns-setup .message").empty();
+            },
+            success: function (response) {
+                let dnsCheck = true;
+                for (const [domain, cnameList] of Object.entries(response.data.records)) {
+                    const $row = $(`tr[data-domain="${domain}"]`);
+
+                    let icon = '❌';
+
+                    if (Array.isArray(cnameList)) {
+                        const valid = cnameList.some(cname =>
+                            cname.includes('dns1.conveythis.com') || cname.includes('dns2.conveythis.com')
+                        );
+
+                        if (valid) {
+                            icon = '✔️';
+                        } else {
+                            dnsCheck = false;
+                        }
+                    } else {
+                        dnsCheck = false;
+                    }
+
+
+                    $row.find('td:last').append(` <span class="dns-status">${icon}</span>`);
+                }
+
+                if(dnsCheck) {
+                    $("#dns-setup .message").html("✔️ DNS successfully connected!");
+                } else {
+                    $("#dns-setup .message").html("❌ Please check your settings in DNS manager");
+                }
+            },
+            complete: function () {
+                $("#dns-setup #dns-check").show();
+                $("#dns-setup #dns-loader").hide();
+            }
+        });
     });
 
     $('input[name=target_languages]').change(function () {

@@ -117,14 +117,19 @@
                         <?php foreach( $this->variables->languages as $language ): ?>
                             <?php if (in_array($language['code2'], $this->variables->target_languages)) :?>
                                 <tr>
-                                    <td><?php echo esc_html( $language['title_en'], 'conveythis-translate' ); ?></td>
-                                    <td><?php echo  esc_html($language['code2']) ?>.<?php echo esc_html($this->getCurrentDomain())?></td>
+                                    <td><?= esc_html( $language['title_en'], 'conveythis-translate' ); ?></td>
+                                    <td><?= esc_html($language['code2']) ?>.<?php echo esc_html($this->getCurrentDomain())?></td>
                                     <td>dns1.conveythis.com</td>
                                 </tr>
                             <?php endif; ?>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <div class="message h6 d-flex justify-content-center"></div>
+                    <div class="d-flex w-auto justify-content-center">
+                        <button id="dns-check" class="btn btn-warning">Test DNS connection</button>
+                        <span id="dns-loader" class="ms-2" style="display:none;">⏳ Checking...</span>
+                    </div>
             </div>
         </div>
     </div>
@@ -182,12 +187,11 @@
     </div>
 
     <div class="form-group">
-        <label for="">Target Language Names</label>
+        <label>Target Language Names</label>
         <table class="table" style="width: 100%; text-align: left;">
-            <tbody id="target_languages_translations">
-            </tbody>
+            <tbody id="target_languages_translations"></tbody>
         </table>
-
+        <input type="hidden" name="target_languages_translations" value="<?= esc_attr( wp_json_encode( $this->variables->target_languages_translations ) ) ?>">
     </div>
 
 </div>
