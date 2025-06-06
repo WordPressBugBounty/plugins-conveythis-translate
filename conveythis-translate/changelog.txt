@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 258 =
+* bug fixes
+
 = 257 =
 * DNS checking button, images localization, bug fixes
 

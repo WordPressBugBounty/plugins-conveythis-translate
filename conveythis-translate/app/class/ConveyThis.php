@@ -959,8 +959,25 @@ class ConveyThis
 
                     preg_match('/^(' . str_replace('/', '\/', $this->variables->site_prefix) . '([^\/]+)\/)(.*)/', $tempRequestUri, $matches);
 
+/*
                     if (!empty($matches)) {
                         $this->variables->language_code = array_search(urldecode(trim($matches[2])), $this->variables->target_languages_translations);
+                    }
+*/
+
+                    if (!empty($matches)) {
+                        $haystack = $this->variables->target_languages_translations;
+
+                        if (!is_array($haystack)) {
+                            $logFile = __DIR__ . '/language_code_error.log';
+                            $message = "[" . date('Y-m-d H:i:s') . "] target_languages_translations is not an array. Value: " . print_r($haystack, true) . "\n";
+                            file_put_contents($logFile, $message, FILE_APPEND);
+                        } else {
+                            $this->variables->language_code = array_search(
+                                urldecode(trim($matches[2])),
+                                $haystack
+                            );
+                        }
                     }
 
                     if (!$this->variables->language_code) {
