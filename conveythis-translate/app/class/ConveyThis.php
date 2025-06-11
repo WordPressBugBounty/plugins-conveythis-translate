@@ -2277,7 +2277,23 @@ class ConveyThis
                     }
                 }
             }
+            /*
             if ($link['path'] === '/') {
+                $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code  , 0, strlen( $this->variables->site_prefix ) );
+            } else {
+                $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
+            }
+            */
+
+            if ($link['path'] === '') {
+                $link['path'] = substr_replace(
+                    $link['path'],
+                    $this->variables->site_prefix . $language_code,
+                    0,
+                    strlen($this->variables->site_prefix)
+                );
+            }
+            else if ($link['path'] === '/') {
                 $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code  , 0, strlen( $this->variables->site_prefix ) );
             } else {
                 $link['path'] = substr_replace( $link['path'], $this->variables->site_prefix . '' . $language_code . '/', 0, strlen( $this->variables->site_prefix ) );
