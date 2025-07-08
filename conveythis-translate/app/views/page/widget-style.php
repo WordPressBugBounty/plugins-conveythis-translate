@@ -174,7 +174,7 @@
                 <label>Background color of widget on hover</label>
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_hover_color" name="style_hover_color" value="<?php echo  esc_attr($this->variables->style_hover_color) ?>"
-                           data-default="#f6f6f6">
+                            data-default="#f6f6f6">
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>
@@ -285,8 +285,8 @@
         <label>Vertical spacing from the top or bottom of the browser</label>
         <div class="d-flex align-items-center w-100">
             <div>
-                <input type="hidden" name="style_indenting_vertical" value="<?php echo  esc_attr($this->variables->style_indenting_vertical); ?>">
-                <span id="display-style-indenting-vertical"><?php echo  esc_attr($this->variables->style_indenting_vertical); ?></span>px
+                <input type="hidden" name="style_indenting_vertical" value="<?php echo esc_attr($this->variables->style_indenting_vertical); ?>">
+                <span id="display-style-indenting-vertical"><?php echo esc_attr($this->variables->style_indenting_vertical); ?></span>px
             </div>
             <div class="ui grey slider" id="range-style-indenting-vertical">
                 <div class="inner">
@@ -296,11 +296,11 @@
                 </div>
             </div>
         </div>
-        <label>Horizontal spacing from the top or bottom of the browser</label>
+        <label>Horizontal spacing from the left or right of the browser</label>
         <div class="d-flex align-items-center w-100">
             <div>
-                <input type="hidden" name="style_indenting_horizontal" value="<?php echo  esc_attr($this->variables->style_indenting_horizontal); ?>">
-                <span id="display-style-indenting-horizontal"><?php echo  esc_attr($this->variables->style_indenting_horizontal); ?></span>px
+                <input type="hidden" name="style_indenting_horizontal" value="<?php echo esc_attr($this->variables->style_indenting_horizontal); ?>">
+                <span id="display-style-indenting-horizontal"><?php echo esc_attr($this->variables->style_indenting_horizontal); ?></span>px
             </div>
             <div class="ui grey slider" id="range-style-indenting-horizontal">
                 <div class="inner">
@@ -311,4 +311,132 @@
             </div>
         </div>
     </div>
+    <div class="row">
+        <div class="form-group">
+            <div class="subtitle">Custom CSS</div>
+            <div class="d-flex align-items-center w-100">
+                <div class="flex-grow-1">
+                    <input type="hidden" name="custom_css_json" id="custom_css_json" value="<?php echo json_encode($this->variables->custom_css_json); ?>">
+                    <textarea id="custom_css" class="form-control font-monospace" rows="3"></textarea>
+                    <button id="check-css" type="button" class="btn btn-primary btn-sm mt-2">Check CSS</button>
+                    <div id="feedback" class="mt-2 font-weight-bold"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="d-flex flex-column gap-1 fs-13">
+                <div><code>#conveythis-wrapper</code> – Wrapper of the entire widget; adds a border around it.</div>
+                <div><code>.conveythis-widget-main</code> – Controls layout and background of the widget.</div>
+                <div><code>.conveythis-widget-languages</code> – List of all languages except the current one.</div>
+                <div><code>.conveythis-widget-language</code> – Each language item (flag + icon).</div>
+                <div><code>.conveythis-widget-current-language-wrapper</code> – Parent of current language block.</div>
+                <div><code>.conveythis-language-arrow</code> – SVG arrow that rotates 90 degrees.</div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    function isCssSyntaxValid(css) {
+        const blocks = css.match(/[^{}]+\{[^{}]*\}/g);
+        if (!blocks) return false;
+
+        for (let block of blocks) {
+            const body = block.split('{')[1].replace('}', '').trim();
+            const rules = body.split(';').map(r => r.trim()).filter(Boolean);
+
+            for (let rule of rules) {
+                if (!rule.includes(':')) return false;
+            }
+        }
+
+        return true;
+    }
+
+    function cssToSafeJson(cssText) {
+        const result = {};
+        const blocks = cssText.match(/[^{}]+\{[^{}]*\}/g);
+        if (!blocks) return result;
+
+        blocks.forEach(block => {
+            const parts = block.split('{');
+            const selector = parts[0].trim();
+            let rules = parts[1].replace('}', '').trim();
+
+            rules = rules.replace(/<[^>]*>/g, '');
+
+            rules = rules.replace(/\s*\n\s*/g, ' ').trim();
+
+            const forbiddenPatterns = [
+                /expression\s*\(/i,
+                /url\s*\(\s*['"]?\s*javascript:/i,
+                /url\s*\(\s*['"]?\s*data:/i,
+                /@import/i,
+                /<\/?script/i,
+            ];
+
+            const isSafe = !forbiddenPatterns.some(regex => regex.test(rules));
+
+            if (isSafe && rules.length > 0) {
+                result[selector] = rules;
+            }
+        });
+
+        return result;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.color-picker-group').forEach(group => {
+            const colorInput = group.querySelector('input[type="color"]');
+            const hexInput = group.querySelector('input[type="text"]');
+
+            colorInput.addEventListener('input', function () {
+                hexInput.value = colorInput.value.toUpperCase();
+            });
+        });
+
+        var css_editor = CodeMirror.fromTextArea(document.getElementById("custom_css"), {
+            lineNumbers: true,
+            mode: "css",
+            lineWrapping: true,
+            styleActiveLine: true,
+            indentUnit: 4,
+            tabSize: 4,
+            placeholder: "#conveythis-wrapper {\n  margin-bottom: 20px;\n}"
+        });
+        css_editor.getWrapperElement().id = "custom_css_editor_wrapper";
+        css_editor.refresh();
+        css_editor.focus();
+        css_editor.setValue(<?php echo json_encode($this->stringJsonToCSS($this->variables->custom_css_json)); ?>);
+        css_editor.getWrapperElement().classList.add('CodeMirror-focused');
+
+
+        document.getElementById("check-css").addEventListener("click", function () {
+            const cssText = css_editor.getValue();
+            const feedback = document.getElementById("feedback");
+            const custom_css_json = document.getElementById("custom_css_json");
+            console.log(cssText);
+            console.log(isCssSyntaxValid(cssText));
+
+            if (cssText.trim() !== "" && !isCssSyntaxValid(cssText)) {
+                feedback.textContent = "❌ CSS has syntax errors";
+                feedback.style.color = "red";
+            } else {
+                feedback.textContent = "✅ CSS is valid";
+                feedback.style.color = "green";
+                const cssReady = cssToSafeJson(cssText);
+                console.log(cssReady);
+
+                if (Object.keys(cssReady).length > 0 || cssText.trim() === "") {
+                    custom_css_json.value = JSON.stringify(cssReady);
+                    conveythisSettings.view();
+                    console.log("Sending JSON:", cssReady);
+                    console.log("Sending str", JSON.stringify(cssReady))
+                } else {
+                    css_editor.setValue("");
+                    alert("⚠️ Unsafe CSS detected and cleared.");
+                }
+            }
+        });
+    });
+</script>

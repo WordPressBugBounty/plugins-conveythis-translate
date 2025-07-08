@@ -103,7 +103,7 @@
             <div class="card">
                 <td class="card-body">
                     <p>Please add CNAME record for each language you wish to use in your DNS manager.</p>
-                    <p>For more information, please check: <a href="https://www.conveythis.com/help/how-to-add-cname-records-in-dns-manager/" target="_blank">How to add CNAME records in DNS manager</a>.</p>
+                    <p>For more information, please check: <a href="https://www.conveythis.com/help/add-cname-records-in-dns-manager" target="_blank">How to add CNAME records in DNS manager</a>.</p>
 
                     <table class="table">
                         <thead>

@@ -3,7 +3,7 @@ jQuery(document).ready(function ($) {
     $.fn.bootstrapDropdown = bootstrapDropdown;
 
     function checkTools() {
-		console.log("checkTools()")
+        console.log("checkTools()")
         if (conveythisSettings.effect && conveythisSettings.view) {
             conveythisSettings.effect(function () {
                 $('#customize-view-button').transition('pulse');
@@ -20,10 +20,58 @@ jQuery(document).ready(function ($) {
         }
     }
 
+    function isCssSyntaxValid(css) {
+        const blocks = css.match(/[^{}]+\{[^{}]*\}/g);
+        if (!blocks) return false;
+
+        for (let block of blocks) {
+            const body = block.split('{')[1].replace('}', '').trim();
+            const rules = body.split(';').map(r => r.trim()).filter(Boolean);
+
+            for (let rule of rules) {
+                if (!rule.includes(':')) return false;
+            }
+        }
+
+        return true;
+    }
+
+    function cssToSafeJson(cssText) {
+        const result = {};
+        const blocks = cssText.match(/[^{}]+\{[^{}]*\}/g);
+        if (!blocks) return result;
+
+        blocks.forEach(block => {
+            const parts = block.split('{');
+            const selector = parts[0].trim();
+            let rules = parts[1].replace('}', '').trim();
+
+            rules = rules.replace(/<[^>]*>/g, '');
+
+            rules = rules.replace(/\s*\n\s*/g, ' ').trim();
+
+            const forbiddenPatterns = [
+                /expression\s*\(/i,
+                /url\s*\(\s*['"]?\s*javascript:/i,
+                /url\s*\(\s*['"]?\s*data:/i,
+                /@import/i,
+                /<\/?script/i,
+            ];
+
+            const isSafe = !forbiddenPatterns.some(regex => regex.test(rules));
+
+            if (isSafe && rules.length > 0) {
+                result[selector] = rules;
+            }
+        });
+
+        return result;
+    }
+
     checkTools();
 
     $('#conveythis_api_key').on('input', async function () {
-		console.log("$('#conveythis_api_key').on('input)")
+        console.log("$('#conveythis_api_key').on('input)")
         var input = $(this);
         var inputValue = input.val();
         var validationLabel = $('#apiKey .validation-label');
@@ -42,7 +90,7 @@ jQuery(document).ready(function ($) {
     });
 
     $('#conveythis_api_key').on('change', async function () {
-		console.log("$('#conveythis_api_key').on('change'")
+        console.log("$('#conveythis_api_key').on('change'")
         var input = $(this);
         var inputValue = input.val();
         var validationLabel = $('#apiKey .validation-label');
@@ -70,7 +118,7 @@ jQuery(document).ready(function ($) {
     });
 
     $('.conveythis_new_user').on('click', function () {
-		console.log("$('.conveythis_new_user').on('click'")
+        console.log("$('.conveythis_new_user').on('click'")
 
         jQuery.ajax({
             url: 'options.php',
@@ -96,7 +144,7 @@ jQuery(document).ready(function ($) {
     })
 
     $('.api-key-setting').on('click', function () {
-console.log("$('.api-key-setting').on('click'")
+        console.log("$('.api-key-setting').on('click'")
         $('#login-form').css('display', 'none');
         $('#login-form-settings').css('display', 'block');
 
@@ -124,7 +172,8 @@ console.log("$('.api-key-setting').on('click'")
         prepareSettingsBeforeSave();
 
         const data = Object.fromEntries(new FormData(form[0]));
-
+        console.log(data);
+        console.log(conveythis_plugin_ajax.ajax_url);
         $.post(conveythis_plugin_ajax.ajax_url, {
             action: 'conveythis_save_all_settings',
             nonce: data['conveythis_nonce'],
@@ -132,6 +181,7 @@ console.log("$('.api-key-setting').on('click'")
         }, function (response) {
             $('.conveythis-overlay').remove();
             $btn.prop('disabled', false).val('Save Settings');
+            console.log(response)
             if (response.success) {
                 toastr.success('Settings saved successfully');
             } else {
@@ -141,7 +191,7 @@ console.log("$('.api-key-setting').on('click'")
     });
 
     $('#register_form').submit((e) => {
-		console.log("$('#register_form').submit")
+        console.log("$('#register_form').submit")
         e.preventDefault()
         var values = {};
         jQuery.each($('#register_form').serializeArray(), function (i, field) {
@@ -907,7 +957,7 @@ console.log("$('.api-key-setting').on('click'")
                     $row.find('td:last').append(` <span class="dns-status">${icon}</span>`);
                 }
 
-                if(dnsCheck) {
+                if (dnsCheck) {
                     $("#dns-setup .message").html("✔️ DNS successfully connected!");
                 } else {
                     $("#dns-setup .message").html("❌ Please check your settings in DNS manager");
@@ -1203,7 +1253,7 @@ console.log("$('.api-key-setting').on('click'")
                 });
             },
         });
-    };
+    }
 
     function getUserPlan() {
         try {

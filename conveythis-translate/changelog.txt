@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 260 =
+* custom CSS styles
+
 = 259 =
 * extra slash symbols bug fix
 

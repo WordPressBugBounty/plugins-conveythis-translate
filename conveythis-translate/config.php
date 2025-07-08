@@ -10,7 +10,7 @@ if(
 // Off on test
 define('CONVEYTHIS_LOADER', true);
 
-define('CONVEYTHIS_PLUGIN_VERSION', 259);
+define('CONVEYTHIS_PLUGIN_VERSION', 260);
 
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));
 
@@ -23,8 +23,9 @@ define('CONVEYTHIS_VIEWS',  plugin_dir_path( __FILE__ ) . 'app/views/notices');
 define('CONVEYTHIS_URL', 'https://www.conveythis.com/');
 
 define('CONVEYTHIS_APP_URL', 'https://app.conveythis.com');
-
-define('CONVEYTHIS_API_URL', 'https://api.conveythis.com'); //https://api.conveythis.com
+define('CONVEYTHIS_API_URL', 'https://api.conveythis.com');
+//define('CONVEYTHIS_APP_URL', 'https://dev-app-4.conveythis.com/');
+//define('CONVEYTHIS_API_URL', 'https://dev-api-4.conveythis.com');
 
 define('CONVEYTHIS_API_PROXY_URL', 'https://api-proxy.conveythis.com'); //https://api-proxy.conveythis.com
 define('CONVEYTHIS_API_PROXY_URL_FOR_EU', 'https://proxy-eu.conveythis.com'); //https://proxy-eu.conveythis.com

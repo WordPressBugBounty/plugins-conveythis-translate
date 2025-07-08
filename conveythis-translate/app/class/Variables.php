@@ -58,6 +58,7 @@ class Variables
     public $style_border_color;
     public $style_text_color;
     public $style_corner_type;
+    public $custom_css_json;
     public $style_widget;
     public $blockpages_items;
     public $referrer;
@@ -509,6 +510,7 @@ class Variables
         $this->style_text_color = get_option( 'style_text_color', '#000000' );
         $this->style_corner_type = get_option( 'style_corner_type', 'rect' );
         $this->style_widget = get_option( 'style_widget', 'dropdown' );
+        $this->custom_css_json = get_option( 'custom_css_json', '' );
         $this->is_translated = get_option('is_translated', '0');
         $this->is_active = get_option('is_active_domain', array());
         $this->system_links = get_option( 'conveythis_system_links', array() );
