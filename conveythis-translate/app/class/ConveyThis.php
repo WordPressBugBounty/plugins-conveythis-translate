@@ -194,6 +194,7 @@ class ConveyThis {
             'translate_media',
             'translate_document',
             'translate_links',
+            'translate_structured_data',
             'change_direction',
             'conveythis_clear_cache',
             'conveythis_select_region',
@@ -520,6 +521,7 @@ class ConveyThis {
         register_setting('my-plugin-settings-group', 'translate_media');
         register_setting('my-plugin-settings-group', 'translate_document');
         register_setting('my-plugin-settings-group', 'translate_links');
+        register_setting('my-plugin-settings-group', 'translate_structured_data');
         register_setting('my-plugin-settings-group', 'change_direction');
         register_setting('my-plugin-settings-group', 'conveythis_clear_cache');
         register_setting('my-plugin-settings-group', 'conveythis_select_region');
@@ -605,6 +607,7 @@ class ConveyThis {
                 'translate_media' => $this->variables->translate_media,
                 'translate_document' => $this->variables->translate_document,
                 'translate_links' => $this->variables->translate_links,
+                'translate_structured_data' => $this->variables->translate_structured_data,
                 'change_direction' => $this->variables->change_direction,
                 'style_position_type' => $this->variables->style_position_type,
                 'style_position_vertical_custom' => $this->variables->style_position_vertical_custom,
@@ -769,7 +772,7 @@ class ConveyThis {
     }
 
     function getPageUrl($str) {
-      //  $this->print_log("* getPageUrl()");
+        //  $this->print_log("* getPageUrl()");
         $n = 0;
         $length = strlen($str);
         $buffer = '';
@@ -812,7 +815,7 @@ class ConveyThis {
             $buffer = '/';
         }
         $result = rtrim($buffer, '/') . '/';
-       // $this->print_log($result);
+        // $this->print_log($result);
         return $result;
     }
 
@@ -975,7 +978,7 @@ class ConveyThis {
                 }
                 $local_lang = get_locale();
                 if (substr($local_lang, 0, 2) != $this->variables->source_language) {
-                    ob_start(array($this, '_translatePage'));
+                    ob_start(array($this, 'translatePage'));
                 }
             } else {
                 if (!empty($this->variables->source_language) && !empty($this->variables->target_languages)) {
@@ -1211,8 +1214,8 @@ class ConveyThis {
     }
 
     public function getLocation($prefix, $language_code, $alternate_link = false) {
-      //  $this->print_log("* getLocation()");
-      //  $this->print_log("prefix: $prefix");
+        //  $this->print_log("* getLocation()");
+        //  $this->print_log("prefix: $prefix");
 
         $url = $this->deleteQueryParams($_SERVER["REQUEST_URI"], $alternate_link);
 
@@ -1224,16 +1227,16 @@ class ConveyThis {
             }
 
             if (strpos($url, '/' . $language_code . '/') === 0) { //check if already contains language prefix
-              //  $this->print_log("case #0: $url");
+                //  $this->print_log("case #0: $url");
                 return $url;
             } else {
                 if ($url === '/') {
                     $result = substr_replace($url, $prefix . '' . $language_code, 0, strlen($prefix));
-                  //  $this->print_log("case #1: $result");
+                    //  $this->print_log("case #1: $result");
                     return $result;
                 }
                 $result = substr_replace($url, $prefix . '' . $language_code . '/', 0, strlen($prefix));
-               // $this->print_log("case #2: $result");
+                // $this->print_log("case #2: $result");
                 return $result;
             }
         }
@@ -2223,7 +2226,11 @@ class ConveyThis {
         return true;
     }
 
-    public function _translatePage($content) {
+    public function translatePage($content) {
+        $this->print_log("* translatePage()");
+        $this->print_log(gettype($content));
+        $this->print_log("content:");
+        $this->print_log(json_encode($content));
 
         if (
             $this->checkRequestURI()
@@ -2237,19 +2244,57 @@ class ConveyThis {
         }
 
         if (!is_admin() && !empty($this->variables->language_code) && !empty($content)) {
+            $this->print_log("!is_admin() && !empty(this->variables->language_code) && !empty(content)");
             if (extension_loaded('xml')) {
+                $this->print_log("extension_loaded('xml')");
                 $scriptContainer = [];
-                /* strip all JS content */
-                $content = preg_replace_callback("#<script([^>]*)>(.*?)</script>#s", function ($matches) use (&$scriptContainer) {
-                    if (strpos($matches[1], 'type="application/ld+json"') !== false) {
-                        $data = json_decode($matches[2], true);
-                        $updated_data = $this->recursiveReplaceLinks($data);
-                        $matches[2] = json_encode($updated_data);
+                $ldscriptContainer = [];
+                $ldJsonScripts = [];
+                $commentedScripts = [];
+                if ($this->variables->translate_structured_data) {
+                    $content = preg_replace_callback('#<!--\s*<script([^>]*)>(.*?)</script>\s*-->#s', function ($m) use (&$commentedScripts) {
+                        $key = '__COMMENTED_SCRIPT_' . md5($m[0]) . '__';
+                        $commentedScripts[$key] = $m[0];
+                        return $key;
+                    }, $content);
+                }
+
+                // Strip all JS content
+                $content = preg_replace_callback("#<script([^>]*)>(.*?)</script>#s", function ($matches) use (&$scriptContainer, &$ldscriptContainer) {
+                    $originalScript = $matches[2];
+                    $scriptKey = md5($originalScript);
+
+                    $scriptContainer[$scriptKey] = $originalScript;
+
+                    // ld+json array
+                    $this->print_log('$this->variables->translate_structured_data');
+                    $this->print_log($this->variables->translate_structured_data);
+                    if ($this->variables->translate_structured_data && strpos($matches[1], 'type="application/ld+json"') !== false ) {
+                        $this->print_log('1 - type="application/ld+json"');
+                        $data = json_decode($originalScript, true);
+
+                        if ($data !== null) {
+                            $this->print_log('2 - type="application/ld+json"');
+                            $this->recursiveReplaceLinks($data);
+                            $this->recursiveAddTextValues($data, $this->variables->segments_seen);
+                            $encoded = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                            $ldscriptContainer[$scriptKey] = $encoded;
+
+                            return "<script" . $matches[1] . ">" . $scriptKey . "</script>";
+                        }
                     }
-                    $scriptContainer[md5($matches[2])] = $matches[2];
-                    return "<script" . $matches[1] . ">" . md5($matches[2]) . "</script>";
+
+                    return "<script" . $matches[1] . ">" . $scriptKey . "</script>";
                 }, $content);
-                /* ----- */
+
+                if ($this->variables->translate_structured_data) {
+                    // Validate JSON-LD scripts
+                    $ldJsonScripts = $this->filterLdJsonScripts($ldscriptContainer);
+
+                    $this->print_log('$ldJsonScripts:');
+                    $this->print_log(json_encode($ldJsonScripts));
+                }
+
 
                 require_once 'JSLikeHTMLElement.php';
 
@@ -2267,6 +2312,29 @@ class ConveyThis {
                 if ($this->variables->plan != 'free') {
 
                     $this->domRecursiveRead($doc);
+                    if (!empty($commentedScripts) && is_array($commentedScripts)) {
+                        $commentedKeys = array_keys($commentedScripts);
+
+                        $unsetCount = 0;
+                        foreach ($commentedKeys as $key) {
+                            if (isset($this->variables->segments[$key])) {
+                                unset($this->variables->segments[$key]);
+                                $unsetCount++;
+                            }
+                        }
+
+                        if ($unsetCount < count($commentedKeys)) {
+                            foreach ($this->variables->segments as $segmentKey => $segmentValue) {
+                                if (strpos($segmentKey, '__COMMENTED_SCRIPT_') === 0) {
+                                    unset($this->variables->segments[$segmentKey]);
+                                }
+                            }
+                        }
+                    }
+
+
+                    $this->print_log('DICT - $this->variables->segments:');
+                    $this->print_log($this->variables->segments);
 
                     sort($this->variables->segments);
 
@@ -2274,16 +2342,20 @@ class ConveyThis {
 
                     $cacheKey = md5(serialize(array_merge($this->variables->segments, $this->variables->links, [$this->variables->referrer])));
                     $this->variables->items = $this->ConveyThisCache->get_cached_translations($this->variables->source_language, $this->variables->language_code, $this->variables->referrer, $cacheKey);
+                    $this->print_log('CACHED - $this->variables->items');
+                    $this->print_log($this->variables->items);
 
                     $this->variables->segments = $this->filterSegments($this->variables->segments);
-
+                    $this->print_log('ARRAY - $this->variables->segments:');
+                    $this->print_log($this->variables->segments);
                     if (!empty($this->variables->items) && !$this->allowCache($this->variables->items)) {
+                        $this->print_log('!empty($this->variables->items) && !$this->allowCache($this->variables->items)');
                         $this->ConveyThisCache->clear_cached_translations(false, $this->variables->referrer, $this->variables->source_language, $this->variables->language_code);
                     }
-
                     if (empty($this->variables->items)) {
                         for ($i = 1; $i <= 3; $i++) {
-
+                            $this->print_log("$i".' json_encode(for$this->variables->segments)');
+                            $this->print_log(json_encode($this->variables->segments));
                             $response = $this->send('POST', '/website/translate/', [
                                 'referrer' => $this->variables->referrer,
                                 'source_language' => $this->variables->source_language,
@@ -2291,7 +2363,8 @@ class ConveyThis {
                                 'segments' => $this->variables->segments,
                                 'links' => $this->variables->links
                             ], true);
-
+                            $this->print_log('*********response');
+                            $this->print_log($response);
                             if (isset($response['error'])) {
                                 if (!$update_cache) {
                                     header('Location: ' . $this->variables->referrer, true, 302);
@@ -2335,6 +2408,9 @@ class ConveyThis {
                             );
                         }
 
+                        $this->print_log('$this->variables->items');
+                        $this->print_log($this->variables->items);
+
                         $clearUrl = $this->getTranslateSiteUrl($this->variables->referrer, $this->variables->language_code);
                         ConveyThisCache::clearPageCache($clearUrl, null);
 
@@ -2343,7 +2419,33 @@ class ConveyThis {
                         }
                     }
                 }
+                if ($this->variables->translate_structured_data) {
+                    $translations = [];
+                    foreach ($this->variables->items as $item) {
+                        $src = trim($item['source_text']);
+                        $dst = trim($item['translate_text']);
 
+                        if ($src !== '' && $dst !== '') {
+                            $translations[$src] = $dst;
+                        }
+                    }
+
+                    $this->print_log('$translations:');
+                    $this->print_log(json_encode($translations));
+
+
+                    foreach ($ldJsonScripts as $key => &$jsonData) {
+                        $this->print_log('$this->recursiveReplaceTranslations:');
+                        $this->recursiveReplaceTranslations($jsonData, $translations);
+                        $scriptContainer[$key] = json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    }
+
+                    $this->print_log('$scriptContainer:');
+                    $this->print_log(json_encode($scriptContainer));
+                }
+
+                $this->print_log('$this->variables->segments:');
+                $this->print_log(json_encode($this->variables->segments));
                 foreach ($this->variables->segments as $segment) {
                     $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", html_entity_decode($segment)));
                     $this->variables->segments_hash[md5($source_text)] = 1;
@@ -2353,7 +2455,11 @@ class ConveyThis {
                 $content = $this->replaceSegments($doc);
                 // return JS content
                 $content = strtr($content, $scriptContainer);
+                $content = strtr($content, $commentedScripts);
                 $content = html_entity_decode($content, ENT_HTML5, 'UTF-8');
+            }
+            else{
+                $this->print_log("--- NOT extension_loaded('xml')");
             }
         }
 
@@ -2452,6 +2558,70 @@ class ConveyThis {
 
         return $data;
     }
+
+    public function recursiveAddTextValues(&$data, &$seen) {
+        foreach ($data as &$val) {
+            if (is_array($val)) {
+                $this->recursiveAddTextValues($val, $seen);
+            } elseif (is_string($val)) {
+                $valTrimmed = trim($val);
+                if ($valTrimmed !== ''
+                    && !filter_var($valTrimmed, FILTER_VALIDATE_URL)
+                    && !is_numeric($valTrimmed)
+                ) {
+                    if (!isset($seen[$valTrimmed])) {
+                        $this->variables->segments[$valTrimmed] = $valTrimmed;
+                        $seen[$valTrimmed] = true;
+                    } else {
+                        $this->variables->jsonld_flags[$valTrimmed] = true;
+                    }
+                }
+            }
+        }
+    }
+
+
+    public function recursiveReplaceTranslations(&$data, $translations) {
+        foreach ($data as &$val) {
+            if (is_array($val)) {
+                $this->recursiveReplaceTranslations($val, $translations);
+            } elseif (is_string($val)) {
+                $val_trimmed = trim($val);
+                if (isset($translations[$val_trimmed])) {
+                    $val = $translations[$val_trimmed];
+                }
+            }
+        }
+    }
+
+    function filterLdJsonScripts(array $ldscriptContainer): array {
+        $ldJsonScripts = [];
+
+        foreach ($ldscriptContainer as $key => $scriptContent) {
+            $value = json_decode($scriptContent, true);
+
+            if (is_array($value)) {
+                $isLdJson = false;
+
+                if (
+                    (isset($value['@context']) && strpos($value['@context'], 'schema.org') !== false) ||
+                    isset($value['@type']) ||
+                    (isset($value[0]) && is_array($value[0]) && isset($value[0]['@type']))
+                ) {
+                    $isLdJson = true;
+                }
+
+                if ($isLdJson) {
+                    $ldJsonScripts[$key] = $value;
+                }
+            }
+        }
+
+        return $ldJsonScripts;
+    }
+
+
+
 
     public static function customLogs($message) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -2568,9 +2738,9 @@ class ConveyThis {
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
 
-        if ($proxy)
+        if ($proxy) {
             $response = wp_remote_request($proxyApiURL . $url, $args);
-
+        }
         if (is_wp_error($response) || empty($response) || empty($response['body'])) {
             $args['timeout'] = 30;
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
@@ -2663,14 +2833,15 @@ class ConveyThis {
         add_option('style_text', 'full-text');
         add_option('style_position_vertical', 'bottom');
         add_option('style_position_horizontal', 'right');
-        add_option('style_indenting_vertical', '12');
+        add_option('style_indenting_vertical', '0');
         add_option('style_indenting_horizontal', '24');
         add_option('auto_translate', '0');
-        add_option('hide_conveythis_logo', '0');
+        add_option('hide_conveythis_logo', '1');
         add_option('dynamic_translation', '0');
         add_option('translate_media', '1');
         add_option('translate_document', '0');
         add_option('translate_links', '0');
+        add_option('translate_structured_data', '0');
         add_option('no_translate_element_id', '');
         add_option('change_direction', '0');
         add_option('alternate', '1');
@@ -2721,6 +2892,7 @@ class ConveyThis {
         delete_option('translate_media');
         delete_option('translate_document');
         delete_option('translate_links');
+        delete_option('translate_structured_data');
         delete_option('no_translate_element_id');
         delete_option('change_direction');
         delete_option('alternate');

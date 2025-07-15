@@ -165,6 +165,18 @@
         </div>
     </div>
 
+    <div class="form-group">
+        <div class="subtitle">Translate Structured Data (JSON-LD)</div>
+        <div class="radio-block">
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="translate_structured_data_yes" name="translate_structured_data" value="1" <?php echo $this->variables->translate_structured_data == 1 ? 'checked' : ''?>>
+                <label for="translate_structured_data_yes">Yes</label></div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="translate_structured_data_no" name="translate_structured_data" value="0" <?php echo $this->variables->translate_structured_data == 0 ? 'checked' : ''?>>
+                <label for="translate_structured_data_no">No</label></div>
+        </div>
+    </div>
+
     <div class="title">Customize Languages</div>
 
     <div class="form-group">

@@ -20,54 +20,6 @@ jQuery(document).ready(function ($) {
         }
     }
 
-    function isCssSyntaxValid(css) {
-        const blocks = css.match(/[^{}]+\{[^{}]*\}/g);
-        if (!blocks) return false;
-
-        for (let block of blocks) {
-            const body = block.split('{')[1].replace('}', '').trim();
-            const rules = body.split(';').map(r => r.trim()).filter(Boolean);
-
-            for (let rule of rules) {
-                if (!rule.includes(':')) return false;
-            }
-        }
-
-        return true;
-    }
-
-    function cssToSafeJson(cssText) {
-        const result = {};
-        const blocks = cssText.match(/[^{}]+\{[^{}]*\}/g);
-        if (!blocks) return result;
-
-        blocks.forEach(block => {
-            const parts = block.split('{');
-            const selector = parts[0].trim();
-            let rules = parts[1].replace('}', '').trim();
-
-            rules = rules.replace(/<[^>]*>/g, '');
-
-            rules = rules.replace(/\s*\n\s*/g, ' ').trim();
-
-            const forbiddenPatterns = [
-                /expression\s*\(/i,
-                /url\s*\(\s*['"]?\s*javascript:/i,
-                /url\s*\(\s*['"]?\s*data:/i,
-                /@import/i,
-                /<\/?script/i,
-            ];
-
-            const isSafe = !forbiddenPatterns.some(regex => regex.test(rules));
-
-            if (isSafe && rules.length > 0) {
-                result[selector] = rules;
-            }
-        });
-
-        return result;
-    }
-
     checkTools();
 
     $('#conveythis_api_key').on('input', async function () {

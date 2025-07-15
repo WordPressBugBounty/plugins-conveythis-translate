@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 261 =
+* Structured data translation (JSON-LD)
+
 = 260 =
 * custom CSS styles
 

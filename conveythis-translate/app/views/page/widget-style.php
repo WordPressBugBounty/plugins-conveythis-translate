@@ -337,17 +337,51 @@
 </div>
 
 <script>
-    function isCssSyntaxValid(css) {
-        const blocks = css.match(/[^{}]+\{[^{}]*\}/g);
-        if (!blocks) return false;
+    function isCssSyntaxValid(cssText) {
+        const cleaned = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
 
-        for (let block of blocks) {
-            const body = block.split('{')[1].replace('}', '').trim();
-            const rules = body.split(';').map(r => r.trim()).filter(Boolean);
+        const openBraces = (cleaned.match(/{/g) || []).length;
+        const closeBraces = (cleaned.match(/}/g) || []).length;
+        if (openBraces !== closeBraces) return false;
 
-            for (let rule of rules) {
-                if (!rule.includes(':')) return false;
+        const blocks = cleaned.match(/[^{}]+\{[^{}]*\}/g);
+        if (!blocks) return true;
+
+        for (const block of blocks) {
+            const parts = block.split(/\s*\{\s*/);
+            if (parts.length !== 2) return false;
+
+            const selector = parts[0].trim();
+            const rulesRaw = parts[1].replace(/\}\s*$/, '').trim();
+
+            if (!selector || !rulesRaw) return false;
+            if (!/^[.#:\[\]a-zA-Z][\w\-.:#\[\] >+~=]*$/.test(selector)) return false;
+
+            const declarations = rulesRaw.split(';').filter(Boolean);
+            for (const decl of declarations) {
+                const colonIndex = decl.indexOf(':');
+                if (colonIndex === -1) return false;
+
+                const prop = decl.slice(0, colonIndex).trim();
+                const val = decl.slice(colonIndex + 1).trim();
+
+                if (!prop || !val) return false;
+                if (!/^[a-zA-Z\-]+$/.test(prop)) return false;
+                if (!val) return false;
             }
+
+            const style = document.createElement('style');
+            style.textContent = `${selector} { ${rulesRaw} }`;
+            document.head.appendChild(style);
+
+            try {
+                void style.sheet.cssRules;
+            } catch {
+                style.remove();
+                return false;
+            }
+
+            style.remove();
         }
 
         return true;
@@ -355,31 +389,40 @@
 
     function cssToSafeJson(cssText) {
         const result = {};
+
+        cssText = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+
         const blocks = cssText.match(/[^{}]+\{[^{}]*\}/g);
-        if (!blocks) return result;
+        if (!blocks) {
+            return result;
+        }
 
         blocks.forEach(block => {
-            const parts = block.split('{');
-            const selector = parts[0].trim();
-            let rules = parts[1].replace('}', '').trim();
+            const [selectorsRaw, rulesRaw] = block.split(/\s*\{\s*/);
+            if (!selectorsRaw || !rulesRaw) return;
 
-            rules = rules.replace(/<[^>]*>/g, '');
-
-            rules = rules.replace(/\s*\n\s*/g, ' ').trim();
+            const rules = rulesRaw.replace(/\}\s*$/, '').trim();
+            const selectors = selectorsRaw.split(',').map(s => s.trim());
 
             const forbiddenPatterns = [
-                /expression\s*\(/i,
-                /url\s*\(\s*['"]?\s*javascript:/i,
-                /url\s*\(\s*['"]?\s*data:/i,
-                /@import/i,
-                /<\/?script/i,
+                { pattern: /expression\s*\(/i, reason: 'expression() not allowed' },
+                { pattern: /url\s*\(\s*['"]?\s*javascript:/i, reason: 'javascript: in url() not allowed' },
+                { pattern: /url\s*\(\s*['"]?\s*data:/i, reason: 'data: in url() not allowed' },
+                { pattern: /@import/i, reason: '@import is not allowed' },
+                { pattern: /<\/?script/i, reason: 'script tag is not allowed' },
             ];
 
-            const isSafe = !forbiddenPatterns.some(regex => regex.test(rules));
-
-            if (isSafe && rules.length > 0) {
-                result[selector] = rules;
+            const found = forbiddenPatterns.find(f => f.pattern.test(rules));
+            if (found) {
+                console.warn(`Blocked CSS for selector(s): "${selectorsRaw.trim()}". Reason: ${found.reason}`);
+                return;
             }
+
+            selectors.forEach(selector => {
+                if (selector && rules) {
+                    result[selector] = rules;
+                }
+            });
         });
 
         return result;
@@ -422,19 +465,19 @@
                 feedback.textContent = "❌ CSS has syntax errors";
                 feedback.style.color = "red";
             } else {
-                feedback.textContent = "✅ CSS is valid";
-                feedback.style.color = "green";
                 const cssReady = cssToSafeJson(cssText);
-                console.log(cssReady);
-
                 if (Object.keys(cssReady).length > 0 || cssText.trim() === "") {
-                    custom_css_json.value = JSON.stringify(cssReady);
-                    conveythisSettings.view();
-                    console.log("Sending JSON:", cssReady);
-                    console.log("Sending str", JSON.stringify(cssReady))
+                    feedback.textContent = "✅ CSS is valid";
+                    feedback.style.color = "green";
+                    const cssReadyStr = JSON.stringify(cssReady);
+                    if (cssReadyStr !== custom_css_json.value) {
+                        custom_css_json.value = cssReadyStr;
+                        conveythisSettings.view();
+                        console.log("Sending JSON:", cssReady);
+                        console.log("Sending str", cssReadyStr)
+                    }
                 } else {
-                    css_editor.setValue("");
-                    alert("⚠️ Unsafe CSS detected and cleared.");
+                    alert("⚠️ Looks like your CSS is in the wrong format");
                 }
             }
         });

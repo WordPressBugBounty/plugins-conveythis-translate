@@ -6,6 +6,8 @@ class Variables
 
     public $new_user = true;
     public $segments = [];
+    public $jsonld_flags = [];
+    public $segments_seen = [];
     public $segments_hash = [];
     public $items = [];
     public $links = [];
@@ -28,6 +30,7 @@ class Variables
     public $translate_media;
     public $translate_document;
     public $translate_links;
+    public $translate_structured_data;
     public $show_widget = true;
     public $exceeded = false;
     public $system_links = [];
@@ -485,15 +488,16 @@ class Variables
         $this->style_text = get_option( 'style_text', 'full-text' );
         $this->style_position_vertical = get_option( 'style_position_vertical', 'top' );
         $this->style_position_horizontal = get_option( 'style_position_horizontal', 'right' );
-        $this->style_indenting_vertical = get_option( 'style_indenting_vertical', '12' );
+        $this->style_indenting_vertical = get_option( 'style_indenting_vertical', '0' );
         $this->style_indenting_horizontal = get_option( 'style_indenting_horizontal', '24' );
         $this->auto_translate = get_option( 'auto_translate', '1' );
         $this->select_region = get_option( 'conveythis_select_region', 'US' );
-        $this->hide_conveythis_logo = get_option( 'hide_conveythis_logo', '0' );
-        $this->dynamic_translation = get_option( 'dynamic_translation', '0' );
+        $this->hide_conveythis_logo = get_option( 'hide_conveythis_logo', '1' );
+        $this->dynamic_translation = get_option( 'dynamic_translation', '1' );
         $this->translate_media = get_option( 'translate_media', '1' );
         $this->translate_document = get_option( 'translate_document', '0' );
         $this->translate_links = get_option( 'translate_links', '0' );
+        $this->translate_structured_data = get_option( 'translate_structured_data', '0' );
         $this->change_direction = get_option( 'change_direction', '0' );
         $this->alternate = get_option( 'alternate', '1' );
         $this->accept_language = get_option( 'accept_language', '0' );
@@ -506,7 +510,7 @@ class Variables
         $this->url_structure = get_option( 'url_structure', 'regular' );
         $this->style_background_color = get_option( 'style_background_color', '#ffffff' );
         $this->style_hover_color = get_option( 'style_hover_color', '#f6f6f6' );
-        $this->style_border_color = get_option( 'style_border_color', '#e0e0e0' );
+        $this->style_border_color = get_option( 'style_border_color', '#f7f7f7' );
         $this->style_text_color = get_option( 'style_text_color', '#000000' );
         $this->style_corner_type = get_option( 'style_corner_type', 'rect' );
         $this->style_widget = get_option( 'style_widget', 'dropdown' );
