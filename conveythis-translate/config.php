@@ -10,7 +10,7 @@ if(
 // Off on test
 define('CONVEYTHIS_LOADER', true);
 
-define('CONVEYTHIS_PLUGIN_VERSION', 261);
+define('CONVEYTHIS_PLUGIN_VERSION', 262);
 
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));
 

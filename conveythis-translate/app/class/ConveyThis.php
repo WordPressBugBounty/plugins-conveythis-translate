@@ -2564,7 +2564,8 @@ class ConveyThis {
             if (is_array($val)) {
                 $this->recursiveAddTextValues($val, $seen);
             } elseif (is_string($val)) {
-                $valTrimmed = trim($val);
+                $valDecoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $valTrimmed = trim($valDecoded);
                 if ($valTrimmed !== ''
                     && !filter_var($valTrimmed, FILTER_VALIDATE_URL)
                     && !is_numeric($valTrimmed)
