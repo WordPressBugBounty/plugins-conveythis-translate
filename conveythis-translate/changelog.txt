@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 263 =
+* Minor bug fixes
+
 = 262 =
 * Minor bug fixes
 

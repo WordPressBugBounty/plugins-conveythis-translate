@@ -877,6 +877,7 @@ class ConveyThis {
 
                 if (!empty($this->variables->target_languages)) {
                     $tempRequestUri = $_SERVER["REQUEST_URI"];
+                    $tempRequestUri = parse_url($tempRequestUri, PHP_URL_PATH);
                     if (substr($tempRequestUri, -1) != "/") {
                         $tempRequestUri .= "/";
                     }
@@ -931,7 +932,7 @@ class ConveyThis {
                     if ($this->variables->language_code) {
                         $tmp = esc_attr($matches[1]);
                         $origin = $_SERVER["REQUEST_URI"];
-                        $_SERVER["REQUEST_URI"] = esc_url(substr_replace($_SERVER["REQUEST_URI"], $this->variables->site_prefix, 0, strlen($tmp)));
+                        $_SERVER["REQUEST_URI"] = esc_url(substr_replace(parse_url($origin, PHP_URL_PATH), $this->variables->site_prefix, 0, strlen($tmp)));
                         $this->variables->referrer = '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
                         if (trim($matches[3]) && $this->variables->translate_links) {
@@ -978,7 +979,7 @@ class ConveyThis {
                 }
                 $local_lang = get_locale();
                 if (substr($local_lang, 0, 2) != $this->variables->source_language) {
-                    ob_start(array($this, 'translatePage'));
+                    ob_start(array($this,'translatePage'));
                 }
             } else {
                 if (!empty($this->variables->source_language) && !empty($this->variables->target_languages)) {
