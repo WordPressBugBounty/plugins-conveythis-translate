@@ -2277,7 +2277,7 @@ class ConveyThis {
                         if ($data !== null) {
                             $this->print_log('2 - type="application/ld+json"');
                             $this->recursiveReplaceLinks($data);
-                            $this->recursiveAddTextValues($data, $this->variables->segments_seen);
+                            $this->recursiveAddTextValues($data, $this->variables->segments_seen, $this->variables->NO_TRANSLATE_KEYS);
                             $encoded = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                             $ldscriptContainer[$scriptKey] = $encoded;
 
@@ -2437,7 +2437,7 @@ class ConveyThis {
 
                     foreach ($ldJsonScripts as $key => &$jsonData) {
                         $this->print_log('$this->recursiveReplaceTranslations:');
-                        $this->recursiveReplaceTranslations($jsonData, $translations);
+                        $this->recursiveReplaceTranslations($jsonData, $translations, $this->variables->NO_TRANSLATE_KEYS);
                         $scriptContainer[$key] = json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     }
 
@@ -2560,11 +2560,11 @@ class ConveyThis {
         return $data;
     }
 
-    public function recursiveAddTextValues(&$data, &$seen) {
-        foreach ($data as &$val) {
+    public function recursiveAddTextValues(&$data, &$seen, &$NO_TRANSLATE_KEYS) {
+        foreach ($data as $key => &$val) {
             if (is_array($val)) {
-                $this->recursiveAddTextValues($val, $seen);
-            } elseif (is_string($val)) {
+                $this->recursiveAddTextValues($val, $seen, $NO_TRANSLATE_KEYS);
+            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])){
                 $valDecoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $valTrimmed = trim($valDecoded);
                 if ($valTrimmed !== ''
@@ -2583,11 +2583,11 @@ class ConveyThis {
     }
 
 
-    public function recursiveReplaceTranslations(&$data, $translations) {
-        foreach ($data as &$val) {
+    public function recursiveReplaceTranslations(&$data, $translations, &$NO_TRANSLATE_KEYS) {
+        foreach ($data as $key => &$val) {
             if (is_array($val)) {
-                $this->recursiveReplaceTranslations($val, $translations);
-            } elseif (is_string($val)) {
+                $this->recursiveReplaceTranslations($val, $translations,$NO_TRANSLATE_KEYS);
+            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])) {
                 $val_trimmed = trim($val);
                 if (isset($translations[$val_trimmed])) {
                     $val = $translations[$val_trimmed];
