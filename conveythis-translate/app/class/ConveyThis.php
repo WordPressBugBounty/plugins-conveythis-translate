@@ -1201,6 +1201,7 @@ class ConveyThis {
     }
 
     public function html_plugin() {
+        $this->print_log("* html_plugin()");
         $data = array_merge($this->variables->target_languages, [$this->variables->source_language]);
         $site_url = home_url();
         $site_url_parts = parse_url($site_url);
@@ -1224,10 +1225,30 @@ class ConveyThis {
 
         foreach ($languageList as $code => $href) {
             $hrefPageUrl = $this->getPageUrl($href);
+
+            $href_link = $href;
+            if($this->variables->use_trailing_slash == 0) {
+               // $this->print_log("/// use_trailing_slash == 0");
+                if (substr($href_link, -1) === '/') {
+                    $href_link = substr($href_link, 0, -1);
+                }
+            }
+            else if ($this->variables->use_trailing_slash == 1   ) {
+              //  $this->print_log("/// use_trailing_slash == 1");
+                $trailing_symbol = "/";
+                $href_link = esc_attr($href) . $trailing_symbol;
+                if (substr($href_link, -2) === '//') {
+                    $href_link = substr($href_link, 0, -1);
+                }
+            }
+            $this->print_log("new href_link:" . $href_link);
+
             if ($hrefPageUrl === $currentPageUrl) {
-                $linkList['current'] .= "<a href='{$href}' translate='no'>{$code}</a>";
+               // $linkList['current'] .= "<a href='{$href}' translate='no'>{$code}</a>";
+                $linkList['current'] .= "<a href='{$href_link}' translate='no'>{$code}</a>";
             } else {
-                $linkList['alternates'] .= PHP_EOL . "<a href='{$href}' translate='no'>{$code}</a>";
+               // $linkList['alternates'] .= PHP_EOL . "<a href='{$href}' translate='no'>{$code}</a>";
+                $linkList['alternates'] .= PHP_EOL . "<a href='{$href_link}' translate='no'>{$code}</a>";
             }
         }
 

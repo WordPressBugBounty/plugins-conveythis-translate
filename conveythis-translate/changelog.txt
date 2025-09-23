@@ -1,7 +1,10 @@
 == Changelog ==
 
-= 265 =
+= 266 =
 * New setting for trailing slash "/"
+
+= 265 =
+* Minor bug fixes
 
 = 264 =
 * Minor bug fixes
