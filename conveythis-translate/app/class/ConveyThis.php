@@ -160,6 +160,22 @@ class ConveyThis {
                 update_option('style_change_flag', $this->variables->style_change_flag);
             }
         }
+
+        /*
+        $structure = get_option('permalink_structure');
+        $uses_trailing_slash = (substr($structure, -1) === '/');
+        if($uses_trailing_slash){
+            $this->print_log("+++ uses trailing slash from permalink");
+            $this->variables->use_trailing_slash = 1;
+            $this->updateDataPlugin();
+        }
+        else{
+            $this->print_log("--- NOT uses trailing slash from permalink");
+            $this->variables->use_trailing_slash = 2;
+            $this->updateDataPlugin();
+        }
+        */
+
     }
 
     public function get_target_languages(){
@@ -217,7 +233,8 @@ class ConveyThis {
             'conveythis_system_links',
             'exclusions',
             'glossary',
-            'exclusion_blocks'
+            'exclusion_blocks',
+            'use_trailing_slash'
         ];
 
         $incoming = $_POST['settings'] ?? [];
@@ -542,6 +559,7 @@ class ConveyThis {
         register_setting('my-plugin-settings-group', 'custom_css_json');
         register_setting('my-plugin-settings-group', 'style_widget');
         register_setting('my-plugin-settings-group', 'conveythis_system_links');
+        register_setting('my-plugin-settings-group', 'use_trailing_slash');
 
         if (!empty($_REQUEST['page']) && $_REQUEST['page'] == 'convey_this') //phpcs:ignore
         {
@@ -579,6 +597,7 @@ class ConveyThis {
     }
 
     public function updateDataPlugin() {
+        $this->print_log("* updateDataPlugin()");
         if (($key = array_search($this->variables->source_language, $this->variables->target_languages)) !== false) { //remove source_language from target_languages
             unset($this->variables->target_languages[$key]);
         }
@@ -620,7 +639,8 @@ class ConveyThis {
                 'style_corner_type' => $this->variables->style_corner_type,
                 'custom_css_json' => $this->variables->custom_css_json,
                 'style_widget' => $this->variables->style_widget,
-                'select_region' => $this->variables->select_region
+                'select_region' => $this->variables->select_region,
+                'use_trailing_slash' => $this->variables->use_trailing_slash
             )
         ));
     }
@@ -965,7 +985,7 @@ class ConveyThis {
                 }
 
                 if (!empty($this->variables->alternate)) {
-                    add_action('wp_head', array($this, '_alternate'), 0);
+                    add_action('wp_head', array($this, 'alternate'), 0);
                     if (!empty($this->variables->language_code)) {
                         add_filter('locale', function ($value) {
                             return $this->variables->language_code;
@@ -985,13 +1005,13 @@ class ConveyThis {
                 if (!empty($this->variables->source_language) && !empty($this->variables->target_languages)) {
                     $this->getCurrentPlan();
                     if (!empty($this->variables->alternate)) {
-                        add_action('wp_head', array($this, '_alternate'), 0);
+                        add_action('wp_head', array($this, 'alternate'), 0);
                     }
                     add_action('wp_footer', array($this, '_inline_script'));
                 }
             }
 
-            add_action('wp_footer', array($this, '_html_plugin'));
+            add_action('wp_footer', array($this, 'html_plugin'));
 
         } else {
             new ConveyThisAdminNotices();
@@ -1064,23 +1084,66 @@ class ConveyThis {
         }
     }
 
-    public function _alternate() {
+    public function alternate() {
+        $this->print_log("* alternate()");
         $site_url_parts = parse_url(home_url());
         $site_domain = $site_url_parts["scheme"] . "://" . $site_url_parts["host"];
         $site_url = home_url();
 
         $prefix = $this->getPageUrl($site_url);
 
+        $structure = get_option('permalink_structure');
+        $permalink_uses_trailing_slash = (substr($structure, -1) === '/');
+        $trailing_symbol = "";
+        $remove_slash = false;
+        if($this->variables->use_trailing_slash == 0) {
+            $this->print_log("/// use_trailing_slash == 0");
+            $remove_slash = true;
+        }
+        else if ($this->variables->use_trailing_slash == 1   ) {
+            $this->print_log("/// use_trailing_slash == 1");
+            $trailing_symbol = "/";
+        }
+
+
         if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
             $location = $this->getSubDomainLocation($this->variables->source_language);
             $hreflang = $this->variables->source_language;
-            echo '<link href="' . esc_attr($location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-            echo '<link href="' . esc_attr($location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+           // echo '<link href="' . esc_attr($location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+          //  echo '<link href="' . esc_attr($location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+            $href_link = esc_attr($location) . $trailing_symbol;
+            if (substr($href_link, -2) === '//') {
+                $href_link = substr($href_link, 0, -1);
+            }
+            if($remove_slash){
+                if (substr($href_link, -1) === '/') {
+                    $href_link = substr($href_link, 0, -1);
+                }
+            }
+
+            echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         } else {
             $location = $this->getLocation($prefix, $this->variables->source_language);
             $hreflang = $this->variables->source_language;
-            echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-            echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+          //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+          //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+
+            $href_link = esc_attr( $site_domain . $location) . $trailing_symbol;
+            $this->print_log("site_domain: " . $site_domain);
+            $this->print_log("location: " . $location);
+
+            if (substr($href_link, -2) === '//') {
+                $href_link = substr($href_link, 0, -1);
+            }
+            if($remove_slash){
+                if (substr($href_link, -1) === '/') {
+                    $href_link = substr($href_link, 0, -1);
+                }
+            }
+            $this->print_log("href_link: " . $href_link);
+            echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         }
         echo "\n";
 
@@ -1099,7 +1162,16 @@ class ConveyThis {
             if (!empty($language)) {
                 if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
                     $location = $this->getSubDomainLocation($language['code2'], true);
-                    echo '<link href="' . esc_attr($location) . '" hreflang="' . esc_attr($language['code2']) . '"  rel="alternate">';
+                    $href_link = esc_attr($location) . $trailing_symbol;
+                    if (substr($href_link, -2) === '//') {
+                        $href_link = substr($href_link, 0, -1);
+                    }
+                    if($remove_slash){
+                        if (substr($href_link, -1) === '/') {
+                            $href_link = substr($href_link, 0, -1);
+                        }
+                    }
+                    echo '<link href="' . $href_link . '" hreflang="' . esc_attr($language['code2']) . '"  rel="alternate">';
                 } else {
                     $location = $this->getLocation($prefix, $language['code2'], true);
 
@@ -1107,9 +1179,19 @@ class ConveyThis {
                         $_short_url = str_replace($site_domain . '/' . $language['code2'], '', esc_attr($site_domain . $location));
 
                         if (!in_array($_short_url, $_temp_blockpages)) {
-                            echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
-                        } else
+                            $href_link = esc_attr( $site_domain . $location) . $trailing_symbol;
+                            if (substr($href_link, -2) === '//') {
+                                $href_link = substr($href_link, 0, -1);
+                            }
+                            if($remove_slash){
+                                if (substr($href_link, -1) === '/') {
+                                    $href_link = substr($href_link, 0, -1);
+                                }
+                            }
+                            echo '<link href="' . $href_link .  '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
+                        } else {
                             continue;
+                        }
                     }
 
                 }
@@ -1118,7 +1200,7 @@ class ConveyThis {
         }
     }
 
-    public function _html_plugin() {
+    public function html_plugin() {
         $data = array_merge($this->variables->target_languages, [$this->variables->source_language]);
         $site_url = home_url();
         $site_url_parts = parse_url($site_url);
@@ -1392,12 +1474,13 @@ class ConveyThis {
         }
 
         if (!empty($this->variables->api_key)) {
-            $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
-            $cdn_version = end($parts);
+          //  $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
+           // $cdn_version = end($parts);
 
             wp_enqueue_script('conveythis-notranslate', plugin_dir_url(__DIR__) . 'widget/js/notranslate.js', [], CONVEYTHIS_PLUGIN_VERSION, false);
-            wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
-
+//            wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
+            wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], false, false);
+          //  wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis.js", [], false, false); todo: use this file
 
             $initScript = '
                 document.addEventListener("DOMContentLoaded", function(e) {
@@ -2277,7 +2360,7 @@ class ConveyThis {
                         if ($data !== null) {
                             $this->print_log('2 - type="application/ld+json"');
                             $this->recursiveReplaceLinks($data);
-                            $this->recursiveAddTextValues($data, $this->variables->segments_seen, $this->variables->NO_TRANSLATE_KEYS);
+                            $this->recursiveAddTextValues($data, $this->variables->segments_seen);
                             $encoded = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                             $ldscriptContainer[$scriptKey] = $encoded;
 
@@ -2437,7 +2520,7 @@ class ConveyThis {
 
                     foreach ($ldJsonScripts as $key => &$jsonData) {
                         $this->print_log('$this->recursiveReplaceTranslations:');
-                        $this->recursiveReplaceTranslations($jsonData, $translations, $this->variables->NO_TRANSLATE_KEYS);
+                        $this->recursiveReplaceTranslations($jsonData, $translations);
                         $scriptContainer[$key] = json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     }
 
@@ -2560,11 +2643,11 @@ class ConveyThis {
         return $data;
     }
 
-    public function recursiveAddTextValues(&$data, &$seen, &$NO_TRANSLATE_KEYS) {
-        foreach ($data as $key => &$val) {
+    public function recursiveAddTextValues(&$data, &$seen) {
+        foreach ($data as &$val) {
             if (is_array($val)) {
-                $this->recursiveAddTextValues($val, $seen, $NO_TRANSLATE_KEYS);
-            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])){
+                $this->recursiveAddTextValues($val, $seen);
+            } elseif (is_string($val)) {
                 $valDecoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $valTrimmed = trim($valDecoded);
                 if ($valTrimmed !== ''
@@ -2583,11 +2666,11 @@ class ConveyThis {
     }
 
 
-    public function recursiveReplaceTranslations(&$data, $translations, &$NO_TRANSLATE_KEYS) {
-        foreach ($data as $key => &$val) {
+    public function recursiveReplaceTranslations(&$data, $translations) {
+        foreach ($data as &$val) {
             if (is_array($val)) {
-                $this->recursiveReplaceTranslations($val, $translations,$NO_TRANSLATE_KEYS);
-            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])) {
+                $this->recursiveReplaceTranslations($val, $translations);
+            } elseif (is_string($val)) {
                 $val_trimmed = trim($val);
                 if (isset($translations[$val_trimmed])) {
                     $val = $translations[$val_trimmed];
@@ -2865,6 +2948,7 @@ class ConveyThis {
         add_option('custom_css_json', '');
         add_option('style_widget', 'dropdown');
         add_option('conveythis_system_links', []);
+        add_option('use_trailing_slash', 1);
 
         self::sendEvent('activate');
     }
@@ -2918,6 +3002,7 @@ class ConveyThis {
         delete_option('style_widget');
         delete_option('conveythis_system_links');
         delete_option('is_active_domain');
+        delete_option('use_trailing_slash');
 
         self::sendEvent('uninstall');
     }

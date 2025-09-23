@@ -1,42 +1,13 @@
 <?php
 
 
-class Variables {
+class Variables
+{
 
     public $new_user = true;
     public $segments = [];
     public $jsonld_flags = [];
     public $segments_seen = [];
-    public $NO_TRANSLATE_KEYS = ['@context' => true, '@type' => true, '@id' => true, 'type' => true, 'url' => true, 'sameAs' => true, 'mainEntityOfPage' => true, 'inLanguage' => true, 'datePublished' => true, 'dateModified' => true, 'image' => true,
-        'contentUrl' => true, 'thumbnailUrl' => true, 'width' => true, 'height' => true, 'identifier' => true, 'logo' => true, 'itemListElement' => true, 'position' => true, 'item' => true,
-        'isAccessibleForFree' => true, 'license' => true, 'version' => true, 'name' => true, 'givenName' => true, 'familyName' => true, 'citation' => true, 'isPartOf' => true, 'latitude' => true, 'longitude' => true,
-        'box' => true, 'temporalCoverage' => true, 'encodingFormat' => true, 'author' => true, 'interactionStatistic' => true, 'interactionType' => true, 'userInteractionCount' => true,
-        'sharedContent' => true, 'alignmentType' => true, 'targetName' => true, 'ratingCount' => true, 'ratingValue' => true, 'reviewCount' => true, 'bestRating' => true, 'worstRating' => true,
-        'postalCode' => true, 'addressCountry' => true, 'startDate' => true, 'endDate' => true, 'previousStartDate' => true, 'eventStatus' => true, 'availability' => true, 'price' => true,
-        'priceCurrency' => true, 'validFrom' => true, 'copyrightNotice' => true, 'acquireLicensePage' => true, 'datePosted' => true, 'validThrough' => true, 'jobLocationType' => true,
-        'directApply' => true, 'currency' => true, 'value' => true, 'minValue' => true, 'maxValue' => true, 'unitText' => true, 'employmentType' => true, 'monthsOfExperience' => true,
-        'experienceInPlaceOfEducation' => true, 'openingHoursSpecification' => true, 'opens' => true, 'closes' => true, 'dayOfWeek' => true, 'priceRange' => true, 'telephone' => true,
-        'usageInfo' => true, 'target' => true, 'mathExpression-input' => true, 'dateCreated' => true, 'alternateName' => true, 'email' => true, 'duns' => true, 'foundingDate' => true,
-        'globalLocationNumber' => true, 'iso6523Code' => true, 'legalName' => true, 'leiCode' => true, 'naics' => true, 'numberOfEmployees' => true, 'taxID' => true, 'vatID' => true, 'targetUrl' => true,
-        'educationalLevel' => true, 'typicalAgeRange' => true, 'sku' => true, 'gtin' => true, 'gtin8' => true, 'gtin12' => true, 'gtin13' => true, 'gtin14' => true, 'mpn' => true, 'priceValidUntil' => true,
-        'itemCondition' => true, 'lowPrice' => true, 'highPrice' => true, 'offerCount' => true, 'reviewRating' => true, 'isbn' => true, 'inProductGroupWithID' => true, 'unitCode' => true,
-        'certificationIdentification' => true, 'suggestedGender' => true, 'suggestedMaxAge' => true, 'suggestedMinAge' => true, 'sizeGroup' => true, 'sizeSystem' => true,
-        'applicableCountry' => true, 'returnPolicyCategory' => true, 'merchantReturnDays' => true, 'returnFees' => true, 'returnMethod' => true, 'productGroupID' => true,
-        'isVariantOf' => true, 'billingDuration' => true, 'billingIncrement' => true, 'membershipPointsEarned' => true, 'merchantReturnLink' => true,
-        'customerRemorseReturnFees' => true, 'customerRemorseReturnLabelSource' => true, 'itemDefectReturnFees' => true,
-        'itemDefectReturnLabelSource' => true, 'refundType' => true, 'restockingFee' => true, 'returnLabelSource' => true, 'returnPolicyCountry' => true, 'answerCount' => true,
-        'upvoteCount' => true, 'cookTime' => true, 'prepTime' => true, 'totalTime' => true, 'applicationCategory' => true, 'operatingSystem' => true, 'cssSelector' => true, 'xPath' => true,
-        'checkinTime' => true, 'checkoutTime' => true, 'additionalType' => true, 'numberOfBeds' => true, 'numberOfBathroomsTotal' => true, 'numberOfBedrooms' => true,
-        'numberOfRooms' => true, 'knowsLanguage' => true, 'contentReferenceTime' => true, 'uploadDate' => true, 'duration' => true, 'embedUrl' => true, 'expires' => true,
-        'ineligibleRegion' => true, 'regionsAllowed' => true, 'startOffset' => true, 'endOffset' => true, 'isLiveBroadcast' => true, 'startOffset-input' => true, 'bookFormat' => true,
-        'propertyID' => true, 'urlTemplate' => true, 'category' => true, 'availabilityStarts' => true, 'availabilityEnds' => true, 'availableLanguage' => true,
-        'coursePrerequisites' => true, 'teaches' => true, 'totalHistoricalEnrollment' => true, 'courseMode' => true, 'courseWorkload' => true, 'repeatCount' => true,
-        'repeatFrequency' => true, 'timeRequired' => true, 'sampleSize' => true, 'yearsExperienceMax' => true, 'yearsExperienceMin' => true, 'median' => true, 'percentile10' => true,
-        'percentile25' => true, 'percentile75' => true, 'percentile90' => true, 'lastReviewed' => true, 'diseasePreventionInfo' => true, 'gettingTestedInfo' => true,
-        'newsUpdatesAndGuidelines' => true, 'publicTransportClosuresInfo' => true, 'quarantineGuidelines' => true, 'schoolClosuresInfo' => true, 'travelBans' => true,
-        'model' => true, 'vehicleIdentificationNumber' => true, 'vehicleModelDate' => true, 'bodyType' => true, 'color' => true, 'driveWheelConfiguration' => true,
-        'numberOfDoors' => true, 'vehicleConfiguration' => true, 'fuelType' => true, 'vehicleInteriorColor' => true, 'vehicleInteriorType' => true,
-        'vehicleSeatingCapacity' => true];
     public $segments_hash = [];
     public $items = [];
     public $links = [];
@@ -97,6 +68,7 @@ class Variables {
     public $clear_cache;
     public $is_translated;
     public $shortcode_counter = 0;
+    public $use_trailing_slash;
     public $is_active;
     public $pluginPath;
 
@@ -131,13 +103,13 @@ class Variables {
     // Luxemb - Luxembourgish
     // Haitian - Haitian (Creole)
 
-    public $siblingsAllowArray = ["A", "ABBR", "ACRONYM", "BDO", "BDI", "STRONG", "BR", "EM", "I", "B", "CITE", "DEL", "DFN", "INS", "MARK", "Q", "BIG", "SMALL", "SUB", "SUP", "U"];
+    public $siblingsAllowArray = ["A", "ABBR", "ACRONYM", "BDO", "BDI", "STRONG","BR", "EM", "I", "B", "CITE", "DEL", "DFN", "INS", "MARK", "Q", "BIG", "SMALL", "SUB", "SUP", "U"];
     public $siblingsAvoidArray = ["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LABEL", "LI", "SVG", "PRE"];
 
     public $matchingLanguages = array(
         703 => array('language_id' => 703, 'title_en' => 'English', 'title' => 'English', 'code2' => 'en', 'code3' => 'eng', 'flag' => 'us', 'flag_ids' => [498, 497, 342]),
         768 => array('language_id' => 768, 'title_en' => 'Portuguese', 'title' => 'Português', 'code2' => 'pt', 'code3' => 'por', 'flag' => 'br', 'flag_ids' => [422, 318, 348]),
-        777 => array('language_id' => 777, 'title_en' => 'Spanish', 'title' => 'Español', 'code2' => 'es', 'code3' => 'spa', 'flag' => 'es', 'flag_ids' => [336]),
+        777 => array('language_id' => 777, 'title_en' => 'Spanish', 'title' => 'Español', 'code2' => 'es', 'code3' => 'spa', 'flag' => 'es','flag_ids' => [336]),
     );
 
     public $matchingLanguageToFlag = array(
@@ -255,211 +227,211 @@ class Variables {
         813 => array('language_id' => 813, 'title_en' => 'Uyghur', 'title' => 'ئۇيغۇر', 'code2' => 'ug', 'code3' => 'uig', 'flag' => 'cn'),
         814 => array('language_id' => 814, 'title_en' => 'Yoruba', 'title' => 'Yoruba', 'code2' => 'yo', 'code3' => 'yor', 'flag' => 'ng'),
         815 => array('language_id' => 815, 'title_en' => 'Zulu', 'title' => 'Zulu', 'code2' => 'zu', 'code3' => 'zul', 'flag' => 'za'),
-        816 => array('language_id' => 816, 'title_en' => 'Portuguese (PT)', 'title' => 'Português (PT)', 'code2' => 'pt-pt', 'code3' => 'por', 'flag' => 'pt'),
-        817 => array('language_id' => 817, 'title_en' => 'Portuguese (BR)', 'title' => 'Português (BR)', 'code2' => 'pt-br', 'code3' => 'por', 'flag' => 'br'),
+        816 => array('language_id' => 816, 'title_en' => 'Portuguese (PT)', 'title' => 'Português (PT)','code2' => 'pt-pt', 'code3' => 'por', 'flag' => 'pt'),
+        817 => array('language_id' => 817, 'title_en' => 'Portuguese (BR)', 'title' => 'Português (BR)','code2' => 'pt-br', 'code3' => 'por', 'flag' => 'br'),
     );
 
     public $flags = array(
-        312 => array('flag_id' => 312, 'title' => 'Afghanistan', 'code' => 'af'),
-        313 => array('flag_id' => 313, 'title' => 'Albania', 'code' => 'al'),
-        314 => array('flag_id' => 314, 'title' => 'Algeria', 'code' => 'dz'),
-        315 => array('flag_id' => 315, 'title' => 'Andorra', 'code' => 'ad'),
-        316 => array('flag_id' => 316, 'title' => 'Angola', 'code' => 'ao'),
-        317 => array('flag_id' => 317, 'title' => 'Antigua and Barbuda', 'code' => 'ag'),
-        318 => array('flag_id' => 318, 'title' => 'Argentina', 'code' => 'ar'),
-        319 => array('flag_id' => 319, 'title' => 'Armenia', 'code' => 'am'),
-        320 => array('flag_id' => 320, 'title' => 'Australia', 'code' => 'au'),
-        321 => array('flag_id' => 321, 'title' => 'Austria', 'code' => 'at'),
-        322 => array('flag_id' => 322, 'title' => 'Azerbaijan', 'code' => 'az'),
-        509 => array('flag_id' => 322, 'title' => 'Basque', 'code' => 'es-pv'),
-        323 => array('flag_id' => 323, 'title' => 'Bahamas', 'code' => 'bs'),
-        324 => array('flag_id' => 324, 'title' => 'Bahrain', 'code' => 'bh'),
-        325 => array('flag_id' => 325, 'title' => 'Bangladesh', 'code' => 'bd'),
-        326 => array('flag_id' => 326, 'title' => 'Barbados', 'code' => 'bb'),
-        327 => array('flag_id' => 327, 'title' => 'Belarus', 'code' => 'by'),
-        328 => array('flag_id' => 328, 'title' => 'Belgium', 'code' => 'be'),
-        329 => array('flag_id' => 329, 'title' => 'Belize', 'code' => 'bz'),
-        330 => array('flag_id' => 330, 'title' => 'Benin', 'code' => 'bj'),
-        331 => array('flag_id' => 331, 'title' => 'Bhutan', 'code' => 'bt'),
-        332 => array('flag_id' => 332, 'title' => 'Bulgaria', 'code' => 'bg'),
-        333 => array('flag_id' => 333, 'title' => 'Bolivia', 'code' => 'bo'),
-        334 => array('flag_id' => 334, 'title' => 'Bosnia and Herzegovina', 'code' => 'ba'),
-        335 => array('flag_id' => 335, 'title' => 'Botswana', 'code' => 'bw'),
-        336 => array('flag_id' => 336, 'title' => 'Brazil', 'code' => 'br'),
-        337 => array('flag_id' => 337, 'title' => 'Brunei', 'code' => 'bn'),
-        338 => array('flag_id' => 338, 'title' => 'Burkina Faso', 'code' => 'bf'),
-        339 => array('flag_id' => 339, 'title' => 'Burundi', 'code' => 'bi'),
-        340 => array('flag_id' => 340, 'title' => 'Cambodia', 'code' => 'kh'),
-        341 => array('flag_id' => 341, 'title' => 'Cameroon', 'code' => 'cm'),
-        342 => array('flag_id' => 342, 'title' => 'Canada', 'code' => 'ca'),
-        343 => array('flag_id' => 343, 'title' => 'Cape Verde', 'code' => 'cv'),
-        344 => array('flag_id' => 344, 'title' => 'Central African Republic', 'code' => 'cf'),
-        345 => array('flag_id' => 345, 'title' => 'Chad', 'code' => 'td'),
-        346 => array('flag_id' => 346, 'title' => 'Chile', 'code' => 'cl'),
-        347 => array('flag_id' => 347, 'title' => 'China', 'code' => 'cn'),
-        348 => array('flag_id' => 348, 'title' => 'Colombia', 'code' => 'co'),
-        349 => array('flag_id' => 349, 'title' => 'Comoros', 'code' => 'km'),
-        350 => array('flag_id' => 350, 'title' => 'Congo', 'code' => 'cg'),
-        351 => array('flag_id' => 351, 'title' => 'Costa Rica', 'code' => 'cr'),
-        352 => array('flag_id' => 352, 'title' => 'Cote d\'Ivoire', 'code' => 'ci'),
-        353 => array('flag_id' => 353, 'title' => 'Croatia', 'code' => 'hr'),
-        354 => array('flag_id' => 354, 'title' => 'Cuba', 'code' => 'cu'),
-        355 => array('flag_id' => 355, 'title' => 'Cyprus', 'code' => 'cy'),
-        356 => array('flag_id' => 356, 'title' => 'Czech Republic', 'code' => 'cz'),
-        357 => array('flag_id' => 357, 'title' => 'Democratic Republic of the Congo', 'code' => 'cd'),
-        358 => array('flag_id' => 358, 'title' => 'Denmark', 'code' => 'dk'),
-        359 => array('flag_id' => 359, 'title' => 'Djibouti', 'code' => 'dj'),
-        360 => array('flag_id' => 360, 'title' => 'Dominica', 'code' => 'dm'),
-        361 => array('flag_id' => 361, 'title' => 'Dominican Republic', 'code' => 'do'),
-        362 => array('flag_id' => 362, 'title' => 'Ecuador', 'code' => 'ec'),
-        363 => array('flag_id' => 363, 'title' => 'Egypt', 'code' => 'eg'),
-        364 => array('flag_id' => 364, 'title' => 'El Salvador', 'code' => 'sv'),
-        365 => array('flag_id' => 365, 'title' => 'Equatorial Guinea', 'code' => 'gq'),
-        366 => array('flag_id' => 366, 'title' => 'Eritrea', 'code' => 'er'),
-        367 => array('flag_id' => 367, 'title' => 'Estonia', 'code' => 'ee'),
-        368 => array('flag_id' => 368, 'title' => 'Ethiopia', 'code' => 'et'),
-        369 => array('flag_id' => 369, 'title' => 'Fiji', 'code' => 'fj'),
-        370 => array('flag_id' => 370, 'title' => 'Finland', 'code' => 'fi'),
-        371 => array('flag_id' => 371, 'title' => 'France', 'code' => 'fr'),
-        372 => array('flag_id' => 372, 'title' => 'Gabon', 'code' => 'ga'),
-        373 => array('flag_id' => 373, 'title' => 'Gambia', 'code' => 'gm'),
-        374 => array('flag_id' => 374, 'title' => 'Georgia', 'code' => 'ge'),
-        375 => array('flag_id' => 375, 'title' => 'Germany', 'code' => 'de'),
-        376 => array('flag_id' => 376, 'title' => 'Ghana', 'code' => 'gh'),
-        377 => array('flag_id' => 377, 'title' => 'Greece', 'code' => 'gr'),
-        378 => array('flag_id' => 378, 'title' => 'Grenada', 'code' => 'gd'),
-        379 => array('flag_id' => 379, 'title' => 'Guatemala', 'code' => 'gt'),
-        380 => array('flag_id' => 380, 'title' => 'Guinea', 'code' => 'gn'),
-        381 => array('flag_id' => 381, 'title' => 'Guinea-Bissau', 'code' => 'gw'),
-        382 => array('flag_id' => 382, 'title' => 'Guyana', 'code' => 'gy'),
-        383 => array('flag_id' => 383, 'title' => 'Haiti', 'code' => 'ht'),
-        384 => array('flag_id' => 384, 'title' => 'Honduras', 'code' => 'hn'),
-        385 => array('flag_id' => 385, 'title' => 'Hungary ', 'code' => 'hu'),
-        386 => array('flag_id' => 386, 'title' => 'Iceland', 'code' => 'is'),
-        387 => array('flag_id' => 387, 'title' => 'India', 'code' => 'in'),
-        388 => array('flag_id' => 388, 'title' => 'Indonesia', 'code' => 'id'),
-        389 => array('flag_id' => 389, 'title' => 'Iran', 'code' => 'ir'),
-        390 => array('flag_id' => 390, 'title' => 'Iraq', 'code' => 'iq'),
-        391 => array('flag_id' => 391, 'title' => 'Ireland', 'code' => 'ie'),
-        392 => array('flag_id' => 392, 'title' => 'Israel', 'code' => 'il'),
-        393 => array('flag_id' => 393, 'title' => 'Italy', 'code' => 'it'),
-        394 => array('flag_id' => 394, 'title' => 'Jamaica', 'code' => 'jm'),
-        395 => array('flag_id' => 395, 'title' => 'Japan', 'code' => 'jp'),
-        396 => array('flag_id' => 396, 'title' => 'Jordan', 'code' => 'jo'),
-        397 => array('flag_id' => 397, 'title' => 'Kazakhstan', 'code' => 'kz'),
-        398 => array('flag_id' => 398, 'title' => 'Kenya', 'code' => 'ke'),
-        399 => array('flag_id' => 399, 'title' => 'Kiribati', 'code' => 'ki'),
-        400 => array('flag_id' => 400, 'title' => 'Kosova', 'code' => 'xk'),
-        401 => array('flag_id' => 401, 'title' => 'Kuwait', 'code' => 'kw'),
-        402 => array('flag_id' => 402, 'title' => 'Kyrgyzstan', 'code' => 'kg'),
-        403 => array('flag_id' => 403, 'title' => 'Laos', 'code' => 'la'),
-        404 => array('flag_id' => 404, 'title' => 'Latvia', 'code' => 'lv'),
-        405 => array('flag_id' => 405, 'title' => 'Lebanon', 'code' => 'lb'),
-        406 => array('flag_id' => 406, 'title' => 'Lesotho', 'code' => 'ls'),
-        407 => array('flag_id' => 407, 'title' => 'Liberia', 'code' => 'lr'),
-        408 => array('flag_id' => 408, 'title' => 'Libya', 'code' => 'ly'),
-        409 => array('flag_id' => 409, 'title' => 'Liechtenstein', 'code' => 'li'),
-        410 => array('flag_id' => 410, 'title' => 'Lithuania', 'code' => 'lt'),
-        411 => array('flag_id' => 411, 'title' => 'Luxembourg', 'code' => 'lu'),
-        412 => array('flag_id' => 412, 'title' => 'Macedonia', 'code' => 'mk'),
-        413 => array('flag_id' => 413, 'title' => 'Madagascar', 'code' => 'mg'),
-        414 => array('flag_id' => 414, 'title' => 'Malawi', 'code' => 'mw'),
-        415 => array('flag_id' => 415, 'title' => 'Malaysia', 'code' => 'my'),
-        416 => array('flag_id' => 416, 'title' => 'Maldives', 'code' => 'mv'),
-        417 => array('flag_id' => 417, 'title' => 'Mali', 'code' => 'ml'),
-        418 => array('flag_id' => 418, 'title' => 'Malta', 'code' => 'mt'),
-        419 => array('flag_id' => 419, 'title' => 'Marshall Islands', 'code' => 'mh'),
-        420 => array('flag_id' => 420, 'title' => 'Mauritania', 'code' => 'mr'),
-        421 => array('flag_id' => 421, 'title' => 'Mauritius', 'code' => 'mu'),
-        422 => array('flag_id' => 422, 'title' => 'Mexico', 'code' => 'mx'),
-        423 => array('flag_id' => 423, 'title' => 'Micronesia', 'code' => 'fm'),
-        424 => array('flag_id' => 424, 'title' => 'Moldova', 'code' => 'md'),
-        425 => array('flag_id' => 425, 'title' => 'Monaco', 'code' => 'mc'),
-        426 => array('flag_id' => 426, 'title' => 'Mongolia', 'code' => 'mn'),
-        427 => array('flag_id' => 427, 'title' => 'Montenegro', 'code' => 'me'),
-        428 => array('flag_id' => 428, 'title' => 'Morocco', 'code' => 'ma'),
-        429 => array('flag_id' => 429, 'title' => 'Mozambique', 'code' => 'mz'),
-        430 => array('flag_id' => 430, 'title' => 'Myanmar ', 'code' => 'mm'),
-        431 => array('flag_id' => 431, 'title' => 'Namibia', 'code' => 'na'),
-        432 => array('flag_id' => 432, 'title' => 'Nauru', 'code' => 'nr'),
-        433 => array('flag_id' => 433, 'title' => 'Nepal', 'code' => 'np'),
-        434 => array('flag_id' => 434, 'title' => 'Netherlands', 'code' => 'nl'),
-        435 => array('flag_id' => 435, 'title' => 'New Zealand', 'code' => 'nz'),
-        436 => array('flag_id' => 436, 'title' => 'Nicaragua', 'code' => 'ni'),
-        437 => array('flag_id' => 437, 'title' => 'Niger', 'code' => 'ne'),
-        438 => array('flag_id' => 438, 'title' => 'Nigeria', 'code' => 'ng'),
-        439 => array('flag_id' => 439, 'title' => 'North Korea', 'code' => 'kp'),
-        440 => array('flag_id' => 440, 'title' => 'Norvay', 'code' => 'no'),
-        441 => array('flag_id' => 441, 'title' => 'Oman', 'code' => 'om'),
-        442 => array('flag_id' => 442, 'title' => 'Pakistan', 'code' => 'pk'),
-        443 => array('flag_id' => 443, 'title' => 'Palau', 'code' => 'pw'),
-        444 => array('flag_id' => 444, 'title' => 'Panama', 'code' => 'pa'),
-        445 => array('flag_id' => 445, 'title' => 'Papua New Guinea', 'code' => 'pg'),
-        446 => array('flag_id' => 446, 'title' => 'Paraguay', 'code' => 'py'),
-        447 => array('flag_id' => 447, 'title' => 'Peru', 'code' => 'pe'),
-        448 => array('flag_id' => 448, 'title' => 'Philippines', 'code' => 'ph'),
-        449 => array('flag_id' => 449, 'title' => 'Poland ', 'code' => 'pl'),
-        450 => array('flag_id' => 450, 'title' => 'Portugal', 'code' => 'pt'),
-        451 => array('flag_id' => 451, 'title' => 'Qatar', 'code' => 'qa'),
-        452 => array('flag_id' => 452, 'title' => 'Romania', 'code' => 'ro'),
-        453 => array('flag_id' => 453, 'title' => 'Russia', 'code' => 'ru'),
-        454 => array('flag_id' => 454, 'title' => 'Rwanda', 'code' => 'rw'),
-        455 => array('flag_id' => 455, 'title' => 'Saint Kitts and Nevis', 'code' => 'kn'),
-        456 => array('flag_id' => 456, 'title' => 'Saint Lucia', 'code' => 'lc'),
-        457 => array('flag_id' => 457, 'title' => 'Saint Vincent and the Grenadines', 'code' => 'vc'),
-        458 => array('flag_id' => 458, 'title' => 'Samoa', 'code' => 'ws'),
-        459 => array('flag_id' => 459, 'title' => 'San Marino', 'code' => 'sm'),
-        460 => array('flag_id' => 460, 'title' => 'Sao Tome and Principe', 'code' => 'st'),
-        461 => array('flag_id' => 461, 'title' => 'Saudi Arabia', 'code' => 'sa'),
-        462 => array('flag_id' => 462, 'title' => 'Senegal', 'code' => 'sn'),
-        463 => array('flag_id' => 463, 'title' => 'Serbia', 'code' => 'rs'),
-        464 => array('flag_id' => 464, 'title' => 'Seychelles', 'code' => 'sc'),
-        465 => array('flag_id' => 465, 'title' => 'Sierra Leone', 'code' => 'sl'),
-        466 => array('flag_id' => 466, 'title' => 'Singapore', 'code' => 'sg'),
-        467 => array('flag_id' => 467, 'title' => 'Slovakia', 'code' => 'sk'),
-        468 => array('flag_id' => 468, 'title' => 'Slovenia', 'code' => 'si'),
-        469 => array('flag_id' => 469, 'title' => 'Solomon Islands', 'code' => 'sb'),
-        470 => array('flag_id' => 470, 'title' => 'Somalia', 'code' => 'so'),
-        471 => array('flag_id' => 471, 'title' => 'South Africa', 'code' => 'za'),
-        472 => array('flag_id' => 472, 'title' => 'South Korea', 'code' => 'kr'),
-        473 => array('flag_id' => 473, 'title' => 'South Sudan', 'code' => 'ss'),
-        474 => array('flag_id' => 474, 'title' => 'Spain', 'code' => 'es'),
-        475 => array('flag_id' => 475, 'title' => 'Sri Lanka', 'code' => 'lk'),
-        476 => array('flag_id' => 476, 'title' => 'Sudan', 'code' => 'sd'),
-        477 => array('flag_id' => 477, 'title' => 'Suriname', 'code' => 'sr'),
-        478 => array('flag_id' => 478, 'title' => 'Swaziland', 'code' => 'sz'),
-        479 => array('flag_id' => 479, 'title' => 'Sweden', 'code' => 'se'),
-        480 => array('flag_id' => 480, 'title' => 'Switzerland', 'code' => 'ch'),
-        481 => array('flag_id' => 481, 'title' => 'Syria', 'code' => 'sy'),
+        312 => array( 'flag_id' => 312, 'title' => 'Afghanistan', 'code' => 'af'),
+        313 => array( 'flag_id' => 313, 'title' => 'Albania', 'code' => 'al'),
+        314 => array( 'flag_id' => 314, 'title' => 'Algeria', 'code' => 'dz'),
+        315 => array( 'flag_id' => 315, 'title' => 'Andorra', 'code' => 'ad'),
+        316 => array( 'flag_id' => 316, 'title' => 'Angola', 'code' => 'ao'),
+        317 => array( 'flag_id' => 317, 'title' => 'Antigua and Barbuda', 'code' => 'ag'),
+        318 => array( 'flag_id' => 318, 'title' => 'Argentina', 'code' => 'ar'),
+        319 => array( 'flag_id' => 319, 'title' => 'Armenia', 'code' => 'am'),
+        320 => array( 'flag_id' => 320, 'title' => 'Australia', 'code' => 'au'),
+        321 => array( 'flag_id' => 321, 'title' => 'Austria', 'code' => 'at'),
+        322 => array( 'flag_id' => 322, 'title' => 'Azerbaijan', 'code' => 'az'),
+        509 => array( 'flag_id' => 322, 'title' => 'Basque', 'code' => 'es-pv'),
+        323 => array( 'flag_id' => 323, 'title' => 'Bahamas', 'code' => 'bs'),
+        324 => array( 'flag_id' => 324, 'title' => 'Bahrain', 'code' => 'bh'),
+        325 => array( 'flag_id' => 325, 'title' => 'Bangladesh', 'code' => 'bd'),
+        326 => array( 'flag_id' => 326, 'title' => 'Barbados', 'code' => 'bb'),
+        327 => array( 'flag_id' => 327, 'title' => 'Belarus', 'code' => 'by'),
+        328 => array( 'flag_id' => 328, 'title' => 'Belgium', 'code' => 'be'),
+        329 => array( 'flag_id' => 329, 'title' => 'Belize', 'code' => 'bz'),
+        330 => array( 'flag_id' => 330, 'title' => 'Benin', 'code' => 'bj'),
+        331 => array( 'flag_id' => 331, 'title' => 'Bhutan', 'code' => 'bt'),
+        332 => array( 'flag_id' => 332, 'title' => 'Bulgaria', 'code' => 'bg'),
+        333 => array( 'flag_id' => 333, 'title' => 'Bolivia', 'code' => 'bo'),
+        334 => array( 'flag_id' => 334, 'title' => 'Bosnia and Herzegovina', 'code' => 'ba'),
+        335 => array( 'flag_id' => 335, 'title' => 'Botswana', 'code' => 'bw'),
+        336 => array( 'flag_id' => 336, 'title' => 'Brazil', 'code' => 'br'),
+        337 => array( 'flag_id' => 337, 'title' => 'Brunei', 'code' => 'bn'),
+        338 => array( 'flag_id' => 338, 'title' => 'Burkina Faso', 'code' => 'bf'),
+        339 => array( 'flag_id' => 339, 'title' => 'Burundi', 'code' => 'bi'),
+        340 => array( 'flag_id' => 340, 'title' => 'Cambodia', 'code' => 'kh'),
+        341 => array( 'flag_id' => 341, 'title' => 'Cameroon', 'code' => 'cm'),
+        342 => array( 'flag_id' => 342, 'title' => 'Canada', 'code' => 'ca'),
+        343 => array( 'flag_id' => 343, 'title' => 'Cape Verde', 'code' => 'cv'),
+        344 => array( 'flag_id' => 344, 'title' => 'Central African Republic', 'code' => 'cf'),
+        345 => array( 'flag_id' => 345, 'title' => 'Chad', 'code' => 'td'),
+        346 => array( 'flag_id' => 346, 'title' => 'Chile', 'code' => 'cl'),
+        347 => array( 'flag_id' => 347, 'title' => 'China', 'code' => 'cn'),
+        348 => array( 'flag_id' => 348, 'title' => 'Colombia', 'code' => 'co'),
+        349 => array( 'flag_id' => 349, 'title' => 'Comoros', 'code' => 'km'),
+        350 => array( 'flag_id' => 350, 'title' => 'Congo', 'code' => 'cg'),
+        351 => array( 'flag_id' => 351, 'title' => 'Costa Rica', 'code' => 'cr'),
+        352 => array( 'flag_id' => 352, 'title' => 'Cote d\'Ivoire', 'code' => 'ci'),
+        353 => array( 'flag_id' => 353, 'title' => 'Croatia', 'code' => 'hr'),
+        354 => array( 'flag_id' => 354, 'title' => 'Cuba', 'code' => 'cu'),
+        355 => array( 'flag_id' => 355, 'title' => 'Cyprus', 'code' => 'cy'),
+        356 => array( 'flag_id' => 356, 'title' => 'Czech Republic', 'code' => 'cz'),
+        357 => array( 'flag_id' => 357, 'title' => 'Democratic Republic of the Congo', 'code' => 'cd'),
+        358 => array( 'flag_id' => 358, 'title' => 'Denmark', 'code' => 'dk'),
+        359 => array( 'flag_id' => 359, 'title' => 'Djibouti', 'code' => 'dj'),
+        360 => array( 'flag_id' => 360, 'title' => 'Dominica', 'code' => 'dm'),
+        361 => array( 'flag_id' => 361, 'title' => 'Dominican Republic', 'code' => 'do'),
+        362 => array( 'flag_id' => 362, 'title' => 'Ecuador', 'code' => 'ec'),
+        363 => array( 'flag_id' => 363, 'title' => 'Egypt', 'code' => 'eg'),
+        364 => array( 'flag_id' => 364, 'title' => 'El Salvador', 'code' => 'sv'),
+        365 => array( 'flag_id' => 365, 'title' => 'Equatorial Guinea', 'code' => 'gq'),
+        366 => array( 'flag_id' => 366, 'title' => 'Eritrea', 'code' => 'er'),
+        367 => array( 'flag_id' => 367, 'title' => 'Estonia', 'code' => 'ee'),
+        368 => array( 'flag_id' => 368, 'title' => 'Ethiopia', 'code' => 'et'),
+        369 => array( 'flag_id' => 369, 'title' => 'Fiji', 'code' => 'fj'),
+        370 => array( 'flag_id' => 370, 'title' => 'Finland', 'code' => 'fi'),
+        371 => array( 'flag_id' => 371, 'title' => 'France', 'code' => 'fr'),
+        372 => array( 'flag_id' => 372, 'title' => 'Gabon', 'code' => 'ga'),
+        373 => array( 'flag_id' => 373, 'title' => 'Gambia', 'code' => 'gm'),
+        374 => array( 'flag_id' => 374, 'title' => 'Georgia', 'code' => 'ge'),
+        375 => array( 'flag_id' => 375, 'title' => 'Germany', 'code' => 'de'),
+        376 => array( 'flag_id' => 376, 'title' => 'Ghana', 'code' => 'gh'),
+        377 => array( 'flag_id' => 377, 'title' => 'Greece', 'code' => 'gr'),
+        378 => array( 'flag_id' => 378, 'title' => 'Grenada', 'code' => 'gd'),
+        379 => array( 'flag_id' => 379, 'title' => 'Guatemala', 'code' => 'gt'),
+        380 => array( 'flag_id' => 380, 'title' => 'Guinea', 'code' => 'gn'),
+        381 => array( 'flag_id' => 381, 'title' => 'Guinea-Bissau', 'code' => 'gw'),
+        382 => array( 'flag_id' => 382, 'title' => 'Guyana', 'code' => 'gy'),
+        383 => array( 'flag_id' => 383, 'title' => 'Haiti', 'code' => 'ht'),
+        384 => array( 'flag_id' => 384, 'title' => 'Honduras', 'code' => 'hn'),
+        385 => array( 'flag_id' => 385, 'title' => 'Hungary ', 'code' => 'hu'),
+        386 => array( 'flag_id' => 386, 'title' => 'Iceland', 'code' => 'is'),
+        387 => array( 'flag_id' => 387, 'title' => 'India', 'code' => 'in'),
+        388 => array( 'flag_id' => 388, 'title' => 'Indonesia', 'code' => 'id'),
+        389 => array( 'flag_id' => 389, 'title' => 'Iran', 'code' => 'ir'),
+        390 => array( 'flag_id' => 390, 'title' => 'Iraq', 'code' => 'iq'),
+        391 => array( 'flag_id' => 391, 'title' => 'Ireland', 'code' => 'ie'),
+        392 => array( 'flag_id' => 392, 'title' => 'Israel', 'code' => 'il'),
+        393 => array( 'flag_id' => 393, 'title' => 'Italy', 'code' => 'it'),
+        394 => array( 'flag_id' => 394, 'title' => 'Jamaica', 'code' => 'jm'),
+        395 => array( 'flag_id' => 395, 'title' => 'Japan', 'code' => 'jp'),
+        396 => array( 'flag_id' => 396, 'title' => 'Jordan', 'code' => 'jo'),
+        397 => array( 'flag_id' => 397, 'title' => 'Kazakhstan', 'code' => 'kz'),
+        398 => array( 'flag_id' => 398, 'title' => 'Kenya', 'code' => 'ke'),
+        399 => array( 'flag_id' => 399, 'title' => 'Kiribati', 'code' => 'ki'),
+        400 => array( 'flag_id' => 400, 'title' => 'Kosova', 'code' => 'xk'),
+        401 => array( 'flag_id' => 401, 'title' => 'Kuwait', 'code' => 'kw'),
+        402 => array( 'flag_id' => 402, 'title' => 'Kyrgyzstan', 'code' => 'kg'),
+        403 => array( 'flag_id' => 403, 'title' => 'Laos', 'code' => 'la'),
+        404 => array( 'flag_id' => 404, 'title' => 'Latvia', 'code' => 'lv'),
+        405 => array( 'flag_id' => 405, 'title' => 'Lebanon', 'code' => 'lb'),
+        406 => array( 'flag_id' => 406, 'title' => 'Lesotho', 'code' => 'ls'),
+        407 => array( 'flag_id' => 407, 'title' => 'Liberia', 'code' => 'lr'),
+        408 => array( 'flag_id' => 408, 'title' => 'Libya', 'code' => 'ly'),
+        409 => array( 'flag_id' => 409, 'title' => 'Liechtenstein', 'code' => 'li'),
+        410 => array( 'flag_id' => 410, 'title' => 'Lithuania', 'code' => 'lt'),
+        411 => array( 'flag_id' => 411, 'title' => 'Luxembourg', 'code' => 'lu'),
+        412 => array( 'flag_id' => 412, 'title' => 'Macedonia', 'code' => 'mk'),
+        413 => array( 'flag_id' => 413, 'title' => 'Madagascar', 'code' => 'mg'),
+        414 => array( 'flag_id' => 414, 'title' => 'Malawi', 'code' => 'mw'),
+        415 => array( 'flag_id' => 415, 'title' => 'Malaysia', 'code' => 'my'),
+        416 => array( 'flag_id' => 416, 'title' => 'Maldives', 'code' => 'mv'),
+        417 => array( 'flag_id' => 417, 'title' => 'Mali', 'code' => 'ml'),
+        418 => array( 'flag_id' => 418, 'title' => 'Malta', 'code' => 'mt'),
+        419 => array( 'flag_id' => 419, 'title' => 'Marshall Islands', 'code' => 'mh'),
+        420 => array( 'flag_id' => 420, 'title' => 'Mauritania', 'code' => 'mr'),
+        421 => array( 'flag_id' => 421, 'title' => 'Mauritius', 'code' => 'mu'),
+        422 => array( 'flag_id' => 422, 'title' => 'Mexico', 'code' => 'mx'),
+        423 => array( 'flag_id' => 423, 'title' => 'Micronesia', 'code' => 'fm'),
+        424 => array( 'flag_id' => 424, 'title' => 'Moldova', 'code' => 'md'),
+        425 => array( 'flag_id' => 425, 'title' => 'Monaco', 'code' => 'mc'),
+        426 => array( 'flag_id' => 426, 'title' => 'Mongolia', 'code' => 'mn'),
+        427 => array( 'flag_id' => 427, 'title' => 'Montenegro', 'code' => 'me'),
+        428 => array( 'flag_id' => 428, 'title' => 'Morocco', 'code' => 'ma'),
+        429 => array( 'flag_id' => 429, 'title' => 'Mozambique', 'code' => 'mz'),
+        430 => array( 'flag_id' => 430, 'title' => 'Myanmar ', 'code' => 'mm'),
+        431 => array( 'flag_id' => 431, 'title' => 'Namibia', 'code' => 'na'),
+        432 => array( 'flag_id' => 432, 'title' => 'Nauru', 'code' => 'nr'),
+        433 => array( 'flag_id' => 433, 'title' => 'Nepal', 'code' => 'np'),
+        434 => array( 'flag_id' => 434, 'title' => 'Netherlands', 'code' => 'nl'),
+        435 => array( 'flag_id' => 435, 'title' => 'New Zealand', 'code' => 'nz'),
+        436 => array( 'flag_id' => 436, 'title' => 'Nicaragua', 'code' => 'ni'),
+        437 => array( 'flag_id' => 437, 'title' => 'Niger', 'code' => 'ne'),
+        438 => array( 'flag_id' => 438, 'title' => 'Nigeria', 'code' => 'ng'),
+        439 => array( 'flag_id' => 439, 'title' => 'North Korea', 'code' => 'kp'),
+        440 => array( 'flag_id' => 440, 'title' => 'Norvay', 'code' => 'no'),
+        441 => array( 'flag_id' => 441, 'title' => 'Oman', 'code' => 'om'),
+        442 => array( 'flag_id' => 442, 'title' => 'Pakistan', 'code' => 'pk'),
+        443 => array( 'flag_id' => 443, 'title' => 'Palau', 'code' => 'pw'),
+        444 => array( 'flag_id' => 444, 'title' => 'Panama', 'code' => 'pa'),
+        445 => array( 'flag_id' => 445, 'title' => 'Papua New Guinea', 'code' => 'pg'),
+        446 => array( 'flag_id' => 446, 'title' => 'Paraguay', 'code' => 'py'),
+        447 => array( 'flag_id' => 447, 'title' => 'Peru', 'code' => 'pe'),
+        448 => array( 'flag_id' => 448, 'title' => 'Philippines', 'code' => 'ph'),
+        449 => array( 'flag_id' => 449, 'title' => 'Poland ', 'code' => 'pl'),
+        450 => array( 'flag_id' => 450, 'title' => 'Portugal', 'code' => 'pt'),
+        451 => array( 'flag_id' => 451, 'title' => 'Qatar', 'code' => 'qa'),
+        452 => array( 'flag_id' => 452, 'title' => 'Romania', 'code' => 'ro'),
+        453 => array( 'flag_id' => 453, 'title' => 'Russia', 'code' => 'ru'),
+        454 => array( 'flag_id' => 454, 'title' => 'Rwanda', 'code' => 'rw'),
+        455 => array( 'flag_id' => 455, 'title' => 'Saint Kitts and Nevis', 'code' => 'kn'),
+        456 => array( 'flag_id' => 456, 'title' => 'Saint Lucia', 'code' => 'lc'),
+        457 => array( 'flag_id' => 457, 'title' => 'Saint Vincent and the Grenadines', 'code' => 'vc'),
+        458 => array( 'flag_id' => 458, 'title' => 'Samoa', 'code' => 'ws'),
+        459 => array( 'flag_id' => 459, 'title' => 'San Marino', 'code' => 'sm'),
+        460 => array( 'flag_id' => 460, 'title' => 'Sao Tome and Principe', 'code' => 'st'),
+        461 => array( 'flag_id' => 461, 'title' => 'Saudi Arabia', 'code' => 'sa'),
+        462 => array( 'flag_id' => 462, 'title' => 'Senegal', 'code' => 'sn'),
+        463 => array( 'flag_id' => 463, 'title' => 'Serbia', 'code' => 'rs'),
+        464 => array( 'flag_id' => 464, 'title' => 'Seychelles', 'code' => 'sc'),
+        465 => array( 'flag_id' => 465, 'title' => 'Sierra Leone', 'code' => 'sl'),
+        466 => array( 'flag_id' => 466, 'title' => 'Singapore', 'code' => 'sg'),
+        467 => array( 'flag_id' => 467, 'title' => 'Slovakia', 'code' => 'sk'),
+        468 => array( 'flag_id' => 468, 'title' => 'Slovenia', 'code' => 'si'),
+        469 => array( 'flag_id' => 469, 'title' => 'Solomon Islands', 'code' => 'sb'),
+        470 => array( 'flag_id' => 470, 'title' => 'Somalia', 'code' => 'so'),
+        471 => array( 'flag_id' => 471, 'title' => 'South Africa', 'code' => 'za'),
+        472 => array( 'flag_id' => 472, 'title' => 'South Korea', 'code' => 'kr'),
+        473 => array( 'flag_id' => 473, 'title' => 'South Sudan', 'code' => 'ss'),
+        474 => array( 'flag_id' => 474, 'title' => 'Spain', 'code' => 'es'),
+        475 => array( 'flag_id' => 475, 'title' => 'Sri Lanka', 'code' => 'lk'),
+        476 => array( 'flag_id' => 476, 'title' => 'Sudan', 'code' => 'sd'),
+        477 => array( 'flag_id' => 477, 'title' => 'Suriname', 'code' => 'sr'),
+        478 => array( 'flag_id' => 478, 'title' => 'Swaziland', 'code' => 'sz'),
+        479 => array( 'flag_id' => 479, 'title' => 'Sweden', 'code' => 'se'),
+        480 => array( 'flag_id' => 480, 'title' => 'Switzerland', 'code' => 'ch'),
+        481 => array( 'flag_id' => 481, 'title' => 'Syria', 'code' => 'sy'),
         // 482 => array( 'flag_id' => 482, 'title' => 'Taiwan', 'code' => 'Rg9'),
-        482 => array('flag_id' => 482, 'title' => 'Taiwan', 'code' => 'tw'),
-        483 => array('flag_id' => 483, 'title' => 'Tajikistan', 'code' => 'tj'),
-        484 => array('flag_id' => 484, 'title' => 'Tanzania', 'code' => 'tz'),
-        485 => array('flag_id' => 485, 'title' => 'Thailand', 'code' => 'th'),
-        486 => array('flag_id' => 486, 'title' => 'Timor-Leste', 'code' => 'tl'),
-        487 => array('flag_id' => 487, 'title' => 'Togo', 'code' => 'tg'),
-        488 => array('flag_id' => 488, 'title' => 'Tonga', 'code' => 'to'),
-        489 => array('flag_id' => 489, 'title' => 'Trinidad and Tobago', 'code' => 'tt'),
-        490 => array('flag_id' => 490, 'title' => 'Tunisia', 'code' => 'tn'),
-        491 => array('flag_id' => 491, 'title' => 'Turkey', 'code' => 'tr'),
-        492 => array('flag_id' => 492, 'title' => 'Turkmenistan', 'code' => 'tm'),
-        493 => array('flag_id' => 493, 'title' => 'Tuvalu', 'code' => 'tv'),
-        494 => array('flag_id' => 494, 'title' => 'Uganda', 'code' => 'ug'),
-        495 => array('flag_id' => 495, 'title' => 'Ukraine', 'code' => 'ua'),
-        496 => array('flag_id' => 496, 'title' => 'United Arab Emirates', 'code' => 'ae'),
-        497 => array('flag_id' => 497, 'title' => 'United Kingdom', 'code' => 'gb'),
-        498 => array('flag_id' => 498, 'title' => 'United States of America', 'code' => 'us'),
-        499 => array('flag_id' => 499, 'title' => 'Uruguay', 'code' => 'uy'),
-        500 => array('flag_id' => 500, 'title' => 'Uzbekistan', 'code' => 'uz'),
-        501 => array('flag_id' => 501, 'title' => 'Vanuatu', 'code' => 'vu'),
-        502 => array('flag_id' => 502, 'title' => 'Vatican City', 'code' => 'va'),
-        503 => array('flag_id' => 503, 'title' => 'Venezuela', 'code' => 've'),
-        504 => array('flag_id' => 504, 'title' => 'Vietnam', 'code' => 'vn'),
-        505 => array('flag_id' => 505, 'title' => 'Yemen', 'code' => 'ye'),
-        506 => array('flag_id' => 506, 'title' => 'Zambia', 'code' => 'zm'),
-        507 => array('flag_id' => 507, 'title' => 'Zimbabwe', 'code' => 'zw'),
-        508 => array('flag_id' => 508, 'title' => 'Hong Kong', 'code' => 'hk'),
-        511 => array('flag_id' => 511, 'title' => 'Hawaii', 'code' => 'ha'),
+        482 => array( 'flag_id' => 482, 'title' => 'Taiwan', 'code' => 'tw'),
+        483 => array( 'flag_id' => 483, 'title' => 'Tajikistan', 'code' => 'tj'),
+        484 => array( 'flag_id' => 484, 'title' => 'Tanzania', 'code' => 'tz'),
+        485 => array( 'flag_id' => 485, 'title' => 'Thailand', 'code' => 'th'),
+        486 => array( 'flag_id' => 486, 'title' => 'Timor-Leste', 'code' => 'tl'),
+        487 => array( 'flag_id' => 487, 'title' => 'Togo', 'code' => 'tg'),
+        488 => array( 'flag_id' => 488, 'title' => 'Tonga', 'code' => 'to'),
+        489 => array( 'flag_id' => 489, 'title' => 'Trinidad and Tobago', 'code' => 'tt'),
+        490 => array( 'flag_id' => 490, 'title' => 'Tunisia', 'code' => 'tn'),
+        491 => array( 'flag_id' => 491, 'title' => 'Turkey', 'code' => 'tr'),
+        492 => array( 'flag_id' => 492, 'title' => 'Turkmenistan', 'code' => 'tm'),
+        493 => array( 'flag_id' => 493, 'title' => 'Tuvalu', 'code' => 'tv'),
+        494 => array( 'flag_id' => 494, 'title' => 'Uganda', 'code' => 'ug'),
+        495 => array( 'flag_id' => 495, 'title' => 'Ukraine', 'code' => 'ua'),
+        496 => array( 'flag_id' => 496, 'title' => 'United Arab Emirates', 'code' => 'ae'),
+        497 => array( 'flag_id' => 497, 'title' => 'United Kingdom', 'code' => 'gb'),
+        498 => array( 'flag_id' => 498, 'title' => 'United States of America', 'code' => 'us'),
+        499 => array( 'flag_id' => 499, 'title' => 'Uruguay', 'code' => 'uy'),
+        500 => array( 'flag_id' => 500, 'title' => 'Uzbekistan', 'code' => 'uz'),
+        501 => array( 'flag_id' => 501, 'title' => 'Vanuatu', 'code' => 'vu'),
+        502 => array( 'flag_id' => 502, 'title' => 'Vatican City', 'code' => 'va'),
+        503 => array( 'flag_id' => 503, 'title' => 'Venezuela', 'code' => 've'),
+        504 => array( 'flag_id' => 504, 'title' => 'Vietnam', 'code' => 'vn'),
+        505 => array( 'flag_id' => 505, 'title' => 'Yemen', 'code' => 'ye'),
+        506 => array( 'flag_id' => 506, 'title' => 'Zambia', 'code' => 'zm'),
+        507 => array( 'flag_id' => 507, 'title' => 'Zimbabwe', 'code' => 'zw'),
+        508 => array( 'flag_id' => 508, 'title' => 'Hong Kong', 'code' => 'hk'),
+        511 => array( 'flag_id' => 511, 'title' => 'Hawaii', 'code' => 'ha'),
     );
 
     public $widgetStyles = [
@@ -505,52 +477,54 @@ class Variables {
     ];
 
     public function __construct() {
-        $this->api_key = get_option('api_key');
-        $this->new_user = get_option('conveythis_new_user');
-        $this->source_language = get_option('source_language');
-        $this->target_languages = get_option('target_languages', array());
-        $this->default_language = get_option('default_language');
-        $this->target_languages_translations = get_option('target_languages_translations', array());
-        $this->style_change_language = get_option('style_change_language', array());
-        $this->style_change_flag = get_option('style_change_flag', array());
-        $this->style_flag = get_option('style_flag', 'rect');
-        $this->style_text = get_option('style_text', 'full-text');
-        $this->style_position_vertical = get_option('style_position_vertical', 'top');
-        $this->style_position_horizontal = get_option('style_position_horizontal', 'right');
-        $this->style_indenting_vertical = get_option('style_indenting_vertical', '0');
-        $this->style_indenting_horizontal = get_option('style_indenting_horizontal', '24');
-        $this->auto_translate = get_option('auto_translate', '1');
-        $this->select_region = get_option('conveythis_select_region', 'US');
-        $this->hide_conveythis_logo = get_option('hide_conveythis_logo', '1');
-        $this->dynamic_translation = get_option('dynamic_translation', '1');
-        $this->translate_media = get_option('translate_media', '1');
-        $this->translate_document = get_option('translate_document', '0');
-        $this->translate_links = get_option('translate_links', '0');
-        $this->translate_structured_data = get_option('translate_structured_data', '0');
-        $this->change_direction = get_option('change_direction', '0');
-        $this->alternate = get_option('alternate', '1');
-        $this->accept_language = get_option('accept_language', '0');
-        $this->blockpages = get_option('blockpages', array());
-        $this->show_javascript = get_option('show_javascript', '1');
-        $this->clear_cache = get_option('conveythis_clear_cache', '0');
-        $this->style_position_type = get_option('style_position_type', 'fixed');
-        $this->style_position_vertical_custom = get_option('style_position_vertical_custom', 'bottom');
-        $this->style_selector_id = get_option('style_selector_id', '');
-        $this->url_structure = get_option('url_structure', 'regular');
-        $this->style_background_color = get_option('style_background_color', '#ffffff');
-        $this->style_hover_color = get_option('style_hover_color', '#f6f6f6');
-        $this->style_border_color = get_option('style_border_color', '#f7f7f7');
-        $this->style_text_color = get_option('style_text_color', '#000000');
-        $this->style_corner_type = get_option('style_corner_type', 'rect');
-        $this->style_widget = get_option('style_widget', 'dropdown');
-        $this->custom_css_json = get_option('custom_css_json', '');
+        $this->api_key = get_option( 'api_key' );
+        $this->new_user = get_option( 'conveythis_new_user' );
+        $this->source_language = get_option( 'source_language' );
+        $this->target_languages = get_option( 'target_languages', array() );
+        $this->default_language = get_option( 'default_language' );
+        $this->target_languages_translations = get_option( 'target_languages_translations', array() );
+        $this->style_change_language = get_option( 'style_change_language', array() );
+        $this->style_change_flag = get_option( 'style_change_flag', array() );
+        $this->style_flag = get_option( 'style_flag', 'rect' );
+        $this->style_text = get_option( 'style_text', 'full-text' );
+        $this->style_position_vertical = get_option( 'style_position_vertical', 'top' );
+        $this->style_position_horizontal = get_option( 'style_position_horizontal', 'right' );
+        $this->style_indenting_vertical = get_option( 'style_indenting_vertical', '0' );
+        $this->style_indenting_horizontal = get_option( 'style_indenting_horizontal', '24' );
+        $this->auto_translate = get_option( 'auto_translate', '1' );
+        $this->select_region = get_option( 'conveythis_select_region', 'US' );
+        $this->hide_conveythis_logo = get_option( 'hide_conveythis_logo', '1' );
+        $this->dynamic_translation = get_option( 'dynamic_translation', '1' );
+        $this->translate_media = get_option( 'translate_media', '1' );
+        $this->translate_document = get_option( 'translate_document', '0' );
+        $this->translate_links = get_option( 'translate_links', '0' );
+        $this->translate_structured_data = get_option( 'translate_structured_data', '0' );
+        $this->change_direction = get_option( 'change_direction', '0' );
+        $this->alternate = get_option( 'alternate', '1' );
+        $this->accept_language = get_option( 'accept_language', '0' );
+        $this->blockpages = get_option( 'blockpages', array() );
+        $this->show_javascript = get_option( 'show_javascript', '1' );
+        $this->clear_cache = get_option( 'conveythis_clear_cache', '0' );
+        $this->style_position_type = get_option( 'style_position_type', 'fixed' );
+        $this->style_position_vertical_custom = get_option( 'style_position_vertical_custom', 'bottom' );
+        $this->style_selector_id = get_option( 'style_selector_id', '' );
+        $this->url_structure = get_option( 'url_structure', 'regular' );
+        $this->style_background_color = get_option( 'style_background_color', '#ffffff' );
+        $this->style_hover_color = get_option( 'style_hover_color', '#f6f6f6' );
+        $this->style_border_color = get_option( 'style_border_color', '#f7f7f7' );
+        $this->style_text_color = get_option( 'style_text_color', '#000000' );
+        $this->style_corner_type = get_option( 'style_corner_type', 'rect' );
+        $this->style_widget = get_option( 'style_widget', 'dropdown' );
+        $this->custom_css_json = get_option( 'custom_css_json', '' );
         $this->is_translated = get_option('is_translated', '0');
         $this->is_active = get_option('is_active_domain', array());
-        $this->system_links = get_option('conveythis_system_links', array());
+        $this->system_links = get_option( 'conveythis_system_links', array() );
         $this->system_links = $this->system_links ? json_decode($this->system_links, true) : array();
+        $this->use_trailing_slash = get_option( 'use_trailing_slash', '1' );
     }
 
-    public function __call($name, $arguments) {
+    public function __call($name, $arguments)
+    {
         if (strpos($name, 'get') === 0) {
 
             $property = lcfirst(
@@ -567,7 +541,8 @@ class Variables {
         throw new \BadMethodCallException("Method $name not found in class " . __CLASS__);
     }
 
-    private static function camelToSnake($input) {
-        return strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $input));
+    private static function camelToSnake($input)
+    {
+        return  strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $input));
     }
 }
