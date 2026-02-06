@@ -42,7 +42,7 @@ jQuery(document).ready(function ($) {
     });
 
     $('#conveythis_api_key').on('change', async function () {
-        console.log("$('#conveythis_api_key').on('change'")
+        console.log("$('#conveythis_api_key').on('change')")
         var input = $(this);
         var inputValue = input.val();
         var validationLabel = $('#apiKey .validation-label');
@@ -77,26 +77,15 @@ jQuery(document).ready(function ($) {
             method: 'POST',
             data: {'ready_user': 1},
             success: function () {
-                jQuery.ajax({
-                    url: 'options.php',
-                    method: 'POST',
-                    data: {'convey_event': true, 'convey_event_name': 'eventReadyUserSuccess', 'ready_user': true}
-                })
                 window.location.reload()
             },
-            error: function () {
-                jQuery.ajax({
-                    url: 'options.php',
-                    method: 'POST',
-                    data: {'convey_event': true, 'convey_event_name': 'eventReadyUserError'}
-                })
-            },
+            error: function () { },
         })
 
     })
 
     $('.api-key-setting').on('click', function () {
-        console.log("$('.api-key-setting').on('click'")
+        console.log("$('.api-key-setting').on('click')")
         $('#login-form').css('display', 'none');
         $('#login-form-settings').css('display', 'block');
 
@@ -106,13 +95,6 @@ jQuery(document).ready(function ($) {
         window.location.reload();
     });
 
-    $('#login-form .signup-modal').on('click', function () {
-        jQuery.ajax({
-            url: 'options.php',
-            method: 'POST',
-            data: {'convey_event': true, 'convey_event_name': 'eventSignupModal'}
-        })
-    })
 
     $('#ajax-save-settings').on('click', function (e) {
         e.preventDefault()
@@ -123,9 +105,52 @@ jQuery(document).ready(function ($) {
         $btn.prop('disabled', true).val('Saving...');
         prepareSettingsBeforeSave();
 
-        const data = Object.fromEntries(new FormData(form[0]));
-        console.log(data);
-        console.log(conveythis_plugin_ajax.ajax_url);
+        // Properly handle array inputs from FormData
+        const formData = new FormData(form[0]);
+        const data = {};
+        
+        // Fields that should be preserved as JSON strings (not parsed as arrays)
+        // CRITICAL: These fields must NEVER be converted to arrays
+        const jsonStringFields = ['glossary', 'exclusions', 'exclusion_blocks', 'target_languages_translations', 'custom_css_json'];
+        
+        // Convert FormData to object, handling arrays properly
+        for (let [key, value] of formData.entries()) {
+            // SAFETY CHECK: Never process JSON string fields as arrays, even if they somehow have []
+            if (jsonStringFields.includes(key)) {
+                // This field is a JSON string - preserve it as-is, never convert to array
+                data[key] = value;
+                continue; // Skip array processing for this field
+            }
+            
+            // Handle array inputs (fields ending with [])
+            // IMPORTANT: Only process fields ending with [] as arrays
+            // JSON string fields like 'glossary' should NOT end with []
+            if (key.endsWith('[]')) {
+                const arrayKey = key.slice(0, -2); // Remove '[]'
+                
+                // EXTRA SAFETY: Double-check this isn't a JSON string field
+                if (jsonStringFields.includes(arrayKey)) {
+                    console.error('[SAFETY ERROR] Attempted to process JSON field as array: ' + arrayKey);
+                    // Preserve as string instead
+                    data[arrayKey] = value;
+                    continue;
+                }
+                
+                // Only create array if key doesn't exist (prevents overwriting existing values)
+                if (!data[arrayKey]) {
+                    data[arrayKey] = [];
+                }
+                // Only add non-empty values
+                if (value && value.trim() !== '') {
+                    data[arrayKey].push(value);
+                }
+            } else {
+                // Regular field - preserve as-is (including JSON strings)
+                data[key] = value;
+            }
+        }
+        
+        
         $.post(conveythis_plugin_ajax.ajax_url, {
             action: 'conveythis_save_all_settings',
             nonce: data['conveythis_nonce'],
@@ -133,7 +158,6 @@ jQuery(document).ready(function ($) {
         }, function (response) {
             $('.conveythis-overlay').remove();
             $btn.prop('disabled', false).val('Save Settings');
-            console.log(response)
             if (response.success) {
                 toastr.success('Settings saved successfully');
             } else {
@@ -194,11 +218,6 @@ jQuery(document).ready(function ($) {
                         eventName = 'domainAlreadyExists';
                     }
 
-                    jQuery.ajax({
-                        url: 'options.php',
-                        method: 'POST',
-                        data: {'convey_event': true, 'convey_event_name': eventName}
-                    })
 
                     if (newKey) {
                         toastr.success('Confirmation email was sent to your email')
@@ -237,23 +256,9 @@ jQuery(document).ready(function ($) {
                                         method: 'POST',
                                         data: {'set_api_key': 1, 'api_key': res.data.pub_key, 'csrf': values.csrf},
                                         success: function () {
-                                            jQuery.ajax({
-                                                url: 'options.php',
-                                                method: 'POST',
-                                                data: {
-                                                    'convey_event': true,
-                                                    'convey_event_name': 'eventSetApiKeySuccess'
-                                                }
-                                            })
                                             window.location.reload()
                                         },
-                                        error: function () {
-                                            jQuery.ajax({
-                                                url: 'options.php',
-                                                method: 'POST',
-                                                data: {'convey_event': true, 'convey_event_name': 'eventSetApiKeyError'}
-                                            })
-                                        },
+                                        error: function () { },
                                     })
 
                                 })
@@ -261,11 +266,6 @@ jQuery(document).ready(function ($) {
                         }
                     })
                 } else {
-                    jQuery.ajax({
-                        url: 'options.php',
-                        method: 'POST',
-                        data: {'convey_event': true, 'convey_event_name': 'eventRegisterFormError'}
-                    })
                     toastr.error(res.message)
                 }
             },
@@ -319,12 +319,67 @@ jQuery(document).ready(function ($) {
             'code2': 'en',
             'code3': 'eng',
             'flag': 'R04',
-            'flag_codes': {'us': 'United States of America', 'gb': ' United Kingdom', 'ca': 'Canada'}
+            'flag_codes': {'us': 'United States of America', 'gb': ' United Kingdom', 'ca': 'Canada', 'au': 'Australia'}
         },
-        704: {'title_en': 'Afrikaans', 'title': 'Afrikaans', 'code2': 'af', 'code3': 'afr', 'flag': '7xS'},
+        704: {
+            'title_en': 'Afrikaans',
+            'title': 'Afrikaans',
+            'code2': 'af',
+            'code3': 'afr',
+            'flag': '7xS',
+            'flag_codes': {
+                'za': 'South Africa',
+                'dz': 'Algeria',
+                'td': 'Chad',
+                'km': 'Comoros',
+                'dj': 'Djibouti',
+                'eg': 'Egypt',
+                'er': 'Eritrea',
+                'ly': 'Libya',
+                'mr': 'Mauritania',
+                'ma': 'Morocco',
+                'so': 'Somalia',
+                'sd': 'Sudan',
+                'tn': 'Tunisia'
+            }
+        },
         705: {'title_en': 'Albanian', 'title': 'Shqip', 'code2': 'sq', 'code3': 'sqi', 'flag': '5iM'},
         706: {'title_en': 'Amharic', 'title': 'አማርኛ', 'code2': 'am', 'code3': 'amh', 'flag': 'ZH1'},
-        707: {'title_en': 'Arabic', 'title': 'العربية', 'code2': 'ar', 'code3': 'ara', 'flag': 'J06'},
+        707: {
+            'title_en': 'Arabic',
+            'title': 'العربية',
+            'code2': 'ar',
+            'code3': 'ara',
+            'flag': 'J06',
+            'flag_codes': {
+                // Middle East
+                'bh': 'Bahrain',
+                'iq': 'Iraq',
+                'jo': 'Jordan',
+                'kw': 'Kuwait',
+                'lb': 'Lebanon',
+                'om': 'Oman',
+                'ps': 'Palestine',
+                'qa': 'Qatar',
+                'sa': 'Saudi Arabia',
+                'sy': 'Syria',
+                'ae': 'United Arab Emirates',
+                'ye': 'Yemen',
+                // North Africa
+                'dz': 'Algeria',
+                'td': 'Chad',
+                'km': 'Comoros',
+                'dj': 'Djibouti',
+                'eg': 'Egypt',
+                'er': 'Eritrea',
+                'ly': 'Libya',
+                'mr': 'Mauritania',
+                'ma': 'Morocco',
+                'so': 'Somalia',
+                'sd': 'Sudan',
+                'tn': 'Tunisia'
+            }
+        },
         708: {'title_en': 'Armenian', 'title': 'Հայերեն', 'code2': 'hy', 'code3': 'hye', 'flag': 'q9U'},
         709: {'title_en': 'Azerbaijan', 'title': 'Azərbaycanca', 'code2': 'az', 'code3': 'aze', 'flag': 'Wg1'},
         710: {'title_en': 'Bashkir', 'title': 'Башҡортса', 'code2': 'ba', 'code3': 'bak', 'flag': 'D1H'},
@@ -336,8 +391,30 @@ jQuery(document).ready(function ($) {
         716: {'title_en': 'Burmese', 'title': 'မြန်မာဘာသာ', 'code2': 'my', 'code3': 'mya', 'flag': 'YB9'},
         717: {'title_en': 'Catalan', 'title': 'Català', 'code2': 'ca', 'code3': 'cat', 'flag': 'Pw6'},
         718: {'title_en': 'Cebuano', 'title': 'Cebuano', 'code2': 'ceb', 'code3': 'ceb', 'flag': ''},
-        719: {'title_en': 'Chinese (Simplified)', 'title': '简体', 'code2': 'zh', 'code3': 'zh-sim', 'flag': 'Z1v'},
-        796: {'title_en': 'Chinese (Traditional)', 'title': '繁體', 'code2': 'zh-tw', 'code3': 'zh-tra', 'flag': 'Z1v'},
+        719: {
+            'title_en': 'Chinese (Simplified)',
+            'title': '简体',
+            'code2': 'zh',
+            'code3': 'zh-sim',
+            'flag': 'Z1v',
+            'flag_codes': {
+                'cn': 'Mainland China',
+                'sg': 'Singapore',
+                'my': 'Malaysia'
+            }
+        },
+        796: {
+            'title_en': 'Chinese (Traditional)',
+            'title': '繁體',
+            'code2': 'zh-tw',
+            'code3': 'zh-tra',
+            'flag': 'Z1v',
+            'flag_codes': {
+                'tw': 'Taiwan',
+                'hk': 'Hong Kong',
+                'mo': 'Macau'
+            }
+        },
         720: {'title_en': 'Croatian', 'title': 'Hrvatski', 'code2': 'hr', 'code3': 'hrv', 'flag': '7KQ'},
         721: {'title_en': 'Czech', 'title': 'Čeština', 'code2': 'cs', 'code3': 'cze', 'flag': '1ZY'},
         722: {'title_en': 'Danish', 'title': 'Dansk', 'code2': 'da', 'code3': 'dan', 'flag': 'Ro2'},
@@ -352,7 +429,14 @@ jQuery(document).ready(function ($) {
             'code3': 'fin',
             'flag': 'nM4'
         },
-        727: {'title_en': 'French', 'title': 'Français', 'code2': 'fr', 'code3': 'fre', 'flag': 'E77'},
+        727: {
+            'title_en': 'French',
+            'title': 'Français',
+            'code2': 'fr',
+            'code3': 'fre',
+            'flag': 'E77',
+            'flag_codes': {'fr': 'France', 'ca': 'Canada'}
+        },
         728: {'title_en': 'Galician', 'title': 'Galego', 'code2': 'gl', 'code3': 'glg', 'flag': 'A5d'},
         729: {'title_en': 'Georgian', 'title': 'ქართული', 'code2': 'ka', 'code3': 'kat', 'flag': '8Ou'},
         730: {'title_en': 'German', 'title': 'Deutsch', 'code2': 'de', 'code3': 'ger', 'flag': 'K7e'},
@@ -547,7 +631,15 @@ jQuery(document).ready(function ($) {
 
     $('.conveythis-delete-page').on('click', function (e) {
         //e.preventDefault();
-        $(this).parent().remove();
+        let $rowToDelete = $(this).closest('.style-language');
+        if ($rowToDelete.length) {
+            // This is a flag style row - update availability after deletion
+            $rowToDelete.remove();
+            updateLanguageDropdownAvailability();
+        } else {
+            // Other type of row (glossary, exclusion, etc.)
+            $(this).parent().remove();
+        }
         //	$(".autoSave").click();
     });
 
@@ -596,7 +688,7 @@ jQuery(document).ready(function ($) {
     $('#add_flag_style').on('click', function (e) {
         e.preventDefault();
 
-        if ($(".style-language").length == 4) {
+        if ($(".style-language").length == 6) { // 1 cloned template + 5 actual rows = 6 total
             $('#add_flag_style').prop("disable", true);
             return;
         }
@@ -604,20 +696,29 @@ jQuery(document).ready(function ($) {
         let $rule_style = $('.cloned').clone()
 
         $rule_style.removeClass('cloned')
-        $rule_style.find('.change_language').prepend('<input type="hidden" name="style_change_language[]" value="">')
-        $rule_style.find('.change_flag').prepend('<input type="hidden" name="style_change_flag[]"  value="">')
+        $rule_style.find('input[name="style_change_language[]"]').val('');
+        $rule_style.find('input[name="style_change_flag[]"]').val('');
         $("#flag-style_wrapper").append($rule_style);
 
         $(document).find('.conveythis-delete-page').on('click', function (e) {
             e.preventDefault();
-            $(this).parent().remove();
+            let $rowToDelete = $(this).closest('.style-language');
+            $rowToDelete.remove();
+            
+            // Update language availability after row deletion
+            updateLanguageDropdownAvailability();
         });
 
         $('.ui.dropdown').dropdown();
+        // Re-initialize handlers for all dropdowns (including the new one)
         sortFlagsByLanguage();
+        // Initialize only the newly added row
+        initializeFlagDropdowns();
     });
 
+    // Initialize on page load
     sortFlagsByLanguage();
+    initializeFlagDropdowns();
 
     $('#add_glossary').on('click', function (e) {
 
@@ -803,7 +904,7 @@ jQuery(document).ready(function ($) {
         let $exclusion_block = $('<div class="exclusion_block position-relative w-100 pe-4">\n' +
             '                        <button class="conveythis-delete-page"></button>\n' +
             '                        <div class="ui input">\n' +
-            '                            <input type="text" class="form-control id_value w-100"  placeholder="Enter id">\n' +
+            '                            <input type="text" class="form-control id_value w-100" data-type="id" placeholder="Enter id">\n' +
             '                        </div>\n' +
             '                    </div>');
 
@@ -814,6 +915,24 @@ jQuery(document).ready(function ($) {
 
         $("#exclusion_block_wrapper").append($exclusion_block);
 
+    });
+
+    $('#add_exlusion_block_class').on('click', function (e) {
+        e.preventDefault();
+
+        let $exclusion_block = $('<div class="exclusion_block position-relative w-100 pe-4">\n' +
+            '    <button class="conveythis-delete-page"></button>\n' +
+            '    <div class="ui input">\n' +
+            '        <input type="text" class="form-control id_value w-100" data-type="class" placeholder="Enter class">\n' +
+            '    </div>\n' +
+            '</div>');
+
+        $exclusion_block.find('.conveythis-delete-page').on('click', function (e) {
+            e.preventDefault();
+            $(this).parent().remove();
+        });
+
+        $("#exclusion_block_classes_wrapper").append($exclusion_block);
     });
 
     $('.widget-trigger [name="style_widget"]').on('change', function (e) {
@@ -851,7 +970,7 @@ jQuery(document).ready(function ($) {
             $("#dns-setup-records").html("");
             for (language_id in languages) {
                 if (targetLanguages.includes(languages[language_id].code2)) {
-                    let row = "<tr data-domain='" + languages[language_id].code2 + "." + location.hostname + "'><td>" + languages[language_id].title_en + "</td><td>" + languages[language_id].code2 + "." + location.hostname + "</td><td>dns1.conveythis.com</td></tr>";
+                    let row = "<tr data-domain='" + languages[language_id].code2 + "." + location.hostname + "'><td>" + languages[language_id].title_en + "</td><td>" + languages[language_id].code2 + "." + location.hostname + "</td><td>dns2.conveythis.com</td></tr>";
                     $("#dns-setup-records").append(row);
                 }
             }
@@ -980,11 +1099,15 @@ jQuery(document).ready(function ($) {
     }
 
     $('.conveythis-widget-option-form, #login-form-settings').submit(function (e) {
+        console.log("'.conveythis-widget-option-form, #login-form-settings').submit")
         let apiKey = $("#conveythis_api_key").val();
+        /*
         let validation = checkValidation();
         if (validation === false) {
             e.preventDefault();
         }
+         */
+        console.log("skip old validation")
 
         let targetLanguagesTranslations = {};
         let $tLangTranslations = $("#target_languages_translations input[language_id]");
@@ -1003,7 +1126,6 @@ jQuery(document).ready(function ($) {
 
         let exclusions = [];
         $('div.exclusion').each(function () {
-
             let rule = $(this).find('.rule select').val();
             let pageUrl = $(this).find('input.page_url').val().trim();
             if (rule && pageUrl) {
@@ -1045,7 +1167,8 @@ jQuery(document).ready(function ($) {
         $('div.exclusion_block').each(function () {
             let idValue = $(this).find('input.id_value').val().trim();
             if (idValue) {
-                let exBlock = {id_value: idValue};
+                let type = $(this).find('input.id_value').data('type');
+                let exBlock = {id_value: idValue, type: type};
                 let exclusionBlockId = $(this).find('input.exclusion_block_id').val();
                 if (exclusionBlockId) {
                     exBlock.id = exclusionBlockId;
@@ -1114,11 +1237,57 @@ jQuery(document).ready(function ($) {
         });
         $('input[name="glossary"]').val(JSON.stringify(glossary));
 
+        // Prepare style_change_language and style_change_flag arrays
+        // CRITICAL: Sync dropdown values to hidden inputs before collecting
+        
+        // First, ensure all dropdown values are synced to hidden inputs
+        $('.style-language').each(function () {
+            let $row = $(this);
+            let $languageDropdown = $row.find('.ui.dropdown.change_language');
+            let $flagDropdown = $row.find('.ui.dropdown.change_flag');
+            let $languageInput = $row.find('input[name="style_change_language[]"]');
+            let $flagInput = $row.find('input[name="style_change_flag[]"]');
+            
+            // Get current dropdown values
+            let langValue = $languageDropdown.dropdown('get value');
+            let flagValue = $flagDropdown.dropdown('get value');
+            
+            // Update hidden inputs with current dropdown values
+            if ($languageInput.length && langValue) {
+                $languageInput.val(langValue);
+            }
+            if ($flagInput.length && flagValue) {
+                $flagInput.val(flagValue);
+            }
+        });
+        
+        // Now collect from hidden inputs
+        let style_change_language = [];
+        let style_change_flag = [];
+        
+        $('.style-language').each(function () {
+            let $row = $(this);
+            let $languageInput = $row.find('input[name="style_change_language[]"]');
+            let $flagInput = $row.find('input[name="style_change_flag[]"]');
+            
+            // Get values from hidden inputs
+            let langValue = $languageInput.length ? $languageInput.val() : '';
+            let flagValue = $flagInput.length ? $flagInput.val() : '';
+            
+            // Only add if language is set
+            if (langValue && langValue.trim() !== '') {
+                style_change_language.push(langValue.trim());
+                style_change_flag.push(flagValue ? flagValue.trim() : '');
+            }
+        });
+        
+
         let exclusion_blocks = [];
         $('div.exclusion_block').each(function () {
             let idVal = $(this).find('input.id_value').val().trim();
             if (idVal) {
-                let ex = {id_value: idVal};
+                let type = $(this).find('input.id_value').data('type');
+                let ex = {id_value: idVal, type: type};
                 let id = $(this).find('input.exclusion_block_id').val();
                 if (id) ex.id = id;
                 exclusion_blocks.push(ex);
@@ -1180,34 +1349,183 @@ jQuery(document).ready(function ($) {
 
     }
 
+    // Function to update language dropdowns to disable already-selected languages
+    function updateLanguageDropdownAvailability() {
+
+        // Get all currently selected language IDs (excluding empty values)
+        let selectedLanguages = [];
+        $('.style-language').each(function() {
+            let $languageInput = $(this).find('input[name="style_change_language[]"]');
+            let langValue = $languageInput.length ? $languageInput.val() : '';
+            if (langValue && langValue.trim() !== '') {
+                selectedLanguages.push(langValue.trim());
+            }
+        });
+        
+        // Update all language dropdowns
+        $('.ui.dropdown.change_language').each(function() {
+            let $currentDropdown = $(this);
+            let $currentRow = $currentDropdown.closest('.style-language');
+            let $currentInput = $currentRow.find('input[name="style_change_language[]"]');
+            let currentValue = $currentInput.length ? $currentInput.val() : '';
+            
+            // Enable/disable items in this dropdown
+            $currentDropdown.find('.menu .item').each(function() {
+                let $item = $(this);
+                let itemValue = $item.attr('data-value');
+                
+                // If this language is selected in another row, disable it (unless it's the current row's selection)
+                if (selectedLanguages.includes(itemValue) && itemValue !== currentValue) {
+                    $item.addClass('disabled');
+                } else {
+                    $item.removeClass('disabled');
+                }
+            });
+        });
+    }
+
     // Sort flags by languages
     function sortFlagsByLanguage() {
         $('.ui.dropdown.change_language').dropdown({
             onChange: function (value) {
 
+                // Update the hidden input for language
+                let $languageInput = $(this).closest('.row').find('input[name="style_change_language[]"]');
+                if ($languageInput.length) {
+                    $languageInput.val(value);
+                }
+
+                // Update availability of languages in all dropdowns
+                updateLanguageDropdownAvailability();
+
                 let $dropdown = $(this).closest('.row').find('.ui.dropdown.change_flag');
-                let flagCodes = languages[value]['flag_codes'];
+                
+                // Check if flag_codes exists for this language
+                if (languages[value] && languages[value]['flag_codes']) {
+                    let flagCodes = languages[value]['flag_codes'];
 
-                $dropdown.find('.menu').empty();
-                $dropdown.find('.text').empty();
+                    // Clear existing menu items and text
+                    $dropdown.find('.menu').empty();
+                    $dropdown.find('.text').text('Select Flag');
+                    $dropdown.find('input[type="hidden"]').val('');
 
-                $.each(flagCodes, function (code, title) {
+                    // Populate with new flag options
+                    $.each(flagCodes, function (code, title) {
+                        let newItem = $('<div class="item" data-value="' + code + '">\
+                                            <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%;\
+                                                background-size: contain; background-repeat: no-repeat;\
+                                                background-image: url(\'//cdn.conveythis.com/images/flags/svg/' + code + '.svg\')"></div>\
+                                            ' + title + '\
+                                        </div>');
+                        $dropdown.find('.menu').append(newItem);
+                    });
+                    
+                    // Destroy and reinitialize dropdown to ensure it recognizes new items
+                    try {
+                        $dropdown.dropdown('destroy');
+                    } catch(e) {
+                        // Dropdown may not be initialized yet
+                    }
+                    $dropdown.dropdown();
+                } else {
+                    // If no flag_codes, clear the dropdown
+                    $dropdown.find('.menu').empty();
+                    $dropdown.find('.text').text('Select Flag');
+                    $dropdown.find('input[type="hidden"]').val('');
+                    try {
+                        $dropdown.dropdown('destroy');
+                    } catch(e) {
+                        // Dropdown may not be initialized yet
+                    }
+                    $dropdown.dropdown();
+                }
+            },
+            onRemove: function (value) {
+                // When language is cleared/removed
+                
+                // Clear the hidden input
+                let $languageInput = $(this).closest('.row').find('input[name="style_change_language[]"]');
+                if ($languageInput.length) {
+                    $languageInput.val('');
+                }
+                
+                // Update availability - re-enable this language in other dropdowns
+                updateLanguageDropdownAvailability();
+            }
+        });
 
-                    let newItem = $('<div class="item" data-value="' + code + '">\
-										<div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%;\
-																	background-size: contain; background-repeat: no-repeat;\
-																	background-image: url(\'//cdn.conveythis.com/images/flags/svg/' + code + '.svg\')"></div>\
-										' + title + '\
-									</div>');
+        // Handle flag dropdown changes
+        $('.ui.dropdown.change_flag').dropdown({
+            onChange: function (value) {
 
-                    $dropdown.find('.menu').append(newItem);
-
-                });
+                // Update the hidden input for flag
+                let $flagInput = $(this).closest('.row').find('input[name="style_change_flag[]"]');
+                if ($flagInput.length) {
+                    $flagInput.val(value);
+                }
             },
         });
     }
 
+    // Initialize dropdowns with saved values
+    function initializeFlagDropdowns() {
+        $('.style-language').each(function() {
+            let $row = $(this);
+            let $languageDropdown = $row.find('.ui.dropdown.change_language');
+            let $flagDropdown = $row.find('.ui.dropdown.change_flag');
+            let $languageInput = $row.find('input[name="style_change_language[]"]');
+            let $flagInput = $row.find('input[name="style_change_flag[]"]');
+
+            // Initialize language dropdown if value exists
+            if ($languageInput.length && $languageInput.val()) {
+                let languageValue = $languageInput.val();
+                
+                // Set the language dropdown value
+                if (languages[languageValue]) {
+                    $languageDropdown.dropdown('set selected', languageValue);
+                    
+                    // Populate flags if flag_codes exists
+                    if (languages[languageValue]['flag_codes']) {
+                        let flagCodes = languages[languageValue]['flag_codes'];
+                        
+                        // Clear existing menu items
+                        $flagDropdown.find('.menu').empty();
+                        $flagDropdown.find('.text').text('Select Flag');
+                        
+                        $.each(flagCodes, function (code, title) {
+                            let newItem = $('<div class="item" data-value="' + code + '">\
+                                <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%;\
+                                    background-size: contain; background-repeat: no-repeat;\
+                                    background-image: url(\'//cdn.conveythis.com/images/flags/svg/' + code + '.svg\')"></div>\
+                                ' + title + '\
+                            </div>');
+                            $flagDropdown.find('.menu').append(newItem);
+                        });
+                        
+                        // Destroy and reinitialize dropdown to ensure it recognizes new items
+                        try {
+                            $flagDropdown.dropdown('destroy');
+                        } catch(e) {
+                            // Dropdown may not be initialized yet
+                        }
+                        $flagDropdown.dropdown();
+
+                        // Set flag value if it exists
+                        if ($flagInput.length && $flagInput.val()) {
+                            let flagValue = $flagInput.val();
+                            $flagDropdown.dropdown('set selected', flagValue);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Update language availability after initialization
+        updateLanguageDropdownAvailability();
+    }
+
     function getUserPlan() {
+        console.log("* getUserPlan()")
         try {
             let apiKey = $("#conveythis_api_key").val();
 
@@ -1216,6 +1534,58 @@ jQuery(document).ready(function ($) {
                     url: "https://api.conveythis.com/admin/account/plan/api-key/" + apiKey + "/",
                     success: function (result) {
                         if (result.data && result.data.languages) {
+                            console.log("### plan result ###");
+                            console.log(result)
+                            let plan_name = ""
+                            if(result.data.meta.alias){
+                                plan_name = result.data.meta.alias
+                                let plan_name_formatted = plan_name.replace(/_/g, ' '); // pro_trial -> pro trial
+                                $("#plan_name").html(plan_name_formatted[0].toUpperCase() + plan_name_formatted.slice(1)) // pro trial -> Pro trial
+                                $("#plan_info").removeClass("d-none")
+
+                                if(result.data.trial_expires_at  && plan_name === 'pro_trial'  ){
+                                    let trial_expires_at = result.data.trial_expires_at
+                                    console.log("trial_expires_at:" + trial_expires_at)
+                                    let expiryDate = new Date(result.data.trial_expires_at);
+                                    let currentDate = new Date();
+
+                                    let diffInMs = expiryDate - currentDate;
+                                    let remaining_days = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+                                    let trial_days_message = ' days left. Fully test ConveyThis on the PRO trial plan. When trial expires, you can choose to switch to the <a href="https://app.conveythis.com/dashboard/pricing/" target="_blank">FREE plan or upgrade</a>';
+                                    if(remaining_days < 0){
+                                        trial_days_message = '<span class="fw-bold"> Your Pro Trial plan has expired. Click <a href="https://app.conveythis.com/dashboard/pricing/" target="_blank">here</a> to upgrade your plan. </span>'
+                                        $("#trial_days_info").removeClass("alert-warning")
+                                        $("#trial_days_info").addClass("alert-danger")
+                                        remaining_days = 0
+                                        $("#settings_content").addClass('content_disabled')
+                                    }
+                                    else{
+                                        $("#trial_days").html(remaining_days)
+                                    }
+
+
+                                    $("#trial_days_message").html(trial_days_message)
+                                    $("#trial_days_info").removeClass("d-none")
+/*
+                                    if (remainingDays > 0) {
+                                        $('#trial-days').text(remainingDays);
+                                        $('#trial-period').text(' days');
+                                        $('#conveythis_trial_period').css('display', 'block');
+                                    } else if (remainingDays === 0) {
+                                        $('#trial-days').text('Less than 24');
+                                        $('#trial-period').text('hours');
+                                        $('#conveythis_trial_period').css('display', 'block');
+                                    } else {
+                                        console.log("Your trial has expired.");
+                                    }
+
+ */
+                                }
+
+
+
+                            }
+                            //console.log("### plan name:" + plan_name)
                             const maxLanguages = result.data.languages;
                             $('.dropdown-target-languages').dropdown({
                                 maxSelections: maxLanguages,
@@ -1278,7 +1648,7 @@ jQuery(document).ready(function ($) {
                                 $('#conveythis_clear_cache').prop('disabled', true);
                             }
 
-
+/*
                             const expiryDate = new Date(result.data.trial_expires_at);
                             const currentDate = new Date();
 
@@ -1296,11 +1666,13 @@ jQuery(document).ready(function ($) {
                             } else {
                                 console.log("Your trial has expired.");
                             }
+*/
 
-
+/*
                             if (result.data.is_trial_expired === "1") {
                                 $('#conveythis_trial_finished').css('display', 'block')
                             }
+ */
 
 
                             if (typeof (result.data.is_confirmed) !== "undefined" && result.data.is_confirmed !== null

@@ -15,9 +15,13 @@ require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/loader.php');
             )
         ) {
             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/auth/languages.php');
-        } elseif ($this->variables->is_active && $this->variables->is_translated && $this->variables->new_user) {
+        }
+        /*
+        elseif ($this->variables->is_active && $this->variables->is_translated && $this->variables->new_user) {
             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/auth/congratulations.php');
-        } else {
+        }
+        */
+        else {
             require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/main.php');
         }
 

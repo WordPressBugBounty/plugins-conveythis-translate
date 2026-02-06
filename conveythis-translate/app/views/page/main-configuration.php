@@ -5,20 +5,24 @@
         We're sorry, you haven't verified your account. Follow the link in your email <span style="display: inline-block;"><b></b></span>
     </div>
     <div class="alert alert-danger" id="conveythis_trial_finished" role="alert" style="display: none;border: #ce1717 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        Your PRO trial has ended, and our widget on your site is currently inactive.<br> To republish the widget, please visit your <a href="http://app.conveythis.com/">dashboard</a> and select a plan.
+        Your PRO trial has ended, and our widget on your site is currently inactive.<br> To republish the widget, please visit your <a href="https://app.conveythis.com/">dashboard</a> and select a plan.
     </div>
     <div class="alert alert-warning" id="conveythis_trial_period" role="alert" style="display: none;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        <span id="trial-days"></span><span id="trial-period"></span> left in the trial.<br> Your free trial is coming to an end. Click <a href="http://app.conveythis.com/dashboard/pricing/">here</a> to upgrade your plan.
+        <span id="trial-days"></span><span id="trial-period"></span> left of the PRO trial.<br> Your free PRO trial is coming to an end. Click <a href="https://app.conveythis.com/dashboard/pricing/">here</a> to upgrade your plan.
     </div>
     <div class="alert alert-warning" id="conveythis_confirmation_message_warning" role="alert" style="display: none;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
         Your account is not verified, you can use the plugin until <span></span> <br/>
 <!--        After verifying your email, you will receive your account credentials and can then log in to our <a href="--><?php //echo esc_url(CONVEYTHIS_APP_URL . '/account/login/')?><!--" target="_blank">website</a>.-->
     </div>
-    <?php if ($this->variables->is_translated == '0' && !empty($this->variables->target_languages)):?>
-        <div class="alert alert-warning" role="alert" style="display: block;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
-            Once you receive your first page translation on your <a href="<?php echo esc_url(home_url());?>">site</a>, you'll gain access to all the settings of our plugin. Simply <a id="refresh" href="#">refresh</a> this page.
-        </div>
-    <?php endif;?>
+
+<!--    --><?php //if ($this->variables->is_translated == '0' && !empty($this->variables->target_languages)):?>
+<!---->
+<!--        <div class="alert alert-warning" role="alert" style="display: block;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">-->
+<!--            Once you receive your first page translation on your <a href="--><?php //echo esc_url(home_url());?><!--">site</a>, you'll gain access to all the settings of our plugin. Simply <a id="refresh" href="#">refresh</a> this page.-->
+<!--        </div>-->
+<!--   -->
+<!--    --><?php //endif;?>
+
     <?php if (empty($this->variables->target_languages)):?>
         <div class="alert alert-warning" role="alert" style="display: block;border: #ffecb5 2px solid;color: #000;padding-left: 10px;background: #fff;">
             Please select your source and target languages at this stage.
@@ -26,14 +30,28 @@
     <?php endif;?>
 
     <div class="alert alert-danger" id="conveythis_word_translation_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        Your translation word limit has been exceeded. Please upgrade your plan. <span></span>
+        Your translation word limit has been exceeded. Please <a href="https://app.conveythis.com/dashboard/pricing/" target="_blank">upgrade</a> your plan. <span></span>
     </div>
     <div class="alert alert-danger" id="conveythis_views_limit_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        Your page view limit has been exceeded. Please upgrade your plan. <span></span>
+        Your page view limit has been exceeded. Please <a href="https://app.conveythis.com/dashboard/pricing/" target="_blank">upgrade</a> your plan. <span></span>
     </div>
     <div class="alert alert-danger" id="conveythis_languages_limit_exceeded_warning" role="alert" style="display: none;border: #f5c2c7 2px solid;color: #000;padding-left: 10px;background: #fff;">
-        Your languages limit has been exceeded, please upgrade your plan. <span></span>
+        Your languages limit has been exceeded, please <a href="https://app.conveythis.com/dashboard/pricing/" target="_blank">upgrade</a> your plan. <span></span>
     </div>
+
+    <div class="form-group" >
+        <div class="subtitle">My translations</div>
+        <div>
+            <?php
+            $edit_translations_url = "https://app.conveythis.com/dashboard/";
+            if(!empty($this->variables->domain_id)){
+                $edit_translations_url = "https://app.conveythis.com/dashboard/translation/domain/" . $this->variables->domain_id . "/";
+            }
+            ?>
+            You can find your translations in your ConveyThis dashboard: <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary">Edit translations</a>
+        </div>
+    </div>
+
 
     <div class="form-group" id="apiKey">
         <div class="subtitle">Api Key</div>

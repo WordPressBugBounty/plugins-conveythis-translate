@@ -1,10 +1,10 @@
-const _timeLoader = 2000;
+const timeLoader = 2000;
 
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(function() {
         document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
-    }, _timeLoader);
+    }, timeLoader);
 });
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -32,5 +32,5 @@ document.addEventListener("DOMContentLoaded", function() {
 
     setTimeout(function() {
         keepRunning = false;
-    }, _timeLoader);
+    }, timeLoader);
 });

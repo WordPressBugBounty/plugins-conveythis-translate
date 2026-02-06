@@ -1,7 +1,7 @@
 <?php if (isset($this->variables->api_key)
     && !empty($this->variables->api_key)
-    && !empty($this->variables->target_languages)
-    && !empty($this->variables->is_translated)
+    // && !empty($this->variables->target_languages)
+   // && !empty($this->variables->is_translated)
 ):?>
 
     <div class="d-flex align-items-start w-100">

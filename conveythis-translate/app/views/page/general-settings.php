@@ -93,8 +93,13 @@
         <div class="subtitle">Add trailing slash for links? <span class="text-danger"> *Keep in mind, this setting can cause redirects and affect SEO.</span></div>
 
         <div class="radio-block">
+            <!--
             <div class="form-check">
-                <input type="radio" class="form-check-input me-2" id="use_trailing_slash_no" name="use_trailing_slash" value="0" <?php echo $this->variables->use_trailing_slash == 0 ? 'checked' : ''?>>
+                <input type="radio" class="form-check-input me-2" id="use_trailing_slash_default" name="use_trailing_slash" value="0" <?php echo $this->variables->use_trailing_slash == 0 ? 'checked' : ''?>>
+                <label for="use_trailing_slash_default">Default, no changes</label></div>
+                -->
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="use_trailing_slash_no" name="use_trailing_slash" value="-1" <?php echo $this->variables->use_trailing_slash == -1 ? 'checked' : ''?>>
                 <label for="use_trailing_slash_no">No trailing slash ('../example')</label></div>
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" id="use_trailing_slash_yes" name="use_trailing_slash" value="1" <?php echo $this->variables->use_trailing_slash == 1 ? 'checked' : ''?>>
@@ -133,7 +138,7 @@
                                 <tr>
                                     <td><?= esc_html( $language['title_en'], 'conveythis-translate' ); ?></td>
                                     <td><?= esc_html($language['code2']) ?>.<?php echo esc_html($this->getCurrentDomain())?></td>
-                                    <td>dns1.conveythis.com</td>
+                                    <td>dns2.conveythis.com</td>
                                 </tr>
                             <?php endif; ?>
                         <?php endforeach; ?>

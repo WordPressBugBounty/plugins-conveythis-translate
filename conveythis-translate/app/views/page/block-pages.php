@@ -36,16 +36,25 @@
     <!--Separator-->
     <div class="line-grey mb-2"></div>
 
+    <?php
+        $exclusionClasses = array_filter($this->variables->exclusion_blocks, function($item) {
+            return isset($item['type']) && $item['type'] === 'class';
+        });
+
+        $exclusionIds = array_filter($this->variables->exclusion_blocks, function($item) {
+            return isset($item['type']) && $item['type'] === 'id';
+        });
+    ?>
 
     <div class="form-group paid-function">
         <label>Exclusion div Ids</label>
         <div id="exclusion_block_wrapper">
-                <?php foreach( $this->variables->exclusion_blocks as $exclusion_block ) : ?>
+                <?php foreach( $exclusionIds as $exclusion_block ) : ?>
                     <?php if (is_array($exclusion_block)) : ?>
                         <div class="exclusion_block position-relative w-100 pe-4">
                             <button class="conveythis-delete-page"></button>
                             <div class="ui input">
-                                <input disabled="disabled" type="text" class="form-control id_value w-100" value="<?php echo isset($exclusion_block['id_value']) ? esc_attr($exclusion_block['id_value']) : '' ?>" placeholder="Enter id">
+                                <input disabled="disabled" type="text" class="form-control id_value w-100" data-type="id" value="<?php echo isset($exclusion_block['id_value']) ? esc_attr($exclusion_block['id_value']) : '' ?>" placeholder="Enter id">
                             </div>
                             <input type="hidden" class="exclusion_block_id" value="<?php echo esc_attr($exclusion_block['id']); ?>"/>
                         </div>
@@ -57,4 +66,31 @@
         <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
     </div>
 
+    <div class="line-grey mb-2"></div>
+
+    <div class="form-group paid-function">
+        <label>Exclusion div Classes</label>
+        <div id="exclusion_block_classes_wrapper">
+            <?php foreach( $exclusionClasses as $exclusion_block_class ) : ?>
+                <?php if (is_array($exclusion_block_class)) : ?>
+                    <div class="exclusion_block position-relative w-100 pe-4">
+                        <button class="conveythis-delete-page"></button>
+                        <div class="ui input">
+                            <input disabled="disabled" type="text" class="form-control id_value w-100" data-type="class" value="<?php echo isset($exclusion_block_class['id_value']) ? esc_attr($exclusion_block_class['id_value']) : '' ?>" placeholder="Enter class">
+                        </div>
+                        <input type="hidden" class="exclusion_block_id" value="<?php echo esc_attr($exclusion_block_class['id']); ?>"/>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+
+        <button class="btn-default" type="button" id="add_exlusion_block_class" style="color: #8A8A8A">Add more classes</button>
+
+        <label class="hide-paid" for="">
+            This feature is not available on Free plan. If you want to use this feature, please
+            <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">
+                upgrade your plan
+            </a>.
+        </label>
+    </div>
 </div>

@@ -11,6 +11,14 @@ class ConveyThis {
     private $nodePathListSpace = [];
 
     function __construct() {
+        $this->print_log('__construct()');
+        $this->print_log("***********************");
+        $this->print_log("CONVEYTHIS_APP_URL:" . CONVEYTHIS_APP_URL);
+        $this->print_log("CONVEYTHIS_API_URL:" . CONVEYTHIS_API_URL);
+        $this->print_log("CONVEYTHIS_API_PROXY_URL:" . CONVEYTHIS_API_PROXY_URL);
+        $this->print_log("CONVEYTHIS_API_PROXY_URL_FOR_EU:" . CONVEYTHIS_API_PROXY_URL_FOR_EU);
+        $this->print_log("CONVEYTHIS_JAVASCRIPT_PLUGIN_URL:" . CONVEYTHIS_JAVASCRIPT_PLUGIN_URL);
+        $this->print_log("***********************");
         $this->variables = new Variables();
         $this->ConveyThisCache = new ConveyThisCache();
         $this->ConveyThisSEO = new ConveyThisSEO();
@@ -18,11 +26,9 @@ class ConveyThis {
         uasort($this->variables->languages, function ($a, $b) {
             if (strcmp($a['title_en'], $b['title_en']) > 0) {
                 return 1;
-            }
-            else if (strcmp($a['title_en'], $b['title_en']) < 0) {
+            } else if (strcmp($a['title_en'], $b['title_en']) < 0) {
                 return -1;
-            }
-            else {
+            } else {
                 return 0;
             }
         });
@@ -30,11 +36,9 @@ class ConveyThis {
         uasort($this->variables->flags, function ($a, $b) {
             if (strcmp($a['title'], $b['title']) > 0) {
                 return 1;
-            }
-            else if (strcmp($a['title'], $b['title']) < 0) {
+            } else if (strcmp($a['title'], $b['title']) < 0) {
                 return -1;
-            }
-            else {
+            } else {
                 return 0;
             }
         });
@@ -61,10 +65,26 @@ class ConveyThis {
 
             if (!empty($account)) {
                 $domain = $this->getDomainDetails($account['account_id'], $domain_name);
+                // $this->print_log("@@@ domain: " . json_encode($domain));
             }
 
             if (!empty($domain) && $domain[0]['is_active'] === '1') {
                 update_option('is_active_domain', ['is_active' => 1]);
+            }
+        }
+
+        // get domain_id for Edit translations link
+        $url = home_url();
+        $domain_name = $this->getPageHost($url);
+        $account = $this->getAccountByApiKey($this->variables->api_key);
+        if (!empty($account)) {
+            $domain = $this->getDomainDetails($account['account_id'], $domain_name);
+            $this->print_log("@@@ domain: " . json_encode($domain));
+            $domain_id = "";
+            if (!empty($domain)) {
+                $domain_id = $domain[0]['domain_id'];
+                $this->print_log("domain_id: " . $domain_id);
+                $this->variables->domain_id = $domain_id;
             }
         }
 
@@ -73,16 +93,16 @@ class ConveyThis {
 
         add_filter('get_target_languages', array($this, 'get_target_languages'));
 
-        add_filter('plugin_row_meta', array($this, '_row_meta'), 10, 2);
+        add_filter('plugin_row_meta', array($this, 'row_meta'), 10, 2);
         add_filter('wp_nav_menu', array($this, '_menu_shortcode'), 20, 2);
 
-        add_action('init', array($this, '_init'));
+        add_action('init', array($this, 'init'));
 
         add_action('update_option', array($this, 'plugin_update_option'), 10, 3);
 
-        add_action('admin_menu', array($this, '_admin_menu'));
-        add_action('admin_init', array($this, '_admin_init'));
-        add_action('admin_notices', array($this, '_admin_notices'), 10);
+        add_action('admin_menu', array($this, 'admin_menu'));
+        add_action('admin_init', array($this, 'admin_init'));
+        add_action('admin_notices', array($this, 'admin_notices'), 10);
 
         add_action('admin_head-nav-menus.php', array($this, 'add_nav_menu_meta_boxes'));
         add_filter('nav_menu_link_attributes', array($this, 'magellanlinkfilter'), 10, 3);
@@ -155,34 +175,104 @@ class ConveyThis {
                     $update_flag = true;
                 }
             }
-
             if ($update_flag) {
                 update_option('style_change_flag', $this->variables->style_change_flag);
             }
         }
 
-        /*
-        $structure = get_option('permalink_structure');
-        $uses_trailing_slash = (substr($structure, -1) === '/');
-        if($uses_trailing_slash){
-            $this->print_log("+++ uses trailing slash from permalink");
+        if ($this->variables->use_trailing_slash == 0) {
+            $this->print_log("///// ### trailing slash setting: 0");
+            $this->variables->use_trailing_slash = 1; // by default in app dashboard it will be = 0, do not change anything with slashes. But in Wordpress usually used trailing slash by default
+            $this->print_log("///// ### trailing slash setting: 0 -> 1");
+        } else if ($this->variables->use_trailing_slash == -1) {
+            $this->print_log("///// ### trailing slash setting: -1");
+        } else if ($this->variables->use_trailing_slash == 1) {
+            $this->print_log("/// trailing slash setting: 1");
+        } else {
             $this->variables->use_trailing_slash = 1;
-            $this->updateDataPlugin();
+            $this->print_log("/// trailing slash setting: default -> 1");
         }
-        else{
-            $this->print_log("--- NOT uses trailing slash from permalink");
-            $this->variables->use_trailing_slash = 2;
-            $this->updateDataPlugin();
-        }
-        */
-
     }
 
-    public function get_target_languages(){
+    private function is_local_link($url) {
+        $this->print_log("* is_local_link()");
+        if (strpos($url, '#') === 0) {
+            $this->print_log("anchor link: ignored " . $url);
+            return false;
+        }
+
+        $ignored_patterns = [
+            // WordPress internals
+            'wp-admin', 'wp-login', 'wp-json', 'xmlrpc.php', 'tsu-admin',
+
+            // Email & communication
+            'mailto:', 'tel:', 'sms:', 'fax:', 'mms:', 'sip:', 'sips:', 'callto:', 'voicemail:',
+
+            // Map and geo links
+            'geo:', 'maps:', 'comgooglemaps:', 'waze:', 'applemaps:', 'map:', 'mapsapp:',
+
+            // Messaging & social apps
+            'skype:', 'whatsapp:', 'viber:', 'tg:', 'telegram:', 'fb:', 'facebook:',
+            'messenger:', 'instagram:', 'threads:', 'twitter:', 'x.com:', 't.me:',
+            'discord:', 'snapchat:', 'signal:', 'wechat:', 'line:', 'kakaotalk:',
+            'zoommtg:', 'zoomus:', 'slack:', 'teams:', 'meet:', 'facetime:',
+            'linkedin:', 'pinterest:', 'reddit:', 'clubhouse:', 'youtube:', 'yt:',
+
+            // File and network protocols
+            'file:', 'ftp:', 'sftp:', 'ftps:', 'afp:', 'smb:', 'nfs:', 'dav:',
+            'data:', 'blob:', 'chrome:', 'about:', 'intent:', 'itms:', 'market:',
+
+            // Payment & commerce schemes
+            'upi:', 'pay:', 'paypal:', 'venmo:', 'cashapp:', 'stripe:', 'alipay:',
+            'wepay:', 'gcash:', 'paytm:', 'revolut:', 'square:', 'bank:',
+
+            // Custom and system intents
+            'android-app:', 'ios-app:', 'intent:', 'content:', 'mailto:', 'sms:',
+            'chrome-extension:', 'javascript:', 'vbscript:',
+
+            // Security or internal use
+            'javascript:', 'vbscript:', 'about:blank', 'edge:', 'chrome:', 'safari:',
+            'opera:', 'moz-extension:',
+
+            // Streaming / media
+            'spotify:', 'soundcloud:', 'deezer:', 'twitch:', 'netflix:', 'hulu:',
+            'disneyplus:', 'primevideo:', 'itunes:',
+
+            // Developer / internal links
+            'localhost', '127.0.0.1', '::1', 'test:', 'dev:', 'staging:', 'docker:', 'git:',
+
+            // Miscellaneous or duplicate safe entries
+            'intent:', 'line:', 'tel:', 'fax:', 'sms:', 'file:', 'ftp:', 'mailto:'
+        ];
+
+
+        // Check if URL contains any ignored pattern
+        foreach ($ignored_patterns as $pattern) {
+            if (strpos($url, $pattern) !== false) {
+                $this->print_log("$pattern link: ignored " . $url);
+                return false;
+            }
+        }
+
+        $host = parse_url(home_url(), PHP_URL_HOST);
+        $check = parse_url($url, PHP_URL_HOST);
+
+        if ($check === null || $check === $host) {
+            $this->print_log("+++ is_local_link: true:" . $url);
+            return true;
+        } else {
+            $this->print_log("--- is_local_link: false:" . $url);
+            return false;
+        }
+    }
+
+    public function get_target_languages() {
+        $this->print_log("* get_target_languages()");
         return $this->variables->target_languages;
     }
 
     public function ajax_conveythis_save_settings() {
+        $this->print_log("* ajax_conveythis_save_settings()");
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Access denied');
         }
@@ -239,13 +329,21 @@ class ConveyThis {
 
         $incoming = $_POST['settings'] ?? [];
 
+        // These fields come as JSON strings and need to be decoded
         $try_json = ['exclusions', 'glossary', 'exclusion_blocks', 'target_languages_translations'];
 
         foreach ($try_json as $json_field) {
-            if (isset($incoming[$json_field]) && is_string($incoming[$json_field])) {
-                $incoming[$json_field] = json_decode(stripslashes($incoming[$json_field]), true);
+            if (isset($incoming[$json_field])) {
+                // Only decode if it's a string (JSON), not already an array
+                if (is_string($incoming[$json_field])) {
+                    $decoded = json_decode(stripslashes($incoming[$json_field]), true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $incoming[$json_field] = $decoded;
+                    }
+                }
             }
         }
+
 
         $exclusions = $incoming['exclusions'] ?? null;
         $glossary = $incoming['glossary'] ?? null;
@@ -265,11 +363,40 @@ class ConveyThis {
             $this->ConveyThisCache->clear_cached_translations(true);
         }
 
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+
         foreach ($fields as $field) {
             if (isset($incoming[$field])) {
-                $value = maybe_unserialize(wp_unslash($incoming[$field]));
+                $unslashed = wp_unslash($incoming[$field]);
+
+                // SECURITY FIX: Block serialized input to prevent PHP Object Injection
+                if (is_serialized($unslashed)) {
+                    // Skip this field but continue processing others
+                    $this->print_log("SECURITY: Blocked serialized data in field: $field");
+                    continue; // Skip this field, continue with others
+                }
+
+                $value = $unslashed;
+
+                if ($field === 'style_change_language' || $field === 'style_change_flag') {
+                    if (is_array($value)) {
+                        $value = array_values($value);
+                    }
+                }
+
                 update_option($field, $value);
             }
+        }
+
+        if (!array_key_exists('style_change_language', $incoming)) {
+            update_option('style_change_language', []);
+        }
+
+        if (!array_key_exists('style_change_flag', $incoming)) {
+            update_option('style_change_flag', []);
         }
 
         // update all parameters
@@ -281,6 +408,7 @@ class ConveyThis {
     }
 
     public function handle_check_dns() {
+        $this->print_log("* handle_check_dns()");
         $subdomains = $this->variables->target_languages;
         $host = $_SERVER["HTTP_HOST"];
         $results = [];
@@ -288,7 +416,6 @@ class ConveyThis {
         foreach ($subdomains as $subdomain) {
             $fullDomain = "{$subdomain}.{$host}";
             $cnameRecords = dns_get_record($fullDomain, DNS_CNAME);
-
             if (!empty($cnameRecords)) {
                 foreach ($cnameRecords as $record) {
                     $results[$fullDomain][] = $record['target'];
@@ -305,10 +432,12 @@ class ConveyThis {
     }
 
     public function conveythis_register_default_dom_checkers($content) {
+        $this->print_log("* conveythis_register_default_dom_checkers()");
         return $content;
     }
 
     public function clear_post($post_id, $post_data) {
+        $this->print_log("* clear_post()");
         $postLink = get_permalink($post_id);
         foreach ($this->variables->target_languages as $targetLanguage) {
             $clearUrl = $this->getTranslateSiteUrl($postLink, $targetLanguage);
@@ -317,6 +446,7 @@ class ConveyThis {
     }
 
     public function rank_math_opengraph_url($url) {
+        $this->print_log("* rank_math_opengraph_url()");
         if (!empty($this->variables->language_code)) {
             $urlParts = parse_url($url);
             if (isset($urlParts['host']) && isset($urlParts['path'])) {
@@ -327,6 +457,7 @@ class ConveyThis {
     }
 
     public function seopress_opengraph_url($html_url) {
+        $this->print_log("* seopress_opengraph_url()");
         if (!empty($this->variables->language_code)) {
             preg_match('/content="([^"]+)"/', $html_url, $matches);
             if (isset($matches[1])) {
@@ -343,11 +474,11 @@ class ConveyThis {
                 }
             }
         }
-
         return $html_url;
     }
 
     public function magellanlinkfilter($attr, $post, $menu) {
+        $this->print_log("* magellanlinkfilter()");
         preg_match('/\[ConveyThis_(.*)\]/', $post->title, $matches);
 
         if (!empty($matches)) {
@@ -365,11 +496,11 @@ class ConveyThis {
                 $site_url = $this->variables->site_url;
                 $prefix = $this->getPageUrl($site_url);
 
-                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
+                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
                     $location = $this->getSubDomainLocation($language['code2']);
-                else
+                } else {
                     $location = $this->getLocation($prefix, $language['code2']);
-
+                }
                 $icon = $this->genIcon($language['language_id'], $language['flag']);
                 $attr['translate'] = 'no';
                 $attr['href'] = $location;
@@ -390,33 +521,27 @@ class ConveyThis {
     }
 
     public function genIcon($language_id, $flag) {
+        $this->print_log("* genIcon()");
         $i = 0;
-
-        while ($i < 5) {
+        while ($i < 5) { // Limit to 5 language/flag pairs
             if (!empty($this->variables->style_change_language[$i]) && $this->variables->style_change_language[$i] == $language_id) {
                 $flag = $this->variables->style_change_flag[$i];
             }
             $i++;
         }
-
         $icon = '';
-
         if ($this->variables->style_flag === 'rect') {
             $icon = '<span style="height: 20px; width: 30px; background-image: url(\'//cdn.conveythis.com/images/flags/svg/' . $flag . '.png\'); display: inline-block; background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-color: transparent; margin-right: 10px; vertical-align: middle;"></span>'; // v3/rectangular
         }
-
         if ($this->variables->style_flag === 'sqr') {
             $icon = '<span style="height: 24px; width: 24px; background-image: url(\'//cdn.conveythis.com/images/flags/svg/' . $flag . '.png\'); display: inline-block; background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-color: transparent; margin-right: 10px; vertical-align: middle;"></span>'; // v3/square
         }
-
         if ($this->variables->style_flag === 'cir') {
             $icon = '<span style="height: 24px; width: 24px; background-image: url(\'//cdn.conveythis.com/images/flags/svg/' . $flag . '.png\'); display: inline-block; background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-color: transparent; margin-right: 10px; vertical-align: middle;"></span>'; // v3/round
         }
-
         if ($this->variables->style_flag === 'without-flag') {
             $icon = '';
         }
-
         return $icon;
     }
 
@@ -425,12 +550,13 @@ class ConveyThis {
     }
 
     public function add_nav_menu_meta_boxes() {
+        $this->print_log("* add_nav_menu_meta_boxes()");
         add_meta_box('conveythis_nav_link', __('ConveyThis', 'conveythis-translate'), array($this, 'nav_menu_links'), 'nav-menus', 'side', 'low');
     }
 
     public function nav_menu_links() {
+        $this->print_log("* nav_menu_links()");
         $languages = array();
-
         if (!empty($this->variables->language_code)) {
             $current_language_code = $this->variables->language_code;
         } else {
@@ -438,7 +564,6 @@ class ConveyThis {
         }
 
         $language = $this->searchLanguage($current_language_code);
-
         if (!empty($language)) {
             $languages[] = array(
                 'id' => $language['language_id'],
@@ -449,7 +574,6 @@ class ConveyThis {
 
         if (!empty($this->variables->language_code)) {
             $language = $this->searchLanguage($this->variables->source_language);
-
             if (!empty($language)) {
                 $languages[] = array(
                     'id' => $language['language_id'],
@@ -461,7 +585,6 @@ class ConveyThis {
 
         foreach ($this->variables->target_languages as $language_code) {
             $language = $this->searchLanguage($language_code);
-
             if (!empty($language)) {
                 if ($current_language_code != $language['code2']) {
                     $languages[] = array(
@@ -475,24 +598,23 @@ class ConveyThis {
         require_once CONVEY_PLUGIN_ROOT_PATH . 'app/templates/posttype-conveythis-languages.php';
     }
 
-    public function _row_meta($links, $file) {
+    public function row_meta($links, $file) {
+        $this->print_log("* row_meta()");
         $plugin = plugin_basename(__FILE__);
-
         if ($plugin == $file) {
             $links[] = '<a href="https://www.conveythis.com/help-center/support-and-resources/?utm_source=widget&utm_medium=wordpress" target="_blank">' . __('FAQ', 'conveythis-translate') . '</a>';
             $links[] = '<a href="https://wordpress.org/support/plugin/conveythis-translate" target="_blank">' . __('Support', 'conveythis-translate') . '</a>';
             $links[] = '<a href="https://wordpress.org/plugins/conveythis-translate/#reviews" target="_blank">' . __('Rate this plugin', 'conveythis-translate') . '</a>';
-
         }
         return $links;
     }
 
-    public static function _settings_link($links) {
+    public static function settings_link($links) {
         array_push($links, '<a href="options-general.php?page=convey_this">' . __('Settings', 'conveythis-translate') . '</a>');
         return $links;
     }
 
-    public function _admin_menu() {
+    public function admin_menu() {
         add_menu_page(
             'ConveyThis Settings',
             'ConveyThis',
@@ -503,7 +625,7 @@ class ConveyThis {
         );
     }
 
-    public function _admin_notices() {
+    public function admin_notices() {
         if (!extension_loaded('xml')) {
             ?>
             <div class="error settings-error notice is-dismissible">
@@ -515,17 +637,17 @@ class ConveyThis {
         }
     }
 
-    public function _admin_init() {
-        register_setting('my-plugin-settings', 'api_key', array($this, '_check_api_key'));
+    public function admin_init() {
+        register_setting('my-plugin-settings', 'api_key', array($this, 'check_api_key'));
         register_setting('my-plugin-settings', 'source_language');
-        register_setting('my-plugin-settings', 'target_languages', array($this, '_check_target_languages'));
-        register_setting('my-plugin-settings-group', 'api_key', array($this, '_check_api_key'));
+        register_setting('my-plugin-settings', 'target_languages', array($this, 'check_target_languages'));
+        register_setting('my-plugin-settings-group', 'api_key', array($this, 'check_api_key'));
         register_setting('my-plugin-settings-group', 'source_language');
-        register_setting('my-plugin-settings-group', 'target_languages', array($this, '_check_target_languages'));
+        register_setting('my-plugin-settings-group', 'target_languages', array($this, 'check_target_languages'));
         register_setting('my-plugin-settings-group', 'target_languages_translations');
         register_setting('my-plugin-settings-group', 'default_language');
-        register_setting('my-plugin-settings-group', 'style_change_language', array($this, '_check_style_change_language'));
-        register_setting('my-plugin-settings-group', 'style_change_flag', array($this, '_check_style_change_flag'));
+        register_setting('my-plugin-settings-group', 'style_change_language', array($this, 'check_style_change_language'));
+        register_setting('my-plugin-settings-group', 'style_change_flag', array($this, 'check_style_change_flag'));
         register_setting('my-plugin-settings-group', 'style_flag');
         register_setting('my-plugin-settings-group', 'style_text');
         register_setting('my-plugin-settings-group', 'style_position_vertical');
@@ -545,7 +667,7 @@ class ConveyThis {
         register_setting('my-plugin-settings-group', 'is_active_domain');
         register_setting('my-plugin-settings-group', 'alternate');
         register_setting('my-plugin-settings-group', 'accept_language');
-        register_setting('my-plugin-settings-group', 'blockpages', array($this, '_check_blockpages'));
+        register_setting('my-plugin-settings-group', 'blockpages', array($this, 'check_blockpages'));
         register_setting('my-plugin-settings-group', 'show_javascript');
         register_setting('my-plugin-settings-group', 'style_position_type');
         register_setting('my-plugin-settings-group', 'style_position_vertical_custom');
@@ -597,6 +719,11 @@ class ConveyThis {
     }
 
     public function updateDataPlugin() {
+        // Security: Check user capabilities before performing privileged operations
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
         $this->print_log("* updateDataPlugin()");
         if (($key = array_search($this->variables->source_language, $this->variables->target_languages)) !== false) { //remove source_language from target_languages
             unset($this->variables->target_languages[$key]);
@@ -646,6 +773,12 @@ class ConveyThis {
     }
 
     function clearCacheButton() {
+        // Security: Check user capabilities before performing privileged operations
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        $this->print_log("* clearCacheButton()");
         $this->send('DELETE', '/plugin/clean-button-cache/', array(
                 'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
                 'api_key' => $this->variables->api_key
@@ -654,10 +787,13 @@ class ConveyThis {
     }
 
     function reqOnGetSettingsUser() {
+        $this->print_log("* reqOnGetSettingsUser()");
         $api_key = $this->variables->api_key;
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
 
-        if (!$api_key) return array();
+        if (!$api_key) {
+            return array();
+        }
 
         $req_method = "GET";
         $request_uri = '/plugin/settings/' . $api_key . '/' . $domain_name . '/';
@@ -686,28 +822,26 @@ class ConveyThis {
     }
 
     public function writeDataInBD($from_js = false) {
+        $this->print_log("* writeDataInBD()");
         $data = $this->reqOnGetSettingsUser();
-
         foreach ($data as $option_name => $new_value) {
             $current_value = get_option($option_name, 'option_does_not_exist');
-
             if ($current_value === 'option_does_not_exist') {
                 continue;
             }
-
             if ($current_value !== $new_value) {
                 update_option($option_name, $new_value);
             }
         }
-
-        if ($from_js) return $data;
+        if ($from_js) {
+            return $data;
+        }
     }
 
     public function getSettingsOnStart($api_key, $from_js) {
+        $this->print_log("* getSettingsOnStart()");
         $this->variables->api_key = $api_key;
-
         $data = $this->writeDataInBD($from_js);
-
         if (!empty($data)) {
             $res = array('source_language' => $data['source_language'], 'target_language' => $data['target_languages'][0]);
             return $res;
@@ -715,31 +849,36 @@ class ConveyThis {
     }
 
     public function dataCheckAPI() {
+        $this->print_log("* dataCheckAPI()");
         $this->writeDataInBD();
     }
 
-    public function _check_style_change_language($value) {
+    public function check_style_change_language($value) {
+        $this->print_log("* check_style_change_language()");
         if (!is_array($value)) {
             return array();
         }
         return $value;
     }
 
-    public function _check_style_change_flag($value) {
+    public function check_style_change_flag($value) {
+        $this->print_log("* check_style_change_flag()");
         if (!is_array($value)) {
             return array();
         }
         return $value;
     }
 
-    public function _check_blockpages($value) {
+    public function check_blockpages($value) {
+        $this->print_log("* check_blockpages()");
         if (!is_array($value)) {
             return array();
         }
         return $value;
     }
 
-    public function _check_api_key($value) {
+    public function check_api_key($value) {
+        $this->print_log("* check_api_key()");
         $pattern = '/^(pub_)?[a-zA-Z0-9]{32}$/';
         if (preg_match($pattern, $value)) {
             return $value;
@@ -750,16 +889,15 @@ class ConveyThis {
         }
     }
 
-    public function _check_target_languages($value) {
+    public function check_target_languages($value) {
+        $this->print_log("* check_target_languages()");
         if (!empty($value)) {
             $target_languages = array();
-
             if (is_string($value)) {
                 $language_codes = explode(',', $value);
             } elseif (is_array($value)) {
                 $language_codes = $value;
             }
-
             foreach ($language_codes as $language_code) {
                 $language = $this->searchLanguage($language_code);
 
@@ -774,6 +912,7 @@ class ConveyThis {
     }
 
     public function searchLanguage($value) {
+        $this->print_log("* searchLanguage()");
         foreach ($this->variables->languages as $language) {
             if ($value === $language['code2'] || $value === $language['title_en']) {
                 return $language;
@@ -782,17 +921,19 @@ class ConveyThis {
     }
 
     public function getAccountByApiKey($apiKey) {
+        $this->print_log("* getAccountByApiKey()");
         $response = $this->send('GET', '/admin/account/api-key/' . $apiKey . '/');
         return $response;
     }
 
     public function getDomainDetails($accountId, $domainName) {
+        $this->print_log("* getDomainDetails()");
         $response = $this->send('GET', '/admin/account/' . $accountId . '/wordpress_domain/' . base64_encode($domainName) . '/');
         return $response;
     }
 
     function getPageUrl($str) {
-        //  $this->print_log("* getPageUrl()");
+        $this->print_log("* getPageUrl()");
         $n = 0;
         $length = strlen($str);
         $buffer = '';
@@ -840,16 +981,17 @@ class ConveyThis {
     }
 
     function getPageHost($url) {
+        $this->print_log("* getPageHost()");
         $urlData = parse_url($url);
         $host = isset($urlData['host']) ? trim(preg_replace('/^www\./', '', $urlData['host'])) : null;
         return $host;
     }
 
-    function _init() {
+    function init() {
+        $this->print_log("* init()");
         if (strpos($_SERVER["REQUEST_URI"], '/wp-json/') !== false) {
             return;
         }
-
         if (strpos($_SERVER["REQUEST_URI"], '/conveythis-404/') !== false) {
             get_template_part(404);
             return;
@@ -863,8 +1005,10 @@ class ConveyThis {
         $isExcluded = $this->isPageExcluded($this->getPageUrl($this->variables->referrer), $this->variables->exclusions);
 
         if (!is_admin() && !$isExcluded) {
-            if (empty($this->variables->url_structure) || $this->variables->url_structure != "subdomain") { // no need to do anything with subdomains
+            $this->print_log("@@@ url_structure:" . $this->variables->url_structure . " @@@ :");
+            if (empty($this->variables->url_structure) || $this->variables->url_structure != "subdomain") { // not subdomains
 
+                $this->print_log("@@@ structure: NOT subdomain @@@ : ");
                 if ($this->variables->auto_translate && isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
                     if (class_exists('Locale')) {
                         $browserLanguage = locale_accept_from_http($_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -980,7 +1124,7 @@ class ConveyThis {
 
                     if (!in_array($page_url, $this->variables->blockpages_items)) {
                         $this->getCurrentPlan();
-                        add_action('wp_footer', array($this, '_inline_script'));
+                        add_action('wp_footer', array($this, 'inline_script'));
                     }
                 }
 
@@ -998,18 +1142,36 @@ class ConveyThis {
                     }
                 }
                 $local_lang = get_locale();
+                $this->print_log("##### local_lang: " . $local_lang);
                 if (substr($local_lang, 0, 2) != $this->variables->source_language) {
-                    ob_start(array($this,'translatePage'));
+                    ob_start(array($this, 'translatePage'));
                 }
-            } else {
+            } else { // subdomain
+                $this->print_log("@@@ structure:subdomain @@@");
                 if (!empty($this->variables->source_language) && !empty($this->variables->target_languages)) {
                     $this->getCurrentPlan();
                     if (!empty($this->variables->alternate)) {
                         add_action('wp_head', array($this, 'alternate'), 0);
                     }
-                    add_action('wp_footer', array($this, '_inline_script'));
+                    add_action('wp_footer', array($this, 'inline_script'));
                 }
+                $local_lang = get_locale();
+                $this->print_log("##### local_lang: " . $local_lang);
+                $local_lang_short = explode("_", (get_locale()));
+
+                if (is_array($local_lang_short) && isset($local_lang_short[0]) && strlen($local_lang_short[0]) == 2) {
+                    $local_lang = $local_lang_short[0];
+                }
+                $this->print_log("##### local_lang short: " . $local_lang);
+                // somehow translations were working for subdomains without translatePage function. Or never worked at all
+                //I just wanted to use
+                /*
+                if (substr($local_lang, 0, 2) != $this->variables->source_language) {
+                    ob_start(array($this, 'translatePage'));
+                }
+                */
             }
+
 
             add_action('wp_footer', array($this, 'html_plugin'));
 
@@ -1018,20 +1180,8 @@ class ConveyThis {
         }
     }
 
-    function haveOptionEndSlash() {
-        $haveSlash = true;
-        $permalinkStructure = get_transient('convey_permalink_structure');
-        if ($permalinkStructure === false) {
-            $permalinkStructure = get_option('permalink_structure');
-            set_transient('convey_permalink_structure', $permalinkStructure, 12 * HOUR_IN_SECONDS);
-        }
-        if (substr($permalinkStructure, -1) !== '/') {
-            $haveSlash = false;
-        }
-        return $haveSlash;
-    }
-
     function getCurrentPlan() {
+        $this->print_log("* getCurrentPlan()");
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
 
         $protocol = 'http://';
@@ -1057,29 +1207,14 @@ class ConveyThis {
                 if (preg_match('/no_translate_element_ids:\s*(\[.+\])/U', $json->code, $matches)) {
                     $this->variables->exclusion_block_ids = json_decode($matches[1]);
                 }
+                if (preg_match('/no_translate_element_classes:\s*(\[.+\])/U', $json->code, $matches)) {
+                    $this->variables->exclusion_block_classes = json_decode($matches[1]);
+                }
                 if (preg_match('/is_exceeded:/U', $json->code, $matches)) {
                     $this->variables->exceeded = true;
                 }
             } else {
                 $this->variables->show_widget = false;
-            }
-        }
-    }
-
-    public function languageAccept($data, $value) {
-        $languages = explode(',', $value);
-
-        if (!empty($languages)) {
-            foreach ($languages as $language) {
-                $tmp = explode(';', $language);
-                $code = explode('-', $tmp[0]);
-
-                if (in_array($code[0], $this->variables->target_languages)) {
-                    $location = $this->replaceLink($data, $code[0]);
-
-                    header('Location: ' . $location);
-                    break;
-                }
             }
         }
     }
@@ -1092,56 +1227,52 @@ class ConveyThis {
 
         $prefix = $this->getPageUrl($site_url);
 
-        $structure = get_option('permalink_structure');
-        $permalink_uses_trailing_slash = (substr($structure, -1) === '/');
+        // $structure = get_option('permalink_structure');
+        //  $permalink_uses_trailing_slash = (substr($structure, -1) === '/');
         $trailing_symbol = "";
         $remove_slash = false;
-        if($this->variables->use_trailing_slash == 0) {
-            $this->print_log("/// use_trailing_slash == 0");
+        if ($this->variables->use_trailing_slash == -1) {
             $remove_slash = true;
-        }
-        else if ($this->variables->use_trailing_slash == 1   ) {
-            $this->print_log("/// use_trailing_slash == 1");
+        } else if ($this->variables->use_trailing_slash == 1) {
             $trailing_symbol = "/";
         }
-
 
         if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
             $location = $this->getSubDomainLocation($this->variables->source_language);
             $hreflang = $this->variables->source_language;
-           // echo '<link href="' . esc_attr($location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-          //  echo '<link href="' . esc_attr($location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+            // echo '<link href="' . esc_attr($location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            //  echo '<link href="' . esc_attr($location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
             $href_link = esc_attr($location) . $trailing_symbol;
             if (substr($href_link, -2) === '//') {
                 $href_link = substr($href_link, 0, -1);
             }
-            if($remove_slash){
+            if ($remove_slash) {
                 if (substr($href_link, -1) === '/') {
                     $href_link = substr($href_link, 0, -1);
                 }
             }
-
+            $this->print_log("### alternate href_link: " . $href_link);
             echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
             echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         } else {
             $location = $this->getLocation($prefix, $this->variables->source_language);
             $hreflang = $this->variables->source_language;
-          //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-          //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+            //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            //  echo '<link href="' . esc_attr($site_domain . $location) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
 
-            $href_link = esc_attr( $site_domain . $location) . $trailing_symbol;
-            $this->print_log("site_domain: " . $site_domain);
-            $this->print_log("location: " . $location);
+            $href_link = esc_attr($site_domain . $location) . $trailing_symbol;
+            //  $this->print_log("site_domain: " . $site_domain);
+            //  $this->print_log("location: " . $location);
 
             if (substr($href_link, -2) === '//') {
                 $href_link = substr($href_link, 0, -1);
             }
-            if($remove_slash){
+            if ($remove_slash) {
                 if (substr($href_link, -1) === '/') {
                     $href_link = substr($href_link, 0, -1);
                 }
             }
-            $this->print_log("href_link: " . $href_link);
+            $this->print_log("### alternate href_link: " . $href_link);
             echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
             echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         }
@@ -1166,7 +1297,7 @@ class ConveyThis {
                     if (substr($href_link, -2) === '//') {
                         $href_link = substr($href_link, 0, -1);
                     }
-                    if($remove_slash){
+                    if ($remove_slash) {
                         if (substr($href_link, -1) === '/') {
                             $href_link = substr($href_link, 0, -1);
                         }
@@ -1179,16 +1310,16 @@ class ConveyThis {
                         $_short_url = str_replace($site_domain . '/' . $language['code2'], '', esc_attr($site_domain . $location));
 
                         if (!in_array($_short_url, $_temp_blockpages)) {
-                            $href_link = esc_attr( $site_domain . $location) . $trailing_symbol;
+                            $href_link = esc_attr($site_domain . $location) . $trailing_symbol;
                             if (substr($href_link, -2) === '//') {
                                 $href_link = substr($href_link, 0, -1);
                             }
-                            if($remove_slash){
+                            if ($remove_slash) {
                                 if (substr($href_link, -1) === '/') {
                                     $href_link = substr($href_link, 0, -1);
                                 }
                             }
-                            echo '<link href="' . $href_link .  '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
+                            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
                         } else {
                             continue;
                         }
@@ -1201,6 +1332,13 @@ class ConveyThis {
     }
 
     public function html_plugin() {
+        if (!$this->variables->show_widget ||
+            empty($this->variables->target_languages) ||
+            empty($this->variables->source_language) ||
+            is_404()
+        ) {
+            return;
+        }
         $this->print_log("* html_plugin()");
         $data = array_merge($this->variables->target_languages, [$this->variables->source_language]);
         $site_url = home_url();
@@ -1217,24 +1355,31 @@ class ConveyThis {
                 $location = (!empty($this->variables->url_structure) && $this->variables->url_structure === "subdomain")
                     ? $this->getSubDomainLocation($language_code, true)
                     : $this->getLocation($prefix, $language_code, true);
-                $languageList[$this->getTitle($language)] = esc_attr($site_domain . $location);
+                $this->print_log("$$$ site_domain $$$ : " . $site_domain);
+                $this->print_log("$$$ location $$$ : " . $location);
+                if ($this->variables->url_structure === "subdomain") {
+                    $language_item = esc_attr($location);
+                } else {
+                    $language_item = esc_attr($site_domain . $location);
+                }
+                $this->print_log("$$$ language_item $$$ : " . $language_item);
+                $languageList[$this->getTitle($language)] = $language_item;
             }
         }
 
         $currentPageUrl = $this->getPageUrl($this->variables->referrer);
 
+        $this->print_log("languageList:" . json_encode($languageList));
+
         foreach ($languageList as $code => $href) {
             $hrefPageUrl = $this->getPageUrl($href);
-
             $href_link = $href;
-            if($this->variables->use_trailing_slash == 0) {
-               // $this->print_log("/// use_trailing_slash == 0");
+            $this->print_log("def href_link:" . $href_link);
+            if ($this->variables->use_trailing_slash == -1) {
                 if (substr($href_link, -1) === '/') {
                     $href_link = substr($href_link, 0, -1);
                 }
-            }
-            else if ($this->variables->use_trailing_slash == 1   ) {
-              //  $this->print_log("/// use_trailing_slash == 1");
+            } else if ($this->variables->use_trailing_slash == 1) {
                 $trailing_symbol = "/";
                 $href_link = esc_attr($href) . $trailing_symbol;
                 if (substr($href_link, -2) === '//') {
@@ -1244,16 +1389,13 @@ class ConveyThis {
             $this->print_log("new href_link:" . $href_link);
 
             if ($hrefPageUrl === $currentPageUrl) {
-               // $linkList['current'] .= "<a href='{$href}' translate='no'>{$code}</a>";
                 $linkList['current'] .= "<a href='{$href_link}' translate='no'>{$code}</a>";
             } else {
-               // $linkList['alternates'] .= PHP_EOL . "<a href='{$href}' translate='no'>{$code}</a>";
                 $linkList['alternates'] .= PHP_EOL . "<a href='{$href_link}' translate='no'>{$code}</a>";
             }
         }
 
         $conveythisLogo = '<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
-
         $conveythisLogo = $this->variables->hide_conveythis_logo ? $conveythisLogo : "";
 
         $languageHtml = '<div class="conveythis-widget-languages" id="language-list" style="display: none;">
@@ -1272,6 +1414,7 @@ class ConveyThis {
     }
 
     private function getTitle($language) {
+        $this->print_log("* getTitle()");
         $title = '';
         switch ($this->variables->style_text) {
             case 'full-text';
@@ -1294,33 +1437,27 @@ class ConveyThis {
     }
 
     private function deleteQueryParams($url, $alternate_link) {
+        $this->print_log("* deleteQueryParams()");
         $parsedUrl = parse_url($url);
-
         if (isset($parsedUrl['query'])) {
             if ($alternate_link) $parsedUrl['query'] = '';
             parse_str($parsedUrl['query'], $queryParams);
-
             foreach ($this->variables->query_params_block as $param) {
                 if (array_key_exists($param, $queryParams)) {
                     unset($queryParams[$param]);
                 }
             }
-
             $newUrl = $parsedUrl['path'];
             if (!empty($queryParams)) {
                 $newUrl .= '?' . http_build_query($queryParams, '', '&');
             }
-
             return $newUrl;
         }
-
         return $url;
     }
 
     public function getLocation($prefix, $language_code, $alternate_link = false) {
-        //  $this->print_log("* getLocation()");
-        //  $this->print_log("prefix: $prefix");
-
+        $this->print_log("* getLocation()");
         $url = $this->deleteQueryParams($_SERVER["REQUEST_URI"], $alternate_link);
 
         if ($this->variables->source_language == $language_code) {
@@ -1347,6 +1484,7 @@ class ConveyThis {
     }
 
     public function getSubDomainLocation($language_code, $alternative_link = false) {
+        $this->print_log("* getSubDomainLocation()");
         $_url = $this->deleteQueryParams($_SERVER["REQUEST_URI"], $alternative_link);
 
         if ($this->variables->source_language == $language_code) {
@@ -1357,19 +1495,18 @@ class ConveyThis {
     }
 
     function pluginOptions() {
+        $this->print_log("* pluginOptions()");
         if (!current_user_can('manage_options')) {
             wp_die('You do not have sufficient permissions to access this page.');
         }
-
-        if (empty($_GET["settings-updated"])) //phpcs:ignore
-        {
+        if (empty($_GET["settings-updated"])) {
             $this->dataCheckAPI();
         }
-
         require_once CONVEY_PLUGIN_ROOT_PATH . 'app/views/index.php';
     }
 
-    public function _inline_script() {
+    public function inline_script() {
+        $this->print_log("* inline script()");
         if (is_404()) {
             return;
         }
@@ -1378,36 +1515,30 @@ class ConveyThis {
         }
         $site_url = $this->variables->site_url;
         $prefix = $this->getPageUrl($site_url);
-
         $languages = array();
-
         if (!empty($this->variables->language_code)) {
             $current_language_code = $this->variables->language_code;
         } else {
             $current_language_code = $this->variables->source_language;
         }
-
         $language = $this->searchLanguage($current_language_code);
-
         if (!empty($language)) {
             if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
                 $location = $this->getSubDomainLocation($language['code2']);
             } else {
                 $location = $this->getLocation($prefix, $language['code2']);
             }
-
             $languages[] = '{"id":"' . esc_attr($language['language_id']) . '", "location":"' . esc_attr($location) . '", "active":true}';
         }
 
         if (!empty($this->variables->language_code)) {
             $language = $this->searchLanguage($this->variables->source_language);
-
             if (!empty($language)) {
-                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
+                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
                     $location = $this->getSubDomainLocation($language['code2']);
-                else
+                } else {
                     $location = $this->getLocation($prefix, $language['code2']);
-
+                }
                 $languages[] = '{"id":"' . esc_attr($language['language_id']) . '", "location":"' . esc_attr($location) . '", "active":false}';
             }
         }
@@ -1418,7 +1549,6 @@ class ConveyThis {
 
         foreach ($this->variables->target_languages as $language_code) {
             $language = $this->searchLanguage($language_code);
-
             if (!empty($language)) {
                 if ($current_language_code != $language['code2']) {
                     if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
@@ -1426,7 +1556,6 @@ class ConveyThis {
                     } else {
                         $location = $this->getLocation($prefix, $language['code2']);
                     }
-
                     $languages[] = '{"id":"' . esc_attr($language['language_id']) . '", "location":"' . esc_attr($location) . '", "active":false}';
                 }
             }
@@ -1441,15 +1570,22 @@ class ConveyThis {
             }
         }
 
-        $i = 0;
-
         $temp = array();
 
-        while ($i < 5) {
-            if (!empty($this->variables->style_change_language[$i])) {
-                $temp[] = '"' . $this->variables->style_change_language[$i] . '":"' . $this->variables->style_change_flag[$i] . '"';
+        // Ensure arrays are properly indexed and iterate through all values
+        // Re-index arrays to ensure sequential indices (0, 1, 2, ...)
+        $style_change_language = is_array($this->variables->style_change_language) ? array_values($this->variables->style_change_language) : array();
+        $style_change_flag = is_array($this->variables->style_change_flag) ? array_values($this->variables->style_change_flag) : array();
+
+        // Iterate through all available pairs (up to 5)
+        $maxPairs = min(5, max(count($style_change_language), count($style_change_flag)));
+        
+        for ($i = 0; $i < $maxPairs; $i++) {
+            if (!empty($style_change_language[$i])) {
+                $langId = $style_change_language[$i];
+                $flagCode = !empty($style_change_flag[$i]) ? $style_change_flag[$i] : '';
+                $temp[] = '"' . $langId . '":"' . $flagCode . '"';
             }
-            $i++;
         }
 
         $change = '{' . implode(',', $temp) . '}';
@@ -1495,13 +1631,11 @@ class ConveyThis {
         }
 
         if (!empty($this->variables->api_key)) {
-          //  $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
-           // $cdn_version = end($parts);
+            //  $parts = explode('/', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL_OLD);
+            // $cdn_version = end($parts);
 
             wp_enqueue_script('conveythis-notranslate', plugin_dir_url(__DIR__) . 'widget/js/notranslate.js', [], CONVEYTHIS_PLUGIN_VERSION, false);
-//            wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], $cdn_version, false);
             wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis-initializer.js", [], false, false);
-          //  wp_enqueue_script('conveythis-conveythis', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL . "/conveythis.js", [], false, false); todo: use this file
 
             $initScript = '
                 document.addEventListener("DOMContentLoaded", function(e) {
@@ -1520,17 +1654,17 @@ class ConveyThis {
     }
 
     function DOMinnerHTML(DOMNode $element) {
+        $this->print_log("* DOMinnerHTML()");
         $innerHTML = "";
         $children = $element->childNodes;
-
         foreach ($children as $child) {
             $innerHTML .= $element->ownerDocument->saveHTML($child);
         }
-
         return $innerHTML;
     }
 
     function shouldTranslateWholeTag($element) {
+        $this->print_log("* shouldTranslateWholeTag()");
         for ($i = 0; $i < count($element->childNodes); $i++) {
             $child = $element->childNodes->item($i);
 
@@ -1542,17 +1676,15 @@ class ConveyThis {
     }
 
     function allowTranslateWholeTag($element) {
+        $this->print_log("* allowTranslateWholeTag()");
         for ($i = 0; $i < count($element->childNodes); $i++) {
             $child = $element->childNodes->item($i);
-
             if (in_array(strtoupper($child->nodeName), $this->variables->siblingsAllowArray)) {
                 $outerHTML = $element->ownerDocument->saveHTML($child);
-
                 if (preg_match("/>(\s*[^<>\s]+[\s\S]*?)</", $outerHTML)) {
                     return true;
                 } else if (strtoupper($child->nodeName) == "BR") {
                     $innerHTML = $this->DOMinnerHTML($element);
-
                     if (preg_match("/\s*[^<>\s]+\s*<br>\s*[^<>\s]+/i", $innerHTML)) {
                         return true;
                     }
@@ -1563,9 +1695,9 @@ class ConveyThis {
     }
 
     function isTextNodeExists($element) {
+       // $this->print_log("* isTextNodeExists()");
         for ($i = 0; $i < count($element->childNodes); $i++) {
             $child = $element->childNodes->item($i);
-
             if ($child->nodeName == "#text" && trim($child->textContent)) {
                 return true;
             }
@@ -1575,17 +1707,14 @@ class ConveyThis {
 
     // DOM
     function domRecursiveRead($doc) {
+        // $this->print_log("* domRecursiveRead()");
         foreach ($doc->childNodes as $child) {
             if ($child->nodeType === 3) {
                 $originalValue = $child->textContent;
                 $value = trim($child->textContent);
-                // $value = htmlentities($child->textContent, null, 'utf-8');
-                // $value = str_ireplace("&nbsp;", " ", $value);
-                // $value = trim($value);
 
                 if (!empty($value)) {
                     if ($child->nextSibling || $child->previousSibling) {
-
                         if ($child->parentNode && $this->allowTranslateWholeTag($child->parentNode) && $this->shouldTranslateWholeTag($child->parentNode)) {
                             $value = trim($this->DOMinnerHTML($child->parentNode));
                             $value = preg_replace("/\<!--(.*?)\-->/", "", $value);
@@ -1710,14 +1839,12 @@ class ConveyThis {
                     $shouldReadChild = true;
 
                     if ($child->nodeName == 'a') {
-
                         if ($this->variables->translate_document) {
-
                             $href = $child->getAttribute("href");
-
                             $ext = strtolower(pathinfo($href, PATHINFO_EXTENSION));
-                            if (strpos($ext, "?") !== false) $ext = substr($ext, 0, strpos($ext, "?"));
-
+                            if (strpos($ext, "?") !== false) {
+                                $ext = substr($ext, 0, strpos($ext, "?"));
+                            }
                             if (in_array($ext, $this->variables->documentExt)) {
                                 $this->variables->segments[$href] = $href;
                                 $this->collectNode($child, 'href', $href);
@@ -1744,7 +1871,6 @@ class ConveyThis {
                     }
 
                     if (in_array(strtoupper($child->nodeName), $this->variables->siblingsAllowArray)) {
-
                         if ($child->parentNode) {
                             if ($this->isTextNodeExists($child->parentNode) && $this->allowTranslateWholeTag($child->parentNode) && $this->shouldTranslateWholeTag($child->parentNode)) {
                                 // no need to walk inside
@@ -1777,6 +1903,17 @@ class ConveyThis {
                         }
                     }
 
+                    if ($child->hasAttribute('class')) {
+                        $classes = preg_split('/\s+/', trim($child->getAttribute('class')));
+                        foreach ($this->variables->exclusion_block_classes as $exclusionBlockClass) {
+                            if (in_array($exclusionBlockClass, $classes)) {
+                                // no need to walk inside
+                                $shouldReadChild = false;
+                                break;
+                            }
+                        }
+                    }
+
                     if (strcasecmp($child->nodeName, 'script') !== 0 && strcasecmp($child->nodeName, 'style') !== 0 && $shouldReadChild == true) {
                         $this->domRecursiveRead($child);
                     }
@@ -1786,6 +1923,7 @@ class ConveyThis {
     }
 
     private function collectNode($item, $attr, $value, $originalValue = '') {
+        // $this->print_log("* collectNode()");
         // Add node original value and attribute in list so then we can find the element by its DOM path and replace original content for each element with translation
         $path = $item->getNodePath();
 
@@ -1802,6 +1940,7 @@ class ConveyThis {
     }
 
     function replaceSegments($doc) {
+        $this->print_log("* replaceSegments()");
         // Get all elements of document
         $xpath = new DOMXPath($doc);
         $elements = $xpath->query('//text() | //*');
@@ -1819,10 +1958,8 @@ class ConveyThis {
                     $segment = $this->searchSegment($value);
 
                     if ($segment) {
-
                         if (isset($this->nodePathListSpace[$node_path][$attr])) {
                             $space = $this->nodePathListSpace[$node_path][$attr];
-
                             if (isset($space["left"]) && isset($space["right"])) {
                                 $segment = $space["left"] . $segment . $space["right"];
                             }
@@ -1889,6 +2026,9 @@ class ConveyThis {
                         $el->setAttribute('href', $replaced_href);
                     }
                 }
+
+                // $href = $el->getAttribute('href');
+
             } elseif ($el->nodeName == 'form') {
                 $action = $el->getAttribute('action');
                 $replaced_action = $this->replaceLink($action, $this->variables->language_code);
@@ -1915,7 +2055,8 @@ class ConveyThis {
         foreach ($anchors as $a) {
             if ($a->getAttribute('translate') !== 'no' && ($this->variables->url_structure !== "subdomain")) {
                 $href = $a->getAttribute('href');
-                if (!preg_match('/\/wp-content\//', $href)) {
+                $wp_content_in_link = preg_match('/\/wp-content\//', $href);
+                if (!$wp_content_in_link) {
                     $parsedHref = parse_url($href);
                     $path = isset($parsedHref['path']) ? $parsedHref['path'] : '';
 
@@ -1929,25 +2070,71 @@ class ConveyThis {
                         }
                     }
                 }
+                $href_link = $href;
+                if ($this->is_local_link($href) && (!$this->isPageExcluded($href, $this->variables->exclusions)) && !$wp_content_in_link) {
+                    $this->print_log(">-- " . $href_link);
+
+                    // add language code to links inside text segments
+                    $lang = $this->variables->language_code;
+                    if ($this->variables->url_structure == "subdomain") {
+                        $this->print_log("url_structure == subdomain");
+                        // just add subdomain lang before the href_link, if it is not there already
+                    } else {
+                        $this->print_log("url_structure != subdomain, default subfolders");
+                        $prefix_end = '/' . $lang;
+                        $prefix_end_length = strlen($prefix_end);
+                        if ((strpos($href_link, '/' . $lang . '/') === false && ($prefix_end_length === 0 || substr($href_link, -$prefix_end_length) !== $prefix_end))) {
+                            // if not yet contains ../es/.. in the middle of the link and not ends with .../es for the main page
+                            $this->print_log("111 strpos(href_link, '/' . lang . '/' === false" . " ($href_link)");
+
+                            if (preg_match('#^(https?://[^/]+)(/.*)?$#', $href_link, $matches)) {
+                                $domain = $matches[1];
+                                $path = isset($matches[2]) ? $matches[2] : '/';
+                                $path = '/' . ltrim($path, '/');
+                                $href_link = $domain . '/' . $lang . $path;
+                            } else {
+                                // For relative links
+                                $href_link = '/' . $lang . '/' . ltrim($href_link, '/');
+                            }
+                        }
+                    }
+
+                    $this->print_log("->- " . $href_link);
+
+                    if ($this->variables->use_trailing_slash == 0) {
+                        $this->print_log("/// do not change link (0)");
+                    } else if ($this->variables->use_trailing_slash == -1) {
+                        $this->print_log("/// change link (remove slash)");
+                        if (substr($href_link, -1) === '/') {
+                            $href_link = substr($href_link, 0, -1); // if url ends with slash "/", then remove it
+                        }
+                    } else if ($this->variables->use_trailing_slash == 1) {
+                        $this->print_log("/// change link (add slash)");
+                        $href_link = esc_attr($href_link);
+                        if (substr($href_link, -1) !== '/') {
+                            $href_link .= '/'; // if url does not ends with slash "/", then add it
+                        }
+                    }
+
+                    $this->print_log("--> " . $href_link);
+                    $a->setAttribute('href', $href_link);
+                }
+
             }
         }
 
         $canonical = $xpath->query("//link[@rel='canonical']");
 
         if ($canonical->length > 0) {
-
             $canonicalTag = $canonical->item(0);
-
             $currentHref = $canonicalTag->getAttribute('href');
-
             $urlComponents = parse_url($currentHref);
 
-
-            if (isset($this->variables->language_code))
+            if (isset($this->variables->language_code)) {
                 $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'] . '/' . $this->variables->language_code;
-            else
+            } else {
                 $newHref = $urlComponents['scheme'] . '://' . $urlComponents['host'];
-
+            }
             if (!empty($urlComponents['path'])) {
                 $newHref .= $urlComponents['path'];
             }
@@ -1983,22 +2170,27 @@ class ConveyThis {
         return $doc->saveHTML();
     }
 
+
+    function update_local_links() {
+        $this->print_log("* update_local_links()");
+
+    }
+
+
     function domRecursiveApply($doc, $items) {
+        $this->print_log("* domRecursiveApply()");
         foreach ($doc->childNodes as $child) {
             if ($child->nodeType === 3) {
                 $value = $child->textContent;
                 $segment = $this->searchSegment($value, $items);
-
                 if (!empty($segment)) {
                     $child->textContent = $segment;
                 }
             } else {
                 if ($child->nodeType === 1) {
                     if ($child->hasAttribute('title')) {
-
                         $attrValue = $child->getAttribute('title');
                         $segment = $this->searchSegment($attrValue, $items);
-
                         if (!empty($segment)) {
                             $child->setAttribute('title', $segment);
                         }
@@ -2137,6 +2329,9 @@ class ConveyThis {
     }
 
     function replaceLink($value, $language_code) {
+        $this->print_log("* replaceLink()");
+        //  $this->print_log($value);
+
         $aPos = strpos($value, '//');
 
         if ($this->isPageExcluded($value, $this->variables->exclusions)) {
@@ -2148,7 +2343,6 @@ class ConveyThis {
             $aStr = substr($value, $aPos);
             $eStr = substr($this->variables->site_url, $ePos);
             $eLen = strlen($eStr);
-
             if (strncmp($aStr, $eStr, $eLen) !== 0) {
                 return $value;
             }
@@ -2162,12 +2356,13 @@ class ConveyThis {
         }
 
         $ext = strtolower(pathinfo($value, PATHINFO_EXTENSION));
-        if (strpos($ext, "?") !== false) $ext = substr($ext, 0, strpos($ext, "?"));
+        if (strpos($ext, "?") !== false) {
+            $ext = substr($ext, 0, strpos($ext, "?"));
+        }
 
         if (in_array($ext, $this->variables->avoidUrlExt)) {
             return $value;
         }
-        //
 
         if (isset($this->variables->target_languages_translations[$language_code])) {
             $language_code = $this->variables->target_languages_translations[$language_code];
@@ -2175,9 +2370,11 @@ class ConveyThis {
 
         $link = parse_url($value);
 
-        if (!isset($link['path'])) $link['path'] = '/';
+        if (!isset($link['path'])) {
+            $link['path'] = '/';
+        }
 
-        if (isset($link['path']) && stripos($link['path'], 'wp-admin') === false) {
+        if (isset($link['path']) && stripos($link['path'], 'wp-admin') === false && stripos($link['path'], 'wp-login') === false) {
             if ($this->variables->translate_links) {
                 $pageHost = $this->getPageHost($value);
                 if ((!$pageHost || $pageHost == $this->variables->site_host) && $link['path'] && $link['path'] != '/') {
@@ -2210,11 +2407,12 @@ class ConveyThis {
 
             return $this->unparse_url($link);
         }
-
+        //  $this->print_log($value);
         return $value;
     }
 
     function unparse_url($parsed_url) {
+        $this->print_log("* unparse_url()");
         $scheme = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
         $host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
         $port = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
@@ -2233,27 +2431,23 @@ class ConveyThis {
     }
 
     function domLoad($output) {
+        $this->print_log("* domLoad()");
         $doc = new DOMDocument();
-
         $doc->preserveWhiteSpace = false;
         $doc->formatOutput = true;
-
         libxml_use_internal_errors(true);
-
         if (extension_loaded('mbstring')) {
             $doc->loadHTML(mb_convert_encoding($output, 'HTML-ENTITIES', 'UTF-8'));
         } else {
             $doc->loadHTML($output);
         }
-
         libxml_clear_errors();
-
         return $doc;
     }
 
     function searchSegment($value) {
+        $this->print_log("* searchSegment()");
         $source_text = html_entity_decode($value);
-
         $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
 
         if (count($this->variables->segments_hash) && !isset($this->variables->segments_hash[md5($source_text)])) {
@@ -2297,7 +2491,6 @@ class ConveyThis {
                     $source2Lower = mb_strtolower($source_text2, 'UTF-8');
                 }
 
-
                 if (strcmp($source_text, wp_strip_all_tags($source2Lower)) === 0) {
                     return str_replace($source_text, $item['translate_text'], $source_text);
                 }
@@ -2306,36 +2499,33 @@ class ConveyThis {
     }
 
     public function is_wordpress_url($url) {
-
+        $this->print_log("* is_wordpress_url()");
         foreach ($this->variables->wp_patterns as $pattern) {
             if (preg_match($pattern, $url)) {
                 return true;
             }
         }
-
         return false;
     }
 
     private function checkRequestURI() {
-
+        $this->print_log("* checkRequestURI()");
         if (is_array($this->variables->system_links) && isset($_SERVER['REQUEST_URI'])) {
             $requestUri = $_SERVER['REQUEST_URI'];
-
             foreach ($this->variables->system_links as $system_link) {
                 if (isset($system_link['link']) && $system_link['link'] == $requestUri) {
                     return false;
                 }
             }
         }
-
         return true;
     }
 
     public function translatePage($content) {
         $this->print_log("* translatePage()");
-        $this->print_log(gettype($content));
-        $this->print_log("content:");
-        $this->print_log(json_encode($content));
+        // $this->print_log(gettype($content));
+        // $this->print_log("content:");
+        //  $this->print_log(json_encode($content));
 
         if (
             $this->checkRequestURI()
@@ -2372,16 +2562,16 @@ class ConveyThis {
                     $scriptContainer[$scriptKey] = $originalScript;
 
                     // ld+json array
-                    $this->print_log('$this->variables->translate_structured_data');
-                    $this->print_log($this->variables->translate_structured_data);
-                    if ($this->variables->translate_structured_data && strpos($matches[1], 'type="application/ld+json"') !== false ) {
+                    //  $this->print_log('$this->variables->translate_structured_data');
+                    //  $this->print_log($this->variables->translate_structured_data);
+                    if ($this->variables->translate_structured_data && strpos($matches[1], 'type="application/ld+json"') !== false) {
                         $this->print_log('1 - type="application/ld+json"');
                         $data = json_decode($originalScript, true);
 
                         if ($data !== null) {
                             $this->print_log('2 - type="application/ld+json"');
                             $this->recursiveReplaceLinks($data);
-                            $this->recursiveAddTextValues($data, $this->variables->segments_seen);
+                            $this->recursiveAddTextValues($data, $this->variables->segments_seen, $this->variables->NO_TRANSLATE_KEYS);
                             $encoded = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                             $ldscriptContainer[$scriptKey] = $encoded;
 
@@ -2400,11 +2590,9 @@ class ConveyThis {
                     $this->print_log(json_encode($ldJsonScripts));
                 }
 
-
                 require_once 'JSLikeHTMLElement.php';
 
                 $doc = $this->domLoad($content);
-
                 $doc->registerNodeClass('DOMElement', 'JSLikeHTMLElement');
 
                 $language = $this->searchLanguage($this->variables->language_code);
@@ -2415,7 +2603,6 @@ class ConveyThis {
                 $content = $doc->saveHTML();
 
                 if ($this->variables->plan != 'free') {
-
                     $this->domRecursiveRead($doc);
                     if (!empty($commentedScripts) && is_array($commentedScripts)) {
                         $commentedKeys = array_keys($commentedScripts);
@@ -2437,9 +2624,8 @@ class ConveyThis {
                         }
                     }
 
-
-                    $this->print_log('DICT - $this->variables->segments:');
-                    $this->print_log($this->variables->segments);
+                    // $this->print_log('DICT - $this->variables->segments:');
+                    // $this->print_log($this->variables->segments);
 
                     sort($this->variables->segments);
 
@@ -2447,20 +2633,20 @@ class ConveyThis {
 
                     $cacheKey = md5(serialize(array_merge($this->variables->segments, $this->variables->links, [$this->variables->referrer])));
                     $this->variables->items = $this->ConveyThisCache->get_cached_translations($this->variables->source_language, $this->variables->language_code, $this->variables->referrer, $cacheKey);
-                    $this->print_log('CACHED - $this->variables->items');
-                    $this->print_log($this->variables->items);
+                    //  $this->print_log('CACHED - $this->variables->items');
+                    // $this->print_log($this->variables->items);
 
                     $this->variables->segments = $this->filterSegments($this->variables->segments);
-                    $this->print_log('ARRAY - $this->variables->segments:');
-                    $this->print_log($this->variables->segments);
+                    // $this->print_log('ARRAY - $this->variables->segments:');
+                    //  $this->print_log($this->variables->segments);
                     if (!empty($this->variables->items) && !$this->allowCache($this->variables->items)) {
                         $this->print_log('!empty($this->variables->items) && !$this->allowCache($this->variables->items)');
                         $this->ConveyThisCache->clear_cached_translations(false, $this->variables->referrer, $this->variables->source_language, $this->variables->language_code);
                     }
                     if (empty($this->variables->items)) {
                         for ($i = 1; $i <= 3; $i++) {
-                            $this->print_log("$i".' json_encode(for$this->variables->segments)');
-                            $this->print_log(json_encode($this->variables->segments));
+                            // $this->print_log("$i".' json_encode(for$this->variables->segments)');
+                            //  $this->print_log(json_encode($this->variables->segments));
                             $response = $this->send('POST', '/website/translate/', [
                                 'referrer' => $this->variables->referrer,
                                 'source_language' => $this->variables->source_language,
@@ -2468,7 +2654,7 @@ class ConveyThis {
                                 'segments' => $this->variables->segments,
                                 'links' => $this->variables->links
                             ], true);
-                            $this->print_log('*********response');
+                            $this->print_log('response:');
                             $this->print_log($response);
                             if (isset($response['error'])) {
                                 if (!$update_cache) {
@@ -2479,12 +2665,9 @@ class ConveyThis {
                             }
 
                             if (!empty($response)) {
-
                                 if (!empty($this->variables->segments)) {
-
                                     $new_response = array();
                                     $this_segments = $this->variables->segments;
-
                                     foreach ($response as $response_val) {
                                         foreach ($this_segments as $segments_val) {
                                             if (!empty($response_val["source_text"]) and !empty($segments_val) and $this->comparisonSegments($response_val["source_text"], $segments_val))
@@ -2492,11 +2675,8 @@ class ConveyThis {
                                         }
                                     }
                                 }
-
                                 if (!empty($new_response)) $response = $new_response;
-
                                 $this->variables->items = $response;
-
                                 break;
                             }
                         }
@@ -2541,7 +2721,7 @@ class ConveyThis {
 
                     foreach ($ldJsonScripts as $key => &$jsonData) {
                         $this->print_log('$this->recursiveReplaceTranslations:');
-                        $this->recursiveReplaceTranslations($jsonData, $translations);
+                        $this->recursiveReplaceTranslations($jsonData, $translations, $this->variables->NO_TRANSLATE_KEYS);
                         $scriptContainer[$key] = json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     }
 
@@ -2558,12 +2738,16 @@ class ConveyThis {
 
                 update_option('is_translated', '1');
                 $content = $this->replaceSegments($doc);
+
                 // return JS content
                 $content = strtr($content, $scriptContainer);
                 $content = strtr($content, $commentedScripts);
                 $content = html_entity_decode($content, ENT_HTML5, 'UTF-8');
-            }
-            else{
+
+                //$this->print_log("############ content: #############");
+                // $this->print_log($content);
+
+            } else {
                 $this->print_log("--- NOT extension_loaded('xml')");
             }
         }
@@ -2572,6 +2756,7 @@ class ConveyThis {
     }
 
     public function removeDuplicates($array, $key) {
+        $this->print_log("* removeDuplicates()");
         $tempArray = [];
         $resultArray = [];
 
@@ -2587,8 +2772,8 @@ class ConveyThis {
     }
 
     public function filterSegments($segments) {
+        $this->print_log("* filterSegments()");
         $res = [];
-
         if ($segments && is_array($segments)) {
             foreach ($segments as $segment) {
                 if (preg_match('/\p{L}/u', $segment)) {
@@ -2600,47 +2785,39 @@ class ConveyThis {
     }
 
     public function allowCache($items) {
+        $this->print_log("* allowCache()");
         return count($items) == count($this->variables->segments) ? true : false;
     }
 
     public function comparisonSegments($response_value, $segments_value) {
+        // $this->print_log("* comparisonSegments()");
         $source_text = html_entity_decode($segments_value);
         $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
-
         $source_text2 = html_entity_decode($response_value);
-
         if (strcmp($source_text, trim($source_text2)) === 0) {
             return true;
         }
-
         if (!extension_loaded('mbstring')) {
             $sourceLower = iconv('UTF-8', 'utf-8//TRANSLIT//IGNORE', $source_text);
         } else {
             $sourceLower = mb_strtolower($source_text, 'UTF-8');
         }
-
         $source_text = trim($sourceLower);
-
         $source_text2 = html_entity_decode($response_value);
-
         if (!extension_loaded('mbstring')) {
             $source2Lower = iconv('UTF-8', 'utf-8//TRANSLIT//IGNORE', $source_text2);
         } else {
             $source2Lower = mb_strtolower($source_text2, 'UTF-8');
         }
-
         if (strcmp($source_text, trim($source2Lower)) === 0) {
             return true;
         }
-
         $source_text2 = html_entity_decode($response_value);
-
         if (!extension_loaded('mbstring')) {
             $source2Lower = iconv('UTF-8', 'utf-8//TRANSLIT//IGNORE', $source_text2);
         } else {
             $source2Lower = mb_strtolower($source_text2, 'UTF-8');
         }
-
         if (strcmp($source_text, wp_strip_all_tags($source2Lower)) === 0) {
             return true;
         }
@@ -2649,6 +2826,7 @@ class ConveyThis {
     }
 
     public function recursiveReplaceLinks(&$data) {
+        $this->print_log("* recursiveReplaceLinks()");
         foreach ($data as &$val) {
             if (is_array($val)) {
                 $this->recursiveReplaceLinks($val);
@@ -2664,11 +2842,22 @@ class ConveyThis {
         return $data;
     }
 
-    public function recursiveAddTextValues(&$data, &$seen) {
-        foreach ($data as &$val) {
+    public function recursiveAddTextValues(&$data, &$seen, &$NO_TRANSLATE_KEYS) {
+        $this->print_log("* recursiveAddTextValues()");
+        foreach ($data as $key => &$val) {
+            //$this->print_log("key:" . $key . " value:" . $val);
+            //$this->print_log("^^^typeof(" . $key . ") = " . gettype($val));
             if (is_array($val)) {
-                $this->recursiveAddTextValues($val, $seen);
-            } elseif (is_string($val)) {
+                //$this->print_log("+ is_array :" . json_encode($val));
+                //$this->print_log("###preparing_to_pass($key) with" . json_encode($val));
+                $condition = $key !== '@type';
+                //$this->print_log("**condition_is $condition");
+                if ($condition) {
+                    //$this->print_log("###passed($key) with" . json_encode($val));
+                    $this->recursiveAddTextValues($val, $seen, $NO_TRANSLATE_KEYS);
+                }
+            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])) {
+                //  $this->print_log("+ is_string: $val " . " AND !isset ('NO_TRANSLATE_KEYS[key]')" . json_encode($NO_TRANSLATE_KEYS[$key]));
                 $valDecoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $valTrimmed = trim($valDecoded);
                 if ($valTrimmed !== ''
@@ -2687,12 +2876,14 @@ class ConveyThis {
     }
 
 
-    public function recursiveReplaceTranslations(&$data, $translations) {
-        foreach ($data as &$val) {
+    public function recursiveReplaceTranslations(&$data, $translations, &$NO_TRANSLATE_KEYS) {
+        $this->print_log("* recursiveReplaceTranslations()");
+        foreach ($data as $key => &$val) {
             if (is_array($val)) {
-                $this->recursiveReplaceTranslations($val, $translations);
-            } elseif (is_string($val)) {
+                $this->recursiveReplaceTranslations($val, $translations, $NO_TRANSLATE_KEYS);
+            } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])) {
                 $val_trimmed = trim($val);
+                $val_trimmed = html_entity_decode($val_trimmed, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 if (isset($translations[$val_trimmed])) {
                     $val = $translations[$val_trimmed];
                 }
@@ -2701,14 +2892,13 @@ class ConveyThis {
     }
 
     function filterLdJsonScripts(array $ldscriptContainer): array {
+        $this->print_log("* filterLdJsonScripts()");
         $ldJsonScripts = [];
 
         foreach ($ldscriptContainer as $key => $scriptContent) {
             $value = json_decode($scriptContent, true);
-
             if (is_array($value)) {
                 $isLdJson = false;
-
                 if (
                     (isset($value['@context']) && strpos($value['@context'], 'schema.org') !== false) ||
                     isset($value['@type']) ||
@@ -2716,7 +2906,6 @@ class ConveyThis {
                 ) {
                     $isLdJson = true;
                 }
-
                 if ($isLdJson) {
                     $ldJsonScripts[$key] = $value;
                 }
@@ -2727,29 +2916,8 @@ class ConveyThis {
     }
 
 
-
-
-    public static function customLogs($message) {
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        WP_Filesystem();
-        global $wp_filesystem;
-
-        $uploads = wp_upload_dir(null, false);
-        $logs_dir = $uploads['basedir'] . '/conveythis';
-        $log_file = $logs_dir . '/' . 'log.log';
-
-        if (!is_dir($logs_dir)) {
-            $wp_filesystem->mkdir($logs_dir, FS_CHMOD_DIR);
-        }
-
-        $current_content = $wp_filesystem->get_contents($log_file);
-        $log_message = gmdate('Y-m-d h:i:s') . " :: " . print_r($message, true) . PHP_EOL;
-        $updated_content = $current_content . $log_message;
-        $wp_filesystem->put_contents($log_file, $updated_content, FS_CHMOD_FILE);
-    }
-
-
     private function updateRules($rules, $type) {
+        $this->print_log("* updateRules()");
 
         if (is_string($rules)) {
             $rules = json_decode($rules, true);
@@ -2774,6 +2942,8 @@ class ConveyThis {
     }
 
     private function send($request_method = 'GET', $request_uri = '', $query = [], $return_error = false) {
+        $this->print_log("* send");
+        $this->print_log("$request_uri");
         $headers = [
             'X-Api-Key' => $this->variables->api_key
         ];
@@ -2793,7 +2963,6 @@ class ConveyThis {
             'blocking' => true,
             'cookies' => []
         ];
-
 
         $response = $this->httpRequest($request_uri, $args, true, $this->variables->select_region);
 
@@ -2819,17 +2988,13 @@ class ConveyThis {
                     if (!empty($data['message'])) {
 
                         if (is_admin()) {
-
                             if (!function_exists('add_settings_error')) {
                                 include_once(ABSPATH . 'wp-admin/includes/template.php');
                             }
-
                             $message = esc_html($data['message'], 'conveythis-translate');
-
                             if (strpos($message, '#')) {
                                 $message = str_replace('#', '<a target="_blank" href="https://www.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress">' . __('change plan', 'conveythis-translate') . '</a>', $message);
                             }
-
                             add_settings_error('conveythis-translate', '501', $message, 'error');
                         }
                     }
@@ -2840,10 +3005,10 @@ class ConveyThis {
     }
 
     private static function httpRequest($url, $args = [], $proxy = true, $region = 'US') {
+        // $this->print_log("* httpRequest()");
         $args['timeout'] = 1;
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
-
         if ($proxy) {
             $response = wp_remote_request($proxyApiURL . $url, $args);
         }
@@ -2851,11 +3016,11 @@ class ConveyThis {
             $args['timeout'] = 30;
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
         }
-
         return $response;
     }
 
     private function find_translation($slug, $source_language, $target_language, $referer) {
+        $this->print_log("* find_translation()");
         $response = $this->send('POST', '/website/find-translation/', array(
             'referrer' => $referer,
             'source_language' => $source_language,
@@ -2869,8 +3034,8 @@ class ConveyThis {
     }
 
     private function find_original_slug($slug, $source_language, $target_language, $referer) {
+        $this->print_log("* find_original_slug()");
         $original_slug = $this->ConveyThisCache->get_cached_slug($slug, $target_language, $source_language);
-
         if (!$original_slug) {
             $response = $this->send('POST', '/website/find-translation-source/', array(
                 'referrer' => $referer,
@@ -2878,7 +3043,6 @@ class ConveyThis {
                 'target_language' => $target_language,
                 'segments' => [$slug]
             ));
-
             if (count($response)) {
                 $original_slug = $response[0]['source_text'];
                 if ($original_slug) {
@@ -2890,6 +3054,7 @@ class ConveyThis {
     }
 
     private function getTranslateSiteUrl($path, $targetLanguage = '') {
+        $this->print_log("* getTranslateSiteUrl()");
         $translateUrl = '';
         if (strlen($path) > 0 && strlen($targetLanguage) > 0) {
             $pageUrl = trim($path);
@@ -2903,6 +3068,7 @@ class ConveyThis {
     }
 
     public function get_conveythis_shortcode() {
+        $this->print_log("* get_conveythis_shortcode()");
         $widgetPlaceholder = '<div id="conveythis_widget_placeholder_' . $this->variables->shortcode_counter . '" class="conveythis_widget_placeholder"></div>';
         $this->variables->shortcode_counter++;
         return $widgetPlaceholder;
@@ -2916,10 +3082,12 @@ class ConveyThis {
     }
 
     public static function getCurrentDomain() {
+        // $this->print_log("* getCurrentDomain()");
         return str_ireplace('www.', '', parse_url(get_site_url(), PHP_URL_HOST));
     }
 
     public static function plugin_activate() {
+        //$this->print_log("* plugin_activate()");
         $defaultTargetLng = 'en';
         $lng = explode("_", (get_locale()));
 
@@ -2949,6 +3117,7 @@ class ConveyThis {
         add_option('translate_links', '0');
         add_option('translate_structured_data', '0');
         add_option('no_translate_element_id', '');
+        add_option('no_translate_element_classes', '');
         add_option('change_direction', '0');
         add_option('alternate', '1');
         add_option('accept_language', '0');
@@ -3001,6 +3170,7 @@ class ConveyThis {
         delete_option('translate_links');
         delete_option('translate_structured_data');
         delete_option('no_translate_element_id');
+        delete_option('no_translate_element_classes');
         delete_option('change_direction');
         delete_option('alternate');
         delete_option('accept_language');
@@ -3029,6 +3199,7 @@ class ConveyThis {
     }
 
     static function plugin_update_option($optionName, $oldValue, $newValue) {
+        //$this->print_log("* plugin_update_option()");
         self::optionPermalinkChanged($optionName, $oldValue, $newValue);
 
         $pluginOption = false;
@@ -3056,12 +3227,14 @@ class ConveyThis {
     }
 
     static function optionPermalinkChanged($option, $oldValue, $value) {
+        //$this->print_log("* optionPermalinkChanged()");
         if ($option === 'permalink_structure') {
             delete_transient('convey_permalink_structure');
         }
     }
 
     static function getEventOptionName($name = '', $oldValue = '', $newValue = '') {
+        //$this->print_log("* getEventOptionName()");
         $eventName = '';
         if (empty($oldValue) && !empty($newValue)) {
             $eventName .= 'First';
@@ -3074,29 +3247,24 @@ class ConveyThis {
         return $eventName;
     }
 
-    public static function redirect_after_activate($plugin) {
-        if ($plugin == "conveythis-translate/index.php") {
-            // Don't forget to exit() because wp_redirect doesn't exit automatically
-            // exit(wp_redirect(admin_url('options-general.php?page=convey_this')));
-        }
-    }
 
     public static function show_activation_message() {
+        //$this->print_log("* show_activation_message()");
         $is_set = get_option('api_key');
-
         if (!file_exists(CONVEYTHIS_VIEWS . '/activation_notice.php') || $is_set) {
             return;
         }
-
         include_once CONVEYTHIS_VIEWS . '/activation_notice.php';
     }
 
     public static function sendEvent($event = 'default', $message = '') {
+        //$this->print_log("* sendEvent()");
         $key = get_option('api_key') ? get_option('api_key') : 'no_key';
         $response = self::httpRequest('/25/background/event/' . $key . '/' . base64_encode(self::getCurrentDomain()) . '/' . $event . '/');
     }
 
     function dismissNotice($function) {
+        $this->print_log("* dismissNotice()");
         $metaName = 'convey_meta';
         $userMeta = get_user_meta(get_current_user_id(), $metaName, true);
         $userMeta = array_unique(array_filter(array_merge((array)$userMeta, [$function])));
@@ -3105,6 +3273,7 @@ class ConveyThis {
     }
 
     public function isDismiss($function) {
+        $this->print_log("* isDismiss()");
         $isDismiss = false;
         if (!empty($function)) {
             $userMeta = get_user_meta(get_current_user_id(), 'convey_meta', true);
@@ -3116,57 +3285,50 @@ class ConveyThis {
     }
 
     public function getWidgetStyles() {
+        $this->print_log("* getWidgetStyles()");
         return $this->variables->widgetStyles;
     }
 
     public static function modify_admin_bar($wp_admin_bar) {
+        //$this->print_log("* modify_admin_bar()");
         if (!is_admin_bar_showing()) {
             return;
         }
-
         if (!($wp_admin_bar instanceof WP_Admin_Bar)) {
             return;
         }
-
         $class_to_add = 'conveythis-no-translate';
-
         $nodes = $wp_admin_bar->get_nodes();
-
         if (empty($nodes)) {
             return;
         }
-
         foreach ($nodes as $node) {
-
             if (!is_object($node)) {
                 continue;
             }
-
             $args = $node;
-
             if (is_array($args->meta)) {
                 $args->meta['class'] = empty($args->meta['class'])
                     ? $class_to_add
                     : (strpos($args->meta['class'], $class_to_add) === false
                         ? $args->meta['class'] . ' ' . $class_to_add
                         : $args->meta['class']);
-
                 try {
                     $wp_admin_bar->add_node($args);
                 } catch (Exception $e) {
-                    ConveyThis::customLogs("Function modify_admin_bar:\n" . $e);
+                    //  ConveyThis::customLogs("Function modify_admin_bar:\n" . $e);
                 }
             }
         }
     }
 
     private function isPageExcluded($pageUrl, $rules) {
+        $this->print_log("* isPageExcluded()");
+        $this->print_log("^^^link: $pageUrl");
         if (!is_array($rules)) {
             return false;
         }
-
         $pageUrl = $this->getPageUrl($pageUrl);
-
         foreach ($rules as $rule) {
             $rowPageUrl = trim($rule['page_url']);
             if ($rule['rule'] == "start") {
@@ -3183,28 +3345,27 @@ class ConveyThis {
                 }
             } else if ($rule['rule'] == "equal") {
                 $parsed_path = parse_url($rowPageUrl, PHP_URL_PATH);
-
                 if ($parsed_path === null || $parsed_path === '') {
                     $parsed_path = '/';
                 }
-
                 $parsed_path = rtrim($parsed_path, '/');
                 $pageUrl = rtrim($pageUrl, '/');
-
                 if (strcasecmp($rule['page_url'], $pageUrl) == 0 || strcasecmp($parsed_path, $pageUrl) == 0) {
                     return true;
                 }
             }
         }
-
+        $this->print_log("***link: $pageUrl is not excluded");
         return false;
     }
 
     public function getVariables() {
+        $this->print_log("* getVariables()");
         return $this->variables;
     }
 
     private function urlExists($url) {
+        $this->print_log("* urlExists()");
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_NOBODY, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -3246,9 +3407,7 @@ class ConveyThis {
         if (!is_array($styleObj)) {
             return '';
         }
-
         $css = '';
-
         foreach ($styleObj as $selector => $rulesString) {
             $css .= $selector . " {\n";
             $rules = array_filter(array_map('trim', explode(';', $rulesString)));
@@ -3257,12 +3416,8 @@ class ConveyThis {
             }
             $css .= "}\n";
         }
-
         return $css;
     }
-
-
-
 
 
 }

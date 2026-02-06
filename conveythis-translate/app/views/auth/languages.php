@@ -11,26 +11,26 @@
             </a>
         </div>
 
-        <div class="m-auto my-4 text-center" style="max-width: 500px;width: 100%">
+        <div class="m-auto my-2 text-center" style="max-width: 500px;width: 100%">
 
-            <div>Take a few steps to set up the plugin</div>
-
+<!--            <div>Take a few steps to set up the plugin</div>-->
+<!--
             <div class="m-auto my-4 text-center">
                 <p>Enter the email you used to register in the <a href="https://app.conveythis.com/dashboard/" class="api-key-setting" target="_blank">Conveythis dashboard</a></p>
                 <div class="ui input w-100">
                     <input type="email" name="email" id="conveythis_email" class="conveythis-input-text text-truncate" value="" placeholder="Enter email" >
                 </div>
             </div>
-
+-->
             <div class="m-auto my-4 text-center">
-                <p>Enter API key <span role="button" title="Paste your API key from Conveythis dashboard">❔<a href="https://app.conveythis.com/dashboard/" class="api-key-setting" target="_blank"> Get API key</a></span></p>
+                <p>Enter API key <span role="button" title="Paste your API key from Conveythis dashboard">❔<a href="<?php echo CONVEYTHIS_APP_URL . '/setup/?technology=wordpress&domain_name=' . parse_url(home_url(), PHP_URL_HOST)  ?>" class="api-key-setting" target="_blank"> Get API key</a></span></p>
                 <div class="ui input w-100">
                     <input type="text" name="api_key" id="conveythis_api_key" class="conveythis-input-text text-truncate"
                             value="<?php echo esc_html($this->variables->api_key) ?>"
                             placeholder="pub_*********"
                 </div>
-                <label class="validation-label" style="float: left; margin-top: 5px;">Invalid Email or API Key. Please verify your credentials and try again.</label>
             </div>
+            <div class="validation-label" >Invalid API Key. Please verify your credentials and try again.</div>
 
             <div class="lang-selection my-4" style="display: none">
                 <p>What is the source (current) language of your website?</p>
@@ -79,9 +79,18 @@
                 </div>
             </div>
 
-            <div class="my-4">
+            <div id="button_continue" class="my-4">
                 <input type="submit" name="submit" id="submit" class="btn btn-primary btn-custom" value="Continue">
             </div>
+
+            <div id="please_wait_message" class="my-4 btn btn-primary btn-custom d-none">
+                <div class="please_wait">
+                    <span class="please_wait_spinner me-2"></span>
+                    <span>Please wait...</span>
+                </div>
+
+            </div>
+
         </div>
     </div>
 </form>
@@ -94,24 +103,27 @@
         let target_languages = data.data.target_languages;
         const validationLabel = form.querySelector('.validation-label');
         const inputElementsApiKey = form.querySelector('input#conveythis_api_key');
-        const inputElementsEmail = form.querySelector('input#conveythis_email');
+       // const inputElementsEmail = form.querySelector('input#conveythis_email');
         const dropdownElements = form.querySelectorAll('.lang-selection');
 
 
         if (data.data.check !== false) {
             validationLabel.style.display = 'none';
             inputElementsApiKey.classList.remove('validation-failed');
-            inputElementsEmail.classList.remove('validation-failed');
+           // inputElementsEmail.classList.remove('validation-failed');
             updateSettings(form, dropdownElements, target_languages);
         } else {
             validationLabel.style.display = 'block';
             inputElementsApiKey.classList.add('validation-failed');
-            inputElementsEmail.classList.add('validation-failed');
+          //  inputElementsEmail.classList.add('validation-failed');
         }
     };
 
     const updateSettings = (form, dropdownElements, target_languages) => {
+        console.log("* updateSettings()")
         const apiKeyValue = form.elements['api_key'].value;
+        console.log(form)
+        console.log(apiKeyValue)
 
         $.ajax({
             url: 'options.php',
@@ -121,6 +133,8 @@
                 'from_js': true
             },
             success: (response) => {
+                console.log(response)
+
                 if (response !== "null") {
                     const data = JSON.parse(response);
                     if (data.source_language && target_languages) {
@@ -131,15 +145,35 @@
                     $('.dropdown-target-languages').dropdown('set selected', target_languages);
                 }
 
-                $('#submit').val('Save Settings');
-                dropdownElements.forEach(block => block.style.display = 'block');
+               // $('#submit').val('Save Settings');
+               // $('#submit').val('Please wait...');
+               // $('#submit').prop('disabled', true);
 
-                $('#submit').off('click').on('click', () => {
+                $('#button_continue').addClass('d-none');
+                $('#please_wait_message').removeClass('d-none');
+               // return
+
+               // dropdownElements.forEach(block => block.style.display = 'block');
+
+              //  $('#submit').off('click').on('click', () => {
+                    console.log("$('#submit').off('click').on('click')")
                     $('input[name="source_language"]').removeClass('first-submit');
                     $('input[name="target_languages"]').removeClass('first-submit');
                     submitBlocked = false;
-                    form.submit();
-                });
+                  //  form.submit();
+              //  });
+
+                setTimeout(() => {
+                    const submitBtn = document.getElementById('submit');
+                    if (submitBtn) {
+                        console.log("+++ submitBtn")
+                        submitBtn.click();
+                    }
+                    else{
+                        console.log("--- submitBtn")
+                    }
+                }, 100);
+
             },
             error: () => {
                 console.log('Failed to update settings. Please try again.');
@@ -147,39 +181,69 @@
         });
     };
 
-    const validateApiKey = (apiKeyValue, emailValue, form) => {
+  //  const validateApiKey = (apiKeyValue, emailValue, form) => {
+    const validateApiKey = (apiKeyValue, form) => {
         console.log("* validateApiKey()");
         let domain_name = window.location.hostname;
         console.log("* domain_name" + ' ' + domain_name);
+        let url = <?php echo json_encode(CONVEYTHIS_API_URL); ?> + '/admin/accounts/check_wordpress/';
+        console.log(url)
         $.ajax({
-            url: 'https://api.conveythis.com/admin/accounts/check/',
+           // url: 'https://api.conveythis.com/admin/accounts/check/',
+            url: url,
             method: 'POST',
             data: { 'pub_key': apiKeyValue,
-                'email': emailValue,
+                //'email': emailValue,
                 'domain': domain_name
             },
             success: (response) => {
-                handleValidationResponse(response, form);
+                console.group('%c✅ AJAX Success', 'color: green; font-weight: bold;');
+                console.log('Timestamp:', new Date().toISOString());
+                console.log('Response received:', response);
+                console.log('Form element:', form);
+                console.groupEnd();
+
+                if(response.status === "error"){
+                    console.log("!!! error !!!")
+                }
+                else{
+
+                    handleValidationResponse(response, form);
+                }
+
+
             },
-            error: () => {
+            error: (xhr, status, error) => {
+                console.group('%c❌ AJAX Error', 'color: red; font-weight: bold;');
+                console.log('Timestamp:', new Date().toISOString());
+                console.log('Status:', status);
+                console.log('Error message:', error);
+                console.log('XHR object:', xhr);
+                console.log('Tip: Check your server logs or API endpoint.');
+                console.groupEnd();
+
                 console.log('Server error, please contact support.');
             }
         });
     };
 
     document.getElementById('login-form-settings').addEventListener('submit', (e) => {
+        console.log('login-form-settings.submit')
         if (submitBlocked) {
+            console.log('submitBlocked')
             e.preventDefault();
 
             const form = e.target;
             const apiKeyInput = form.elements['api_key'];
             const apiKeyValue = apiKeyInput.value;
 
-            const emailInput = form.elements['email'];
-            const emailValue = emailInput.value;
+          //  const emailInput = form.elements['email'];
+          //  const emailValue = emailInput.value;
 
-            validateApiKey(apiKeyValue, emailValue, form);
+          //  validateApiKey(apiKeyValue, emailValue, form);
+            validateApiKey(apiKeyValue, form);
         } else {
+            console.log('set submitBlocked')
             submitBlocked = true;
         }
     });

@@ -1,4 +1,51 @@
 == Changelog ==
+= 269.3 =
+* Fix vulnerability
+
+= 269.2 =
+* Added per-language flag customization and fixed a Patchstack-reported security issue.
+
+= 269.1 =
+* ConveyThis now supports 200+ languages
+
+= 269 =
+* Tested up to 6.9
+
+= 268.10 =
+* Vulnerability fix
+
+= 268.9 =
+* Flags feature is working for edge cases.
+
+= 268.8 =
+* Now elements can be excluded using their class attribute.
+
+= 268.7 =
+* Links for files inside <a> tags don't cause 404 anymore, as long as they are under /wp-content directory.
+
+= 268.6 =
+* Links inside translation segments now correctly operating with excluded pages.
+
+= 268.5 =
+* Links inside translation segments now point to the /target_language/ path.
+
+= 268.4 =
+* DNS server update, structured data improvements
+
+= 268.3 =
+* DNS server update, structured data improvements
+
+= 268.2 =
+* Structured data improvements
+
+= 268.1 =
+* Minor bug fix
+
+= 268 =
+* Simplified installation process
+
+= 267 =
+* SEO-friendly links updating, JSON-LD translation improvements
 
 = 266 =
 * New setting for trailing slash "/"
