@@ -116,7 +116,7 @@
                 <label for="regular">Sub-directory (e.g. https://example.com/es/)</label></div>
             <div class="form-check">
                 <input type="radio" class="form-check-input me-2" name="url_structure" id="subdomain" value="subdomain" <?php echo $this->variables->url_structure == 'subdomain' ? 'checked' : ''?>>
-                <label for="subdomain">Sub-domain (e.g. https://es.example.com) (Beta)</label></div>
+                <label for="subdomain">Sub-domain (e.g. https://es.example.com)</label></div>
         </div>
         <div id="dns-setup" <?php echo  ($this->variables->url_structure == 'subdomain') ? 'style="display:block"' : '' ?> >
             <div class="card">

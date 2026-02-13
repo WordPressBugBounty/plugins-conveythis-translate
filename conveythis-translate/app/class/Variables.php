@@ -830,7 +830,7 @@ class Variables {
         ],
         'Extended settings' => ['tag' => 'general', 'active' => false, 'widget_preview' => false, 'status' => true],
         'Widget Style' => ['tag' => 'widget', 'active' => false, 'widget_preview' => true, 'status' => true],
-        'Block pages' => ['tag' => 'block', 'active' => false, 'widget_preview' => false, 'status' => true],
+        'Excluded Pages' => ['tag' => 'block', 'active' => false, 'widget_preview' => false, 'status' => true],
         'Glossary' => ['tag' => 'glossary', 'active' => false, 'widget_preview' => false, 'status' => true],
        // 'Links' => ['tag' => 'links', 'active' => false, 'widget_preview' => false, 'status' => true]
         'Plan details' => ['tag' => 'plan', 'active' => false, 'widget_preview' => false, 'status' => true]

@@ -1,3 +1,22 @@
+<style>
+    /* Fix vertical alignment of selected languages in Semantic UI dropdown */
+    .ui.dropdown .label {
+        display: inline-flex !important;
+        align-items: center !important;
+        line-height: 1.2;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+
+    .ui.dropdown .label > .delete.icon {
+        margin-left: 0px !important;
+        align-self: center !important;
+        position: relative;
+        top: -2.7px;
+    }
+
+</style>
+
 <div class="tab-pane fade show active" id="v-pills-main" role="tabpanel" aria-labelledby="main-tab">
 
     <div class="title">Main configuration</div>
@@ -48,7 +67,7 @@
                 $edit_translations_url = "https://app.conveythis.com/dashboard/translation/domain/" . $this->variables->domain_id . "/";
             }
             ?>
-            You can find your translations in your ConveyThis dashboard: <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary">Edit translations</a>
+            You can find your translations in your ConveyThis dashboard: <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary btn-sm">Edit translations</a>
         </div>
     </div>
 

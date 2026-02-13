@@ -1,6 +1,6 @@
 <div class="tab-pane fade" id="v-pills-block" role="tabpanel" aria-labelledby="block-pages-tab">
 
-    <div class="title">Block pages</div>
+    <div class="title">Excluded pages</div>
     <div class="form-group paid-function">
         <label>Add rule that you want to exclude from translations.</label>
         <div id="exclusion_wrapper" class="w-100">
@@ -29,7 +29,7 @@
             <?php endif; ?>
         </div>
         <input type="hidden" name="exclusions" value='<?php echo json_encode( $this->variables->exclusions ); ?>'>
-        <button class="btn-default" type="button" id="add_exlusion" style="color: #8A8A8A">Add more rules</button>
+        <button class="btn btn-sm btn-primary" type="button" id="add_exlusion" >Add more rules</button>
         <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
     </div>
 
@@ -62,7 +62,7 @@
                 <?php endforeach; ?>
         </div>
         <input type="hidden" name="exclusion_blocks" value='<?php echo  json_encode( $this->variables->exclusion_blocks ); ?>'>
-        <button class="btn-default" type="button" id="add_exlusion_block" style="color: #8A8A8A">Add more ids</button>
+        <button class="btn btn-sm btn-primary" type="button" id="add_exlusion_block" >Add more ids</button>
         <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
     </div>
 
@@ -84,7 +84,7 @@
             <?php endforeach; ?>
         </div>
 
-        <button class="btn-default" type="button" id="add_exlusion_block_class" style="color: #8A8A8A">Add more classes</button>
+        <button class="btn btn-sm btn-primary" type="button" id="add_exlusion_block_class" >Add more classes</button>
 
         <label class="hide-paid" for="">
             This feature is not available on Free plan. If you want to use this feature, please

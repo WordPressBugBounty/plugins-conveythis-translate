@@ -1,4 +1,8 @@
 == Changelog ==
+= 269.4 =
+* Updated Glossary, Import/Export, Aggregation and Pagination features.
+* Style improvements.
+
 = 269.3 =
 * Fix vulnerability
 

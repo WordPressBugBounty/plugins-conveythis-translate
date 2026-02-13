@@ -3,17 +3,17 @@ Contributors: alexburan, conveythis
 Tags: language, translate, languages, translators, translator
 Requires at least: 4.0
 Requires PHP: 5.6
-Tested up to: 6.9
+Tested up to: 6.9.1
 
-Stable tag: 269.3
+Stable tag: 269.4
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Make your WordPress site multilingual in minutes! 🌐 AI translations, 120+ languages, SEO & WooCommerce ready — no coding needed!
+Make your WordPress site multilingual in minutes! 🌐 AI translations, 200+ languages, SEO & WooCommerce ready — no coding needed!
 == Description ==
 
-**ConveyThis Translate** is a professional **WordPress translation plugin** that lets you make your website **multilingual in minutes**. Instantly translate your entire site into **120+ languages** without any coding.
+**ConveyThis Translate** is a professional **WordPress translation plugin** that lets you make your website **multilingual in minutes**. Instantly translate your entire site into **200+ languages** without any coding.
 
 ⚡ **Fast, Accurate AI Translations** – Powered by **Google Translate** and **ConveyThis’** own AI engine, your website gets high-quality translations instantly. Need perfect wording? Refine them manually or order professional translations directly from your dashboard.
 
@@ -102,11 +102,11 @@ Go to [My Translation](https://app.conveythis.com/domains) in your account to ed
 
 ==Supported Languages 🌍==
 
-ConveyThis Translate supports **120+ languages**, including major global languages and regional variations:
+ConveyThis Translate supports **200+ languages**, including major global languages and regional variations:
 
 **Popular languages:** English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Portuguese, Russian, Italian, Dutch, Ukrainian
 
-**Additional languages:** Azerbaijani, Albanian, Amharic, Armenian, Afrikaans, Basque, Bashkir, Belarusian, Bengali, Burmese, Bosnian, Welsh, Hungarian, Vietnamese, Haitian (Creole), Galician, Dutch, Hill Mari, Greek, Georgian, Gujarati, Danish, Hebrew, Yiddish, Indonesian, Irish, Icelandic, Kazakh, Kannada, Catalan, Kyrgyz, Xhosa, Khmer, Laotian, Latin, Latvian, Lithuanian, Luxembourgish, Malagasy, Malay, Malayalam, Maltese, Macedonian, Maori, Marathi, Mari, Mongolian, Nepali, Norwegian, Punjabi, Papiamento, Persian, Polish, Romanian, Cebuano, Serbian, Sinhala, Slovakian, Slovenian, Swahili, Sundanese, Tajik, Thai, Tagalog, Tamil, Tatar, Telugu, Turkish, Udmurt, Uzbek, Urdu, Finnish, Croatian, Czech, Swedish, Scottish, Estonian, Esperanto, Javanese
+**Additional languages:** Abkhaz, Acehnese, Acholi, Afrikaans, Albanian, Alur, Amharic, Armenian, Assamese, Awadhi, Aymara, Azerbaijani, Balinese, Bambara, Bashkir, Basque, Batak Karo, Batak Simalungun, Batak Toba, Belarusian, Bemba, Bengali, Betawi, Bhojpuri, Bikol, Bodo, Bosnian, Breton, Bulgarian, Burmese, Buryat, Cantonese, Catalan, Cebuano, Chhattisgarhi, Chichewa, Chinese (Simpl.), Chinese (Trad.), Chuvash, Corsican, Crimean Tatar, Croatian, Czech, Danish, Dari, Dinka, Divehi, Dogri, Dombe, Dzongkha, Esperanto, Estonian, Ewe, Faroese, Fijian, Finnish, Frisian, Fulfulde, Ga, Galician, Ganda, Georgian, Greek, Guarani, Gujarati, Haitian (Creole), Hakha Chin, Hausa, Hawaiian, Hebrew, Hiligaynon, Hindi, Hmong, Hungarian, Hunsrik, Icelandic, Igbo, Iloko, Indonesian, Inuinnaqtun, Inuktitut, Irish, Javanese, Kannada, Kapampangan, Kashmiri, Kazakh, Khmer, Kiga, Kinyarwanda, Kituba, Konkani, Krio, Kurdish (Central), Kyrgyz, Laotian, Latgalian, Latin, Latvian, Ligurian, Limburgan, Lingala, Lithuanian, Lombard, Lower Sorbian, Luo, Luxembourgish, Macedonian, Maithili, Makassar, Malagasy, Malay, Malayalam, Maltese, Manipuri, Maori, Marathi, Meadow Mari, Minang, Mizo, Mongolian, Ndebele (South), Nepalbhasa, Nepali, Northern Sotho, Norwegian, Nuer, Occitan, Odia, Oromo, Pangasinan, Papiamento, Pashto, Persian, Polish, Portuguese (BR), Portuguese (PT), Punjabi, Quechua, Queretaro Otomi, Romani, Romanian, Rundi, Samoan, Sango, Sanskrit, Scottish, Serbian, Sesotho, Seychellois Creole, Shan, Shona, Sicilian, Silesian, Sindhi, Sinhala, Slovakian, Slovenian, Somali, Sundanese, Swahili, Swati, Swedish, Tagalog, Tahitian, Tajik, Tamil, Tatar, Telugu, Tetum, Thai, Tibetan, Tigrinya, Tongan, Tsonga, Tswana, Turkish, Turkmen, Twi, Upper Sorbian, Urdu, Uyghur, Uzbek, Vietnamese, Welsh, Xhosa, Yiddish, Yoruba, Yucatec Maya, Zulu
 
 **Custom languages & dialects:** Create your own language variations using **templates** (e.g., British English, Canadian French) or start from scratch.
 
@@ -217,6 +217,10 @@ Learn how your data and content are securely handled by ConveyThis.
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 269.4 =
+* Updated Glossary, Import/Export and Aggregation, Pagination features.
+* Style improvements.
+
 = 269.3 =
 * Fix vulnerability
 
@@ -613,13 +617,13 @@ The number of languages available depends on the plan that you are subscribed to
 
 With the most advanced “Extreme plan,” you have 100 languages at your disposal.
 
-So the current number of possible languages to operate in is 120.
+The current number of possible languages to operate in is 200.
 
 While this list contains all the most-spoken languages of the world, many rare dialects are not yet included.
 
 = Is ConveyThis Translate free? =
 
-ConveyThis Translate provides Free plan with 2,500 words and 1 language.
+ConveyThis Translate provides Free plan with 5,000 words and 1 language.
 
 Users of paid plans can get their money back within the month of using the plugin you are not satisfied with the result.
 
@@ -649,7 +653,7 @@ If you've tried all of the above and still get this error, contact us at [suppor
 
 = What do I do if I still need help? =
 
-If you couldn’t find the answer to your question, please use the [support form](https://www.conveythis.com/support/) on our website to quickly reach our team.
+If you couldn’t find the answer to your question, please use the [support form](https://www.conveythis.com/help) on our website to quickly reach our team.
 
 Our business hours are **Monday through Thursday from 10:00 AM to 6:00 PM** and **Friday from 10:00 AM to 5:00 PM (EST)**.
 

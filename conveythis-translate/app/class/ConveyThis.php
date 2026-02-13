@@ -344,17 +344,45 @@ class ConveyThis {
             }
         }
 
+        // Glossary: prefer top-level POST to avoid truncation of large JSON inside settings
+        $glossary = null;
+        $glossary_from_top = false;
+        if (isset($_POST['glossary']) && is_string($_POST['glossary'])) {
+            $glossary_raw = wp_unslash($_POST['glossary']);
+            $this->print_log('[Glossary Save] POST[glossary] received, raw length=' . strlen($glossary_raw));
+            $glossary = json_decode(stripslashes($glossary_raw), true);
+            if (! is_array($glossary)) {
+                $this->print_log('[Glossary Save] POST[glossary] json_decode failed: ' . json_last_error_msg());
+                $glossary = null;
+            } else {
+                $glossary_from_top = true;
+                $this->print_log('[Glossary Save] POST[glossary] decoded OK, rules count=' . count($glossary));
+            }
+        }
+        if ($glossary === null) {
+            $from_incoming = $incoming['glossary'] ?? null;
+            $this->print_log('[Glossary Save] Using settings[glossary], is_array=' . (is_array($from_incoming) ? 'yes' : 'no') . ', count=' . (is_array($from_incoming) ? count($from_incoming) : 'n/a'));
+            $glossary = $from_incoming;
+        }
+        // So that update_option('glossary') later saves the same full array we send to the API
+        if (is_array($glossary)) {
+            $incoming['glossary'] = $glossary;
+        }
 
         $exclusions = $incoming['exclusions'] ?? null;
-        $glossary = $incoming['glossary'] ?? null;
         $exclusion_blocks = $incoming['exclusion_blocks'] ?? null;
         $clear_translate_cache = $incoming['clear_translate_cache'] ?? null;
 
         if ($exclusions) {
             $this->updateRules($exclusions, 'exclusion');
         }
+        $glossary_rules_sent = is_array($glossary) ? count($glossary) : 0;
+        $glossary_debug = null;
         if ($glossary) {
-            $this->updateRules($glossary, 'glossary');
+            $this->print_log('[Glossary Save] Calling updateRules(glossary) with ' . $glossary_rules_sent . ' rules');
+            $glossary_debug = $this->updateRules($glossary, 'glossary');
+        } else {
+            $this->print_log('[Glossary Save] No glossary data to save');
         }
         if ($exclusion_blocks) {
             $this->updateRules($exclusion_blocks, 'exclusion_blocks');
@@ -404,7 +432,20 @@ class ConveyThis {
         $this->updateDataPlugin();
         $this->clearCacheButton();
 
-        return wp_send_json_success('save');
+        $response_data = [
+            'message'             => 'save',
+            'glossary_rules_sent' => $glossary_rules_sent,
+        ];
+        if ( $glossary_debug !== null && is_array( $glossary_debug ) ) {
+            $response_data['glossary_debug'] = $glossary_debug;
+            $response_data['glossary_debug']['api_urls'] = [
+                'proxy_first' => defined( 'CONVEYTHIS_API_PROXY_URL' ) ? CONVEYTHIS_API_PROXY_URL : '',
+                'direct_fallback' => defined( 'CONVEYTHIS_API_URL' ) ? CONVEYTHIS_API_URL : '',
+                'glossary_endpoint' => '/admin/account/domain/pages/glossary/',
+                'region' => isset( $this->variables->select_region ) ? $this->variables->select_region : 'US',
+            ];
+        }
+        return wp_send_json_success( $response_data );
     }
 
     public function handle_check_dns() {
@@ -704,7 +745,7 @@ class ConveyThis {
                 }
 
                 //$this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
-                $this->variables->glossary = $this->send('GET', '/admin/account/domain/pages/glossary/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
+                $this->variables->glossary = $this->send('GET', '/admin/account/domain/pages/glossary/?referrer=' . urlencode($this->normalizeReferrerForApi(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '')));
                 $this->variables->exclusion_blocks = $this->send('GET', '/admin/account/domain/excluded/blocks/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
 
                 if (isset($_GET["settings-updated"])) //phpcs:ignore
@@ -2917,7 +2958,7 @@ class ConveyThis {
 
 
     private function updateRules($rules, $type) {
-        $this->print_log("* updateRules()");
+        $this->print_log("* updateRules() type=" . $type);
 
         if (is_string($rules)) {
             $rules = json_decode($rules, true);
@@ -2929,10 +2970,51 @@ class ConveyThis {
                 'rules' => $rules
             ));
         } elseif ($type == 'glossary') {
-            $this->send('POST', '/admin/account/domain/pages/glossary/', array(
-                'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
-                'rules' => $rules
-            ));
+            $rules_count = is_array($rules) ? count($rules) : 0;
+            $this->print_log('[Glossary Save] updateRules(glossary): sending ' . $rules_count . ' rules to API');
+            $referrer = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+            $referrer = $this->normalizeReferrerForApi($referrer);
+            $rules_for_api = is_array($rules) ? array_values($rules) : [];
+            foreach ($rules_for_api as $i => $r) {
+                if (isset($r['glossary_id']) && $r['glossary_id'] !== '') {
+                    $rules_for_api[ $i ]['glossary_id'] = (int) $r['glossary_id'];
+                }
+                // API expects null for "all languages" / empty; empty string can break addGlossary or cause wrong duplicate check
+                if (array_key_exists('target_language', $rules_for_api[ $i ]) && $rules_for_api[ $i ]['target_language'] === '') {
+                    $rules_for_api[ $i ]['target_language'] = null;
+                }
+                if (array_key_exists('translate_text', $rules_for_api[ $i ]) && $rules_for_api[ $i ]['translate_text'] === '') {
+                    $rules_for_api[ $i ]['translate_text'] = null;
+                }
+                // prevent = do not translate; translate_text and target_language are not used, keep null
+                if ( ! empty( $rules_for_api[ $i ]['rule'] ) && $rules_for_api[ $i ]['rule'] === 'prevent' ) {
+                    $rules_for_api[ $i ]['translate_text'] = null;
+                    $rules_for_api[ $i ]['target_language'] = null;
+                }
+            }
+            $payload = array(
+                'referrer' => $referrer,
+                'rules' => $rules_for_api
+            );
+            $body_json = json_encode($payload);
+            $this->print_log('[Glossary Save] API request body length=' . strlen($body_json));
+            if ($rules_count > 0 && is_array($rules)) {
+                $this->print_log('[Glossary Save] First rule: ' . json_encode($rules[0]));
+            }
+            $api_result = $this->send('POST', '/admin/account/domain/pages/glossary/', $payload);
+            $this->print_log('[Glossary Save] API response: ' . (is_array($api_result) ? json_encode($api_result) : gettype($api_result)));
+            $debug = [
+                'referrer'        => $referrer,
+                'rules_count'     => count($rules_for_api),
+                'rules'           => $rules_for_api,
+                'body_length'     => strlen($body_json),
+                'api_response'    => $api_result,
+                'api_endpoint'    => 'POST /admin/account/domain/pages/glossary/',
+            ];
+            if ( ! empty( $this->last_glossary_response_raw ) ) {
+                $debug['api_response_raw'] = strlen( $this->last_glossary_response_raw ) > 800 ? substr( $this->last_glossary_response_raw, 0, 800 ) . '...' : $this->last_glossary_response_raw;
+            }
+            return $debug;
         } elseif ($type == 'exclusion_blocks') {
             $this->send('POST', '/admin/account/domain/excluded/blocks/', array(
                 'referrer' => '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
@@ -2973,6 +3055,13 @@ class ConveyThis {
         $body = $response['body'];
         $code = $response['response']['code'];
 
+        if (strpos($request_uri, 'glossary') !== false) {
+            $this->print_log('[Glossary API] request_uri=' . $request_uri . ' method=' . $request_method);
+            $this->print_log('[Glossary API] response code=' . $code);
+            $this->print_log('[Glossary API] response body (raw)=' . substr($body, 0, 2000) . (strlen($body) > 2000 ? '...' : ''));
+            $this->last_glossary_response_raw = $body;
+        }
+
         if (!empty($body)) {
             $data = json_decode($body, true);
 
@@ -3005,8 +3094,9 @@ class ConveyThis {
     }
 
     private static function httpRequest($url, $args = [], $proxy = true, $region = 'US') {
-        // $this->print_log("* httpRequest()");
-        $args['timeout'] = 1;
+        // Glossary POST: use longer timeout on first attempt so body is not lost and we avoid double-send
+        $is_glossary_post = ( strpos($url, 'glossary') !== false && ! empty($args['method']) && $args['method'] === 'POST' );
+        $args['timeout'] = $is_glossary_post ? 30 : 1;
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
         if ($proxy) {
@@ -3017,6 +3107,25 @@ class ConveyThis {
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
         }
         return $response;
+    }
+
+    /**
+     * Normalize referrer to match API's getHost (strip protocol and www) so domain lookup succeeds.
+     *
+     * @param string $value Host or URL (e.g. dev.conveythis.com or https://www.dev.conveythis.com).
+     * @return string Normalized host (e.g. dev.conveythis.com).
+     */
+    private function normalizeReferrerForApi($value) {
+        if ( ! is_string($value) || $value === '' ) {
+            return '';
+        }
+        $domain = preg_replace('/^(\s)?(http(s)?)?(\:)?(\/\/)?/', '', $value);
+        $host = parse_url('http://' . $domain, PHP_URL_HOST);
+        if ( is_string($host) ) {
+            $host = preg_replace('/^www\./', '', $host);
+            return $host;
+        }
+        return $value;
     }
 
     private function find_translation($slug, $source_language, $target_language, $referer) {

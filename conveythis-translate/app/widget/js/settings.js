@@ -3,7 +3,6 @@ jQuery(document).ready(function ($) {
     $.fn.bootstrapDropdown = bootstrapDropdown;
 
     function checkTools() {
-        console.log("checkTools()")
         if (conveythisSettings.effect && conveythisSettings.view) {
             conveythisSettings.effect(function () {
                 $('#customize-view-button').transition('pulse');
@@ -23,7 +22,6 @@ jQuery(document).ready(function ($) {
     checkTools();
 
     $('#conveythis_api_key').on('input', async function () {
-        console.log("$('#conveythis_api_key').on('input)")
         var input = $(this);
         var inputValue = input.val();
         var validationLabel = $('#apiKey .validation-label');
@@ -42,7 +40,6 @@ jQuery(document).ready(function ($) {
     });
 
     $('#conveythis_api_key').on('change', async function () {
-        console.log("$('#conveythis_api_key').on('change')")
         var input = $(this);
         var inputValue = input.val();
         var validationLabel = $('#apiKey .validation-label');
@@ -70,8 +67,6 @@ jQuery(document).ready(function ($) {
     });
 
     $('.conveythis_new_user').on('click', function () {
-        console.log("$('.conveythis_new_user').on('click'")
-
         jQuery.ajax({
             url: 'options.php',
             method: 'POST',
@@ -96,23 +91,37 @@ jQuery(document).ready(function ($) {
     });
 
 
+    $('#conveythis-settings-form').on('submit', function (e) {
+        e.preventDefault();
+        return false;
+    });
+
     $('#ajax-save-settings').on('click', function (e) {
-        e.preventDefault()
+        e.preventDefault();
         const $btn = $(this);
         const form = $('#conveythis-settings-form');
+        if (!form.length) {
+            console.error('[ConveyThis Save] Form #conveythis-settings-form not found');
+            return;
+        }
         const overlay = $('<div class="conveythis-overlay"></div>');
         form.css('position', 'relative').append(overlay);
         $btn.prop('disabled', true).val('Saving...');
         prepareSettingsBeforeSave();
 
+        // Build glossary from DOM directly - never use form input (avoids truncation with many rules)
+        var glossaryRules = getGlossaryRulesForSave();
+        var glossaryJson = JSON.stringify(glossaryRules);
+        $('#glossary_data').val(glossaryJson);
+
         // Properly handle array inputs from FormData
         const formData = new FormData(form[0]);
         const data = {};
-        
+
         // Fields that should be preserved as JSON strings (not parsed as arrays)
         // CRITICAL: These fields must NEVER be converted to arrays
         const jsonStringFields = ['glossary', 'exclusions', 'exclusion_blocks', 'target_languages_translations', 'custom_css_json'];
-        
+
         // Convert FormData to object, handling arrays properly
         for (let [key, value] of formData.entries()) {
             // SAFETY CHECK: Never process JSON string fields as arrays, even if they somehow have []
@@ -121,13 +130,13 @@ jQuery(document).ready(function ($) {
                 data[key] = value;
                 continue; // Skip array processing for this field
             }
-            
+
             // Handle array inputs (fields ending with [])
             // IMPORTANT: Only process fields ending with [] as arrays
             // JSON string fields like 'glossary' should NOT end with []
             if (key.endsWith('[]')) {
                 const arrayKey = key.slice(0, -2); // Remove '[]'
-                
+
                 // EXTRA SAFETY: Double-check this isn't a JSON string field
                 if (jsonStringFields.includes(arrayKey)) {
                     console.error('[SAFETY ERROR] Attempted to process JSON field as array: ' + arrayKey);
@@ -135,7 +144,7 @@ jQuery(document).ready(function ($) {
                     data[arrayKey] = value;
                     continue;
                 }
-                
+
                 // Only create array if key doesn't exist (prevents overwriting existing values)
                 if (!data[arrayKey]) {
                     data[arrayKey] = [];
@@ -149,25 +158,51 @@ jQuery(document).ready(function ($) {
                 data[key] = value;
             }
         }
-        
-        
-        $.post(conveythis_plugin_ajax.ajax_url, {
+
+        // Force glossary from freshly collected rules (avoids FormData/input truncation on large payloads)
+        data['glossary'] = glossaryJson;
+
+        var ajaxUrl = typeof conveythis_plugin_ajax !== 'undefined' ? conveythis_plugin_ajax.ajax_url : '';
+        if (!ajaxUrl) {
+            console.error('[ConveyThis Save] conveythis_plugin_ajax.ajax_url is missing - cannot save');
+            $('.conveythis-overlay').remove();
+            $btn.prop('disabled', false).val('Save Settings');
+            return;
+        }
+
+        // Send settings WITHOUT glossary so we don't duplicate the long string and risk hitting max_input_vars
+        // (PHP drops excess vars; top-level 'glossary' could be lost and we'd fall back to truncated settings[glossary])
+        var settingsToSend = Object.assign({}, data);
+        delete settingsToSend.glossary;
+
+        $.post(ajaxUrl, {
             action: 'conveythis_save_all_settings',
             nonce: data['conveythis_nonce'],
-            settings: data
+            settings: settingsToSend,
+            glossary: glossaryJson
         }, function (response) {
             $('.conveythis-overlay').remove();
             $btn.prop('disabled', false).val('Save Settings');
             if (response.success) {
                 toastr.success('Settings saved successfully');
+                if (typeof syncGlossaryLanguageDropdowns === 'function') {
+                    syncGlossaryLanguageDropdowns();
+                    applyGlossaryFilters();
+                }
             } else {
-                toastr.error('Error saving settings: ' + response.data);
+                console.error('[ConveyThis Glossary Save] Server returned success: false', response.data);
+                toastr.error('Error saving settings: ' + (response.data && response.data.message ? response.data.message : response.data));
             }
+        }).fail(function (xhr, status, err) {
+            console.error('[ConveyThis Glossary Save] Request failed:', status, err);
+            console.error('[ConveyThis Glossary Save] xhr.status:', xhr.status);
+            console.error('[ConveyThis Glossary Save] xhr.responseText:', xhr.responseText ? xhr.responseText.substring(0, 500) : '');
+            $('.conveythis-overlay').remove();
+            $btn.prop('disabled', false).val('Save Settings');
         });
     });
 
     $('#register_form').submit((e) => {
-        console.log("$('#register_form').submit")
         e.preventDefault()
         var values = {};
         jQuery.each($('#register_form').serializeArray(), function (i, field) {
@@ -553,6 +588,98 @@ jQuery(document).ready(function ($) {
             'code3': 'por',
             'flag': '1oU'
         },
+        // New Languages
+        818: {'title_en': 'Abkhaz', 'title': 'Abkhaz', 'code2': 'ab', 'code3': 'abk', 'flag': 'ab'},
+        819: {'title_en': 'Acehnese', 'title': 'Acehnese', 'code2': 'ace', 'code3': 'aceh', 'flag': 't0X'},
+        820: {'title_en': 'Acholi', 'title': 'Acholi', 'code2': 'ach', 'code3': 'acho', 'flag': 'ach'},
+        821: {'title_en': 'Alur', 'title': 'Alur', 'code2': 'alz', 'code3': 'alu', 'flag': 'eJ2'},
+        822: {'title_en': 'Assamese', 'title': 'Assamese', 'code2': 'as', 'code3': 'asm', 'flag': 'My6'},
+        823: {'title_en': 'Awadhi', 'title': 'Awadhi', 'code2': 'awa', 'code3': 'awa', 'flag': 'My6'},
+        824: {'title_en': 'Aymara', 'title': 'Aymara', 'code2': 'ay', 'code3': 'aym', 'flag': 'aym'},
+        825: {'title_en': 'Balinese', 'title': 'Balinese', 'code2': 'ban', 'code3': 'ban', 'flag': 'My6'},
+        826: {'title_en': 'Bambara', 'title': 'Bambara', 'code2': 'bm', 'code3': 'bam', 'flag': 'Yi5'},
+        827: {'title_en': 'Batak Karo', 'title': 'Batak Karo', 'code2': 'btx', 'code3': 'btx', 'flag': 'My6'},
+        828: {'title_en': 'Batak Simalungun', 'title': 'Batak Simalungun', 'code2': 'bts', 'code3': 'bts', 'flag': 'My6'},
+        829: {'title_en': 'Batak Toba', 'title': 'Batak Toba', 'code2': 'bbc', 'code3': 'bbc', 'flag': 'My6'},
+        830: {'title_en': 'Bemba', 'title': 'Bemba', 'code2': 'bem', 'code3': 'bem', 'flag': '9Be'},
+        831: {'title_en': 'Betawi', 'title': 'Betawi', 'code2': 'bew', 'code3': 'bew', 'flag': 't0X'},
+        832: {'title_en': 'Bhojpuri', 'title': 'Bhojpuri', 'code2': 'bho', 'code3': 'bho', 'flag': 'My6'},
+        833: {'title_en': 'Bikol', 'title': 'Bikol', 'code2': 'bik', 'code3': 'bik', 'flag': '2qL'},
+        834: {'title_en': 'Bodo', 'title': 'Bodo', 'code2': 'brx', 'code3': 'brx', 'flag': 'My6'},
+        835: {'title_en': 'Breton', 'title': 'Breton', 'code2': 'br', 'code3': 'bre', 'flag': 'bre'},
+        836: {'title_en': 'Buryat', 'title': 'Buryat', 'code2': 'bua', 'code3': 'bua', 'flag': 'bur'},
+        837: {'title_en': 'Cantonese', 'title': 'Cantonese', 'code2': 'yue', 'code3': 'yue', 'flag': '00H'},
+        838: {'title_en': 'Chhattisgarhi', 'title': 'Chhattisgarhi', 'code2': 'hne', 'code3': 'hne', 'flag': 'My6'},
+        839: {'title_en': 'Chuvash', 'title': 'Chuvash', 'code2': 'cv', 'code3': 'chv', 'flag': 'chv'},
+        840: {'title_en': 'Crimean Tatar', 'title': 'Crimean Tatar', 'code2': 'crh', 'code3': 'crh', 'flag': 'crh'},
+        841: {'title_en': 'Dari', 'title': 'Dari', 'code2': 'fa-af', 'code3': 'prs', 'flag': 'NV2'},
+        842: {'title_en': 'Dinka', 'title': 'Dinka', 'code2': 'din', 'code3': 'din', 'flag': 'H4u'},
+        843: {'title_en': 'Divehi', 'title': 'Divehi', 'code2': 'dv', 'code3': 'div', 'flag': '1Q3'},
+        844: {'title_en': 'Dogri', 'title': 'Dogri', 'code2': 'doi', 'code3': 'doi', 'flag': 'My6'},
+        845: {'title_en': 'Dombe', 'title': 'Dombe', 'code2': 'dov', 'code3': 'dov', 'flag': '80Y'},
+        846: {'title_en': 'Dzongkha', 'title': 'Dzongkha', 'code2': 'dz', 'code3': 'dzo', 'flag': 'D9z'},
+        847: {'title_en': 'Ewe', 'title': 'Ewe', 'code2': 'ee', 'code3': 'ewe', 'flag': 'ewe'},
+        848: {'title_en': 'Faroese', 'title': 'Faroese', 'code2': 'fo', 'code3': 'fao', 'flag': 'fo'},
+        849: {'title_en': 'Fijian', 'title': 'Fijian', 'code2': 'fj', 'code3': 'fij', 'flag': 'E1f'},
+        850: {'title_en': 'Fulfulde', 'title': 'Fulfulde', 'code2': 'ff', 'code3': 'ful', 'flag': '8oM'},
+        851: {'title_en': 'Ga', 'title': 'Ga', 'code2': 'gaa', 'code3': 'gaa', 'flag': '6Mr'},
+        852: {'title_en': 'Ganda', 'title': 'Ganda', 'code2': 'lg', 'code3': 'lug', 'flag': 'eJ2'},
+        853: {'title_en': 'Guarani', 'title': 'Guarani', 'code2': 'gn', 'code3': 'grn', 'flag': 'y5O'},
+        854: {'title_en': 'Hakha Chin', 'title': 'Hakha Chin', 'code2': 'cnh', 'code3': 'cnh', 'flag': 'YB9'},
+        855: {'title_en': 'Hiligaynon', 'title': 'Hiligaynon', 'code2': 'hil', 'code3': 'hil', 'flag': '2qL'},
+        856: {'title_en': 'Hunsrik', 'title': 'Hunsrik', 'code2': 'hrx', 'code3': 'hrx', 'flag': '1oU'},
+        857: {'title_en': 'Iloko', 'title': 'Iloko', 'code2': 'ilo', 'code3': 'ilo', 'flag': '2qL'},
+        858: {'title_en': 'Inuinnaqtun', 'title': 'Inuinnaqtun', 'code2': 'ikt', 'code3': 'ikt', 'flag': 'P4g'},
+        859: {'title_en': 'Inuktitut', 'title': 'Inuktitut', 'code2': 'iu', 'code3': 'iku', 'flag': 'P4g'},
+        860: {'title_en': 'Kapampangan', 'title': 'Kapampangan', 'code2': 'pam', 'code3': 'pam', 'flag': '2qL'},
+        861: {'title_en': 'Kashmiri', 'title': 'Kashmiri', 'code2': 'ks', 'code3': 'kas', 'flag': 'My6'},
+        862: {'title_en': 'Kiga', 'title': 'Kiga', 'code2': 'cgg', 'code3': 'cgg', 'flag': 'eJ2'},
+        863: {'title_en': 'Kituba', 'title': 'Kituba', 'code2': 'ktu', 'code3': 'ktu', 'flag': 'WK0'},
+        865: {'title_en': 'Konkani', 'title': 'Konkani', 'code2': 'gom', 'code3': 'gom', 'flag': 'My6'},
+        866: {'title_en': 'Krio', 'title': 'Krio', 'code2': 'kri', 'code3': 'kri', 'flag': 'mS4'},
+        867: {'title_en': 'Kurdish (Central)', 'title': 'Kurdish (Central)', 'code2': 'ckb', 'code3': 'ckb', 'flag': 'ckb'},
+        868: {'title_en': 'Latgalian', 'title': 'Latgalian', 'code2': 'ltg', 'code3': 'ltg', 'flag': 'j1D'},
+        869: {'title_en': 'Ligurian', 'title': 'Ligurian', 'code2': 'lij', 'code3': 'lij', 'flag': 'BW7'},
+        870: {'title_en': 'Limburgan', 'title': 'Limburgan', 'code2': 'li', 'code3': 'lim', 'flag': '8jV'},
+        871: {'title_en': 'Lingala', 'title': 'Lingala', 'code2': 'ln', 'code3': 'lin', 'flag': 'Kv5'},
+        872: {'title_en': 'Lombard', 'title': 'Lombard', 'code2': 'lmo', 'code3': 'lmo', 'flag': 'BW7'},
+        873: {'title_en': 'Lower Sorbian', 'title': 'Lower Sorbian', 'code2': 'dsb', 'code3': 'dsb', 'flag': 'K7e'},
+        874: {'title_en': 'Luo', 'title': 'Luo', 'code2': 'luo', 'code3': 'luo', 'flag': 'X3y'},
+        875: {'title_en': 'Maithili', 'title': 'Maithili', 'code2': 'mai', 'code3': 'mai', 'flag': 'E0c'},
+        876: {'title_en': 'Makassar', 'title': 'Makassar', 'code2': 'mak', 'code3': 'mak', 'flag': 't0X'},
+        877: {'title_en': 'Manipuri', 'title': 'Manipuri', 'code2': 'mni-mtei', 'code3': 'mni', 'flag': 'My6'},
+        878: {'title_en': 'Meadow Mari', 'title': 'Meadow Mari', 'code2': 'chm', 'code3': 'chm', 'flag': 'D1H'},
+        879: {'title_en': 'Minang', 'title': 'Minang', 'code2': 'min', 'code3': 'min', 'flag': 't0X'},
+        880: {'title_en': 'Mizo', 'title': 'Mizo', 'code2': 'lus', 'code3': 'lus', 'flag': 'My6'},
+        881: {'title_en': 'Ndebele (South)', 'title': 'Ndebele (South)', 'code2': 'nr', 'code3': 'nbl', 'flag': '80Y'},
+        882: {'title_en': 'Nepalbhasa', 'title': 'Nepalbhasa', 'code2': 'new', 'code3': 'new', 'flag': 'E0c'},
+        883: {'title_en': 'Northern Sotho', 'title': 'Northern Sotho', 'code2': 'nso', 'code3': 'nso', 'flag': '7xS'},
+        884: {'title_en': 'Nuer', 'title': 'Nuer', 'code2': 'nus', 'code3': 'nus', 'flag': 'H4u'},
+        885: {'title_en': 'Occitan', 'title': 'Occitan', 'code2': 'oc', 'code3': 'oci', 'flag': 'E77'},
+        886: {'title_en': 'Oromo', 'title': 'Oromo', 'code2': 'om', 'code3': 'orm', 'flag': 'ZH1'},
+        887: {'title_en': 'Pangasinan', 'title': 'Pangasinan', 'code2': 'pag', 'code3': 'pag', 'flag': '2qL'},
+        888: {'title_en': 'Pashto', 'title': 'Pashto', 'code2': 'ps', 'code3': 'pus', 'flag': 'NV2'},
+        889: {'title_en': 'Quechua', 'title': 'Quechua', 'code2': 'qu', 'code3': 'que', 'flag': '4MJ'},
+        890: {'title_en': 'Queretaro Otomi', 'title': 'Queretaro Otomi', 'code2': 'otq', 'code3': 'otq', 'flag': '8Qb'},
+        891: {'title_en': 'Romani', 'title': 'Romani', 'code2': 'rom', 'code3': 'rom', 'flag': 'V5u'},
+        892: {'title_en': 'Rundi', 'title': 'Rundi', 'code2': 'rn', 'code3': 'run', 'flag': '5qZ'},
+        893: {'title_en': 'Sango', 'title': 'Sango', 'code2': 'sg', 'code3': 'sag', 'flag': 'kN9'},
+        894: {'title_en': 'Sanskrit', 'title': 'Sanskrit', 'code2': 'sa', 'code3': 'san', 'flag': 'My6'},
+        895: {'title_en': 'Seychellois Creole', 'title': 'Seychellois Creole', 'code2': 'crs', 'code3': 'crs', 'flag': 'JE6'},
+        896: {'title_en': 'Shan', 'title': 'Shan', 'code2': 'shn', 'code3': 'shn', 'flag': 'YB9'},
+        897: {'title_en': 'Sicilian', 'title': 'Sicilian', 'code2': 'scn', 'code3': 'scn', 'flag': 'BW7'},
+        898: {'title_en': 'Silesian', 'title': 'Silesian', 'code2': 'szl', 'code3': 'szl', 'flag': 'j0R'},
+        899: {'title_en': 'Swati', 'title': 'Swati', 'code2': 'ss', 'code3': 'ssw', 'flag': 'f6L'},
+        900: {'title_en': 'Tahitian', 'title': 'Tahitian', 'code2': 'ty', 'code3': 'tah', 'flag': 'E77'},
+        901: {'title_en': 'Tetum', 'title': 'Tetum', 'code2': 'tet', 'code3': 'tet', 'flag': '52C'},
+        902: {'title_en': 'Tibetan', 'title': 'Tibetan', 'code2': 'bo', 'code3': 'bod', 'flag': 'Z1v'},
+        903: {'title_en': 'Tigrinya', 'title': 'Tigrinya', 'code2': 'ti', 'code3': 'tir', 'flag': '8Gl'},
+        904: {'title_en': 'Tongan', 'title': 'Tongan', 'code2': 'to', 'code3': 'ton', 'flag': '8Ox'},
+        905: {'title_en': 'Tsonga', 'title': 'Tsonga', 'code2': 'ts', 'code3': 'tso', 'flag': '7xS'},
+        906: {'title_en': 'Tswana', 'title': 'Tswana', 'code2': 'tn', 'code3': 'tsn', 'flag': 'Vf3'},
+        907: {'title_en': 'Twi', 'title': 'Twi', 'code2': 'ak', 'code3': 'aka', 'flag': '6Mr'},
+        908: {'title_en': 'Upper Sorbian', 'title': 'Upper Sorbian', 'code2': 'hsb', 'code3': 'hsb', 'flag': 'K7e'},
+        909: {'title_en': 'Yucatec Maya', 'title': 'Yucatec Maya', 'code2': 'yua', 'code3': 'yua', 'flag': '8Qb'}
     }
 
     $("#range-style-indenting-vertical").slider({
@@ -630,17 +757,15 @@ jQuery(document).ready(function ($) {
     });
 
     $('.conveythis-delete-page').on('click', function (e) {
-        //e.preventDefault();
+        if ($(this).closest('#glossary_wrapper').length) return;
+        e.preventDefault();
         let $rowToDelete = $(this).closest('.style-language');
         if ($rowToDelete.length) {
-            // This is a flag style row - update availability after deletion
             $rowToDelete.remove();
             updateLanguageDropdownAvailability();
         } else {
-            // Other type of row (glossary, exclusion, etc.)
             $(this).parent().remove();
         }
-        //	$(".autoSave").click();
     });
 
     $('#add_blockpage').on('click', function (e) {
@@ -704,7 +829,7 @@ jQuery(document).ready(function ($) {
             e.preventDefault();
             let $rowToDelete = $(this).closest('.style-language');
             $rowToDelete.remove();
-            
+
             // Update language availability after row deletion
             updateLanguageDropdownAvailability();
         });
@@ -720,13 +845,120 @@ jQuery(document).ready(function ($) {
     sortFlagsByLanguage();
     initializeFlagDropdowns();
 
-    $('#add_glossary').on('click', function (e) {
+    var GLOSSARY_PER_PAGE = 20;
+    var glossaryCurrentPage = 1;
+    var glossaryTotalPages = 1;
 
+    function applyGlossaryFilters() {
+        var $panel = $('#v-pills-glossary');
+        var searchQuery = ($panel.find('#glossary_search').val() || '').trim().toLowerCase();
+        var filterLang = ($panel.find('#glossary_filter_language').val() || '') || '';
+        var $rows = $('#glossary_wrapper').children('.glossary');
+        var visibleIndices = [];
+        $rows.each(function (idx) {
+            var $row = $(this);
+            var rowLang = $row.data('target-language');
+            if (rowLang === undefined || rowLang === null) {
+                var $langSelect = $row.find('select.target_language');
+                rowLang = $langSelect.length ? ($langSelect.val() || '') : ($row.find('.row select').last().val() || '');
+            } else {
+                rowLang = String(rowLang);
+            }
+            var langMatch;
+            if (filterLang === '') {
+                langMatch = true;
+            } else if (filterLang === '__all__') {
+                langMatch = rowLang === '';
+            } else {
+                langMatch = rowLang === filterLang;
+            }
+            var searchMatch = true;
+            if (searchQuery) {
+                var sourceText = ($row.find('input.source_text').val() || '').toLowerCase();
+                var translateText = ($row.find('input.translate_text').val() || '').toLowerCase();
+                searchMatch = sourceText.indexOf(searchQuery) !== -1 || translateText.indexOf(searchQuery) !== -1;
+            }
+            var passesFilter = langMatch && searchMatch;
+            if (passesFilter) visibleIndices.push(idx);
+        });
+        var totalVisible = visibleIndices.length;
+        var totalPages = Math.max(1, Math.ceil(totalVisible / GLOSSARY_PER_PAGE));
+        glossaryCurrentPage = Math.min(Math.max(1, glossaryCurrentPage), totalPages);
+        var start = (glossaryCurrentPage - 1) * GLOSSARY_PER_PAGE;
+        var end = start + GLOSSARY_PER_PAGE;
+        var visibleSet = {};
+        for (var i = start; i < end && i < visibleIndices.length; i++) {
+            visibleSet[visibleIndices[i]] = true;
+        }
+        $rows.each(function (idx) {
+            var passesFilter = visibleIndices.indexOf(idx) !== -1;
+            var onCurrentPage = !!visibleSet[idx];
+            var show = passesFilter && onCurrentPage;
+            $(this).css('display', show ? '' : 'none');
+        });
+        glossaryTotalPages = totalPages;
+        var $pagination = $('#glossary_pagination');
+        if (totalVisible > GLOSSARY_PER_PAGE) {
+            $pagination.show();
+            $('#glossary_page_info').text('Page ' + glossaryCurrentPage + ' of ' + totalPages + ' (' + totalVisible + ' rules)');
+            $('#glossary_prev_page').prop('disabled', glossaryCurrentPage <= 1);
+            $('#glossary_next_page').prop('disabled', glossaryCurrentPage >= totalPages);
+        } else {
+            $pagination.hide();
+        }
+    }
+
+    $(document).on('click', '#glossary_prev_page', function (e) {
         e.preventDefault();
-        let targetLanguages = $('input[name="target_languages"]').val().split(',');
+        if (glossaryCurrentPage > 1) {
+            glossaryCurrentPage--;
+            applyGlossaryFilters();
+        }
+    });
+    $(document).on('click', '#glossary_next_page', function (e) {
+        e.preventDefault();
+        if (glossaryCurrentPage < glossaryTotalPages) {
+            glossaryCurrentPage++;
+            applyGlossaryFilters();
+        }
+    });
 
-        let $glossary = $('<div class="glossary position-relative w-100">\n' +
-            '                        <button class="conveythis-delete-page" style="top:10px"></button>\n' +
+    $(document).on('input', '#glossary_search', function () {
+        glossaryCurrentPage = 1;
+        applyGlossaryFilters();
+    });
+
+    $(document).on('change', '#glossary_filter_language', function () {
+        glossaryCurrentPage = 1;
+        applyGlossaryFilters();
+    });
+
+    $(document).on('change', '#glossary_wrapper select.target_language', function () {
+        var val = $(this).val() || '';
+        $(this).closest('.glossary').data('target-language', val);
+    });
+
+    $(document).on('click', '[data-action="delete-glossary-row"]', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        var $row = $(this).closest('.glossary');
+        if ($row.length) {
+            $row.remove();
+            applyGlossaryFilters();
+        }
+        return false;
+    });
+
+    function appendGlossaryRow(ruleData) {
+        ruleData = ruleData || {};
+        var sourceText = ruleData.source_text || '';
+        var rule = ruleData.rule === 'replace' ? 'replace' : 'prevent';
+        var translateText = ruleData.translate_text || '';
+        var targetLang = ruleData.target_language || '';
+        var targetLanguages = ($('input[name="target_languages"]').val() || '').trim().split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var $glossary = $('<div class="glossary position-relative w-100">\n' +
+            '                        <a role="button" class="conveythis-delete-page glossary-delete-btn" data-action="delete-glossary-row" style="top:10px" aria-label="Delete rule"></a>\n' +
             '                        <div class="row w-100 mb-2">\n' +
             '                            <div class="col-md-3">\n' +
             '                                <div class="ui input">\n' +
@@ -734,13 +966,10 @@ jQuery(document).ready(function ($) {
             '                                </div>\n' +
             '                            </div>\n' +
             '                            <div class="col-md-3">\n' +
-            '                                <div class="dropdown fluid">\n' +
-            '                                    <i class="dropdown icon"></i>\n' +
-            '                                    <select class="dropdown fluid ui form-control rule w-100" required>\n' +
-            '                                        <option value="prevent">Don\'t translate</option>\n' +
-            '                                        <option value="replace">Translate as</option>\n' +
-            '                                    </select>\n' +
-            '                                </div>\n' +
+            '                                <select class="form-control rule w-100" required>\n' +
+            '                                    <option value="prevent">Don\'t translate</option>\n' +
+            '                                    <option value="replace">Translate as</option>\n' +
+            '                                </select>\n' +
             '                            </div>\n' +
             '                            <div class="col-md-3">\n' +
             '                                <div class="ui input">\n' +
@@ -748,44 +977,324 @@ jQuery(document).ready(function ($) {
             '                                </div>\n' +
             '                            </div>\n' +
             '                            <div class="col-md-3">\n' +
-            '                                <div class="dropdown fluid">\n' +
-            '                                    <i class="dropdown icon"></i>\n' +
-            '                                    <select class="dropdown fluid ui form-control target_language w-100">\n' +
-            '                                        <option value="">All languages</option>\n' +
-            '                                    </select>\n' +
-            '                                </div>\n' +
+            '                                <select class="form-control target_language w-100">\n' +
+            '                                    <option value="">All languages</option>\n' +
+            '                                </select>\n' +
             '                            </div>\n' +
             '                        </div>\n' +
             '                    </div>');
 
 
-        let $targetLanguages = $glossary.find('.target_language');
-        for (let language_id in languages) {
-            let language = languages[language_id];
-            if (targetLanguages.includes(language.code2)) {
-                $targetLanguages.append('<option value="' + language.code2 + '">' + language.title_en + '</option>');
+        var $targetLanguagesSelect = $glossary.find('select.target_language');
+        for (var language_id in languages) {
+            var language = languages[language_id];
+            if (targetLanguages.indexOf(language.code2) !== -1) {
+                $targetLanguagesSelect.append('<option value="' + language.code2 + '">' + language.title_en + '</option>');
             }
         }
 
-        $glossary.find('.conveythis-delete-page').on('click', function (e) {
-            e.preventDefault();
-            $(this).parent().remove();
-        });
+        $glossary.find('input.source_text').val(sourceText);
+        $glossary.find('select.rule').val(rule);
+        $glossary.find('input.translate_text').val(translateText);
+        var shouldEnable = (rule === 'replace');
+        $glossary.find('input.translate_text').prop('disabled', !shouldEnable);
+        $targetLanguagesSelect.val(targetLang);
+        $glossary.data('target-language', targetLang);
 
         $("#glossary_wrapper").append($glossary);
-        $('.ui.dropdown').dropdown()
 
-        $(document).find('div.glossary .rule select').on('change', function (e) {
-            e.preventDefault();
-            let $rule = $(this).parent().closest('.glossary').find('.translate_text');
-            if (this.value == 'prevent') {
-                $rule.attr('disabled', 'disabled');
-            } else {
-                $rule.removeAttr('disabled');
+        applyGlossaryFilters();
+    }
+
+    $('#add_glossary').on('click', function (e) {
+        e.preventDefault();
+        appendGlossaryRow({});
+    });
+
+    function syncGlossaryLanguageDropdowns() {
+        var targetCodes = ($('input[name="target_languages"]').val() || '').trim().split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var $filter = $('#glossary_filter_language');
+        if ($filter.length) {
+            var currentFilter = $filter.val();
+            $filter.empty().append('<option value="">Show all</option><option value="__all__">All languages</option>');
+            for (var id in languages) {
+                if (languages.hasOwnProperty(id) && targetCodes.indexOf(languages[id].code2) !== -1) {
+                    $filter.append('<option value="' + languages[id].code2 + '">' + (languages[id].title_en || languages[id].code2) + '</option>');
+                }
+            }
+            if (currentFilter && $filter.find('option[value="' + currentFilter + '"]').length) $filter.val(currentFilter);
+        }
+        $('#glossary_wrapper').children('.glossary').each(function () {
+            var $select = $(this).find('select.target_language');
+            if (!$select.length) return;
+            var currentVal = $select.val();
+            $select.empty().append('<option value="">All languages</option>');
+            for (var id in languages) {
+                if (languages.hasOwnProperty(id) && targetCodes.indexOf(languages[id].code2) !== -1) {
+                    $select.append('<option value="' + languages[id].code2 + '">' + (languages[id].title_en || languages[id].code2) + '</option>');
+                }
+            }
+            if (currentVal && $select.find('option[value="' + currentVal + '"]').length) $select.val(currentVal);
+            $(this).data('target-language', $select.val() || '');
+        });
+    }
+
+    syncGlossaryLanguageDropdowns();
+    applyGlossaryFilters();
+
+    function getGlossaryRuleFromRow($row) {
+        var $ruleEl = $row.find('select.rule');
+        var rule = $ruleEl.length ? ($ruleEl.val() || '') : '';
+        if (!rule && $ruleEl.length && $ruleEl.data('dropdown')) {
+            try { rule = $ruleEl.dropdown('get value') || ''; } catch (e) {}
+        }
+        rule = (rule === 'replace' || rule === 'prevent') ? rule : 'prevent';
+
+        var $sourceInput = $row.find('input.source_text');
+        var $translateInput = $row.find('input.translate_text');
+        var source = ($sourceInput.val() || '').trim();
+        var translate = ($translateInput.val() || '').trim();
+        var lang = $row.data('target-language');
+        if (lang === undefined || lang === null) {
+            var $langEl = $row.find('select.target_language');
+            lang = $langEl.length ? ($langEl.val() || '') : '';
+            if (!lang && $langEl.length && $langEl.data('dropdown')) {
+                try { lang = $langEl.dropdown('get value') || ''; } catch (e) {}
+            }
+            lang = (lang || '').trim();
+        } else {
+            lang = String(lang).trim();
+        }
+        return { rule: rule, source_text: source, translate_text: translate, target_language: lang };
+    }
+
+    function getGlossaryRulesForExport() {
+        var rules = [];
+        $('#glossary_wrapper').children('.glossary').each(function () {
+            var data = getGlossaryRuleFromRow($(this));
+            if (data.rule && data.source_text) {
+                rules.push(data);
             }
         });
+        return rules;
+    }
 
+    function getGlossaryRulesForSave() {
+        var rules = [];
+        var $wrapper = $('#glossary_wrapper');
+        var $rows = $wrapper.children('.glossary');
+        var $rowsAny = $wrapper.find('.glossary');
+        if ($rows.length === 0 && $rowsAny.length > 0) {
+            $rows = $rowsAny;
+        }
+        $rows.each(function (i) {
+            var $row = $(this);
+            var data = getGlossaryRuleFromRow($row);
+            if (data.rule && data.source_text) {
+                var gl = { rule: data.rule, source_text: data.source_text, translate_text: data.translate_text, target_language: data.target_language };
+                var id = $row.find('input.glossary_id').val();
+                if (id) gl.glossary_id = id;
+                rules.push(gl);
+            }
+        });
+        return rules;
+    }
+
+    function escapeCsvField(val) {
+        var s = String(val == null ? '' : val);
+        if (s.indexOf('"') !== -1) {
+            s = s.replace(/"/g, '""');
+        }
+        if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1 || s.indexOf('\r') !== -1) {
+            s = '"' + s + '"';
+        }
+        return s;
+    }
+
+    function parseCsvLine(line) {
+        var fields = [];
+        var i = 0;
+        while (i < line.length) {
+            if (line[i] === '"') {
+                i++;
+                var f = '';
+                while (i < line.length) {
+                    if (line[i] === '"' && (i + 1 >= line.length || line[i + 1] !== '"')) {
+                        i++;
+                        break;
+                    }
+                    if (line[i] === '"' && line[i + 1] === '"') {
+                        f += '"';
+                        i += 2;
+                        continue;
+                    }
+                    f += line[i];
+                    i++;
+                }
+                fields.push(f);
+                if (line[i] === ',') i++;
+            } else {
+                var start = i;
+                while (i < line.length && line[i] !== ',') i++;
+                fields.push(line.slice(start, i).replace(/^\s+|\s+$/g, ''));
+                if (line[i] === ',') i++;
+            }
+        }
+        return fields;
+    }
+
+    function parseGlossaryCsv(csvText) {
+        var lines = csvText.split(/\r\n|\r|\n/);
+        var rows = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line) continue;
+            var fields = parseCsvLine(line);
+            if (fields.length < 4) {
+                while (fields.length < 4) fields.push('');
+            }
+            rows.push({
+                rule: (fields[0] || '').trim().toLowerCase() === 'replace' ? 'replace' : 'prevent',
+                source_text: (fields[1] || '').trim(),
+                translate_text: (fields[2] || '').trim(),
+                target_language: (fields[3] || '').trim().toLowerCase() === 'all' ? '' : (fields[3] || '').trim()
+            });
+        }
+        return rows;
+    }
+
+    $('#glossary_export').on('click', function () {
+        var rules = getGlossaryRulesForExport();
+        var header = 'rule,source_text,translate_text,target_language';
+        var rows = [header];
+        for (var i = 0; i < rules.length; i++) {
+            var r = rules[i];
+            var targetLang = (r.target_language && r.target_language.trim()) ? r.target_language.trim() : 'all';
+            var translateVal = (r.rule === 'prevent') ? '' : (r.translate_text || '');
+            var targetVal = (r.rule === 'prevent') ? '' : targetLang;
+            rows.push([
+                escapeCsvField(r.rule),
+                escapeCsvField(r.source_text),
+                escapeCsvField(translateVal),
+                escapeCsvField(targetVal)
+            ].join(','));
+        }
+        var csv = rows.join('\r\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'conveythis-glossary-' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
     });
+
+    $('#glossary_import').on('click', function () {
+        $('#glossary_import_file').click();
+    });
+
+    $('#glossary_import_file').on('change', function () {
+        var input = this;
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+            var text = reader.result;
+            var added = 0;
+            var invalid = 0;
+            var skippedLang = 0;
+            var isCsv = /\.csv$/i.test(file.name);
+            var availableLangs = ($('input[name="target_languages"]').val() || '').split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+
+            function isTargetLanguageAllowed(targetLang) {
+                if (!targetLang) return true;
+                var code = targetLang.trim().toLowerCase();
+                return availableLangs.indexOf(code) !== -1;
+            }
+
+            if (isCsv) {
+                try {
+                    var rows = parseGlossaryCsv(text);
+                    if (rows.length > 0 && rows[0].source_text === 'source_text' && rows[0].translate_text === 'translate_text') {
+                        rows.shift();
+                    }
+                    for (var c = 0; c < rows.length; c++) {
+                        var row = rows[c];
+                        if (!row.source_text) {
+                            invalid++;
+                            continue;
+                        }
+                        if (!isTargetLanguageAllowed(row.target_language)) {
+                            skippedLang++;
+                            continue;
+                        }
+                        appendGlossaryRow({
+                            source_text: row.source_text,
+                            rule: row.rule,
+                            translate_text: row.translate_text || '',
+                            target_language: row.target_language || ''
+                        });
+                        added++;
+                    }
+                    var skipMsg = (invalid > 0 ? ' Skipped ' + invalid + ' invalid.' : '') + (skippedLang > 0 ? ' Skipped ' + skippedLang + ' (language not available).' : '');
+                    if (added > 0) {
+                        alert('Imported ' + added + ' rule(s) from CSV.' + skipMsg);
+                    } else if (invalid > 0 || skippedLang > 0) {
+                        alert('No rules imported.' + skipMsg);
+                    } else {
+                        alert('No data rows to import. Expected header: rule,source_text,translate_text,target_language');
+                    }
+                } catch (err) {
+                    console.error('[Glossary Import] CSV parse error:', err);
+                    alert('Invalid CSV file: ' + (err.message || 'parse error'));
+                }
+                input.value = '';
+                return;
+            }
+
+            try {
+                var data = JSON.parse(text);
+                if (!Array.isArray(data)) {
+                    alert('Invalid file: expected a JSON array of glossary rules.');
+                    input.value = '';
+                    return;
+                }
+                for (var i = 0; i < data.length; i++) {
+                    var item = data[i];
+                    if (!item || typeof item.source_text === 'undefined' || !item.source_text) {
+                        invalid++;
+                        continue;
+                    }
+                    var itemTargetLang = item.target_language != null ? String(item.target_language).trim() : '';
+                    if (!isTargetLanguageAllowed(itemTargetLang)) {
+                        skippedLang++;
+                        continue;
+                    }
+                    var rule = (item.rule === 'replace' || item.rule === 'prevent') ? item.rule : 'prevent';
+                    appendGlossaryRow({
+                        source_text: String(item.source_text).trim(),
+                        rule: rule,
+                        translate_text: item.translate_text != null ? String(item.translate_text).trim() : '',
+                        target_language: itemTargetLang
+                    });
+                    added++;
+                }
+                var skipMsgJson = (invalid > 0 ? ' Skipped ' + invalid + ' invalid.' : '') + (skippedLang > 0 ? ' Skipped ' + skippedLang + ' (language not available).' : '');
+                if (added > 0) {
+                    alert('Imported ' + added + ' rule(s).' + skipMsgJson);
+                } else if (invalid > 0 || skippedLang > 0) {
+                    alert('No rules imported.' + skipMsgJson);
+                } else {
+                    alert('No rules to import.');
+                }
+            } catch (err) {
+                alert('Invalid file. Use CSV (rule,source_text,translate_text,target_language) or JSON array.');
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    });
+
 
     $(document).on('input', '#link_enter', function () {
         var inputVal = $(this).val();
@@ -888,15 +1397,39 @@ jQuery(document).ready(function ($) {
         })
     });
 
-    $(document).find('div.glossary .rule select').on('change', function (e) {
+    $(document).on('change', '#glossary_wrapper select.rule', function (e) {
         e.preventDefault();
-
-        let $rule = $(this).parent().closest('.glossary').find('.translate_text');
-        if (this.value == 'prevent') {
-            $rule.attr('disabled', 'disabled');
+        var $row = $(this).closest('.glossary');
+        var $input = $row.find('input.translate_text');
+        if (this.value === 'prevent') {
+            $input.prop('disabled', true);
         } else {
-            $rule.removeAttr('disabled');
+            $input.prop('disabled', false);
         }
+    });
+
+    function syncGlossaryTranslateInputs() {
+        var $rows = $('#glossary_wrapper').children('.glossary');
+        $rows.each(function (i) {
+            var $row = $(this);
+            var $ruleSelect = $row.find('select.rule');
+            var rule = $ruleSelect.val();
+            var $input = $row.find('input.translate_text');
+            var disabled = (rule !== 'replace');
+            $input.prop('disabled', disabled);
+        });
+    }
+
+    function initGlossaryRuleDropdowns() {
+        syncGlossaryTranslateInputs();
+    }
+
+    syncGlossaryTranslateInputs();
+    setTimeout(initGlossaryRuleDropdowns, 500);
+    $(document).on('shown.bs.tab', 'button[data-bs-target="#v-pills-glossary"], a[data-bs-target="#v-pills-glossary"]', function () {
+        syncGlossaryLanguageDropdowns();
+        initGlossaryRuleDropdowns();
+        applyGlossaryFilters();
     });
 
     $('#add_exlusion_block').on('click', function (e) {
@@ -1099,7 +1632,6 @@ jQuery(document).ready(function ($) {
     }
 
     $('.conveythis-widget-option-form, #login-form-settings').submit(function (e) {
-        console.log("'.conveythis-widget-option-form, #login-form-settings').submit")
         let apiKey = $("#conveythis_api_key").val();
         /*
         let validation = checkValidation();
@@ -1107,7 +1639,6 @@ jQuery(document).ready(function ($) {
             e.preventDefault();
         }
          */
-        console.log("skip old validation")
 
         let targetLanguagesTranslations = {};
         let $tLangTranslations = $("#target_languages_translations input[language_id]");
@@ -1139,29 +1670,8 @@ jQuery(document).ready(function ($) {
         });
         $('input[name="exclusions"]').val(JSON.stringify(exclusions));
 
-        let glossaryRules = [];
-        $('div.glossary').each(function () {
-            let rule = $(this).find('.rule select').val();
-
-            let sourceText = $(this).find('input.source_text').val().trim();
-            let translateText = $(this).find('input.translate_text').val().trim();
-            let targetLanguage = $(this).find('.target_language select').val().trim();
-            if (rule && sourceText) {
-                let gl = {
-                    rule: rule,
-                    source_text: sourceText,
-                    translate_text: translateText,
-                    target_language: targetLanguage
-                };
-                let glossaryId = $(this).find('input.glossary_id').val();
-                if (glossaryId) {
-                    gl.glossary_id = glossaryId;
-                }
-                glossaryRules.push(gl);
-            }
-        });
-
-        $('input[name="glossary"]').val(JSON.stringify(glossaryRules));
+        let glossaryRules = getGlossaryRulesForSave();
+        $('#glossary_data').val(JSON.stringify(glossaryRules));
 
         let exclusion_blocks = [];
         $('div.exclusion_block').each(function () {
@@ -1222,24 +1732,25 @@ jQuery(document).ready(function ($) {
         });
         $('input[name="exclusions"]').val(JSON.stringify(exclusions));
 
-        let glossary = [];
-        $('div.glossary').each(function () {
-            let rule = $(this).find('.rule select').val();
-            let source = $(this).find('input.source_text').val().trim();
-            let translate = $(this).find('input.translate_text').val().trim();
-            let lang = $(this).find('.target_language select').val().trim();
-            if (rule && source) {
-                let gl = {rule, source_text: source, translate_text: translate, target_language: lang};
-                let id = $(this).find('input.glossary_id').val();
-                if (id) gl.glossary_id = id;
-                glossary.push(gl);
-            }
+        var $glossaryRows = $('#glossary_wrapper').children('.glossary');
+        $glossaryRows.each(function (i) {
+            var $row = $(this);
+            $row.find('select.rule, select.target_language').each(function () {
+                var $sel = $(this);
+                if ($sel.data('dropdown')) {
+                    try {
+                        var v = $sel.dropdown('get value');
+                        if (v !== undefined && v !== null) $sel.val(v);
+                    } catch (e) {}
+                }
+            });
         });
-        $('input[name="glossary"]').val(JSON.stringify(glossary));
+        let glossary = getGlossaryRulesForSave();
+        $('#glossary_data').val(JSON.stringify(glossary));
 
         // Prepare style_change_language and style_change_flag arrays
         // CRITICAL: Sync dropdown values to hidden inputs before collecting
-        
+
         // First, ensure all dropdown values are synced to hidden inputs
         $('.style-language').each(function () {
             let $row = $(this);
@@ -1247,11 +1758,11 @@ jQuery(document).ready(function ($) {
             let $flagDropdown = $row.find('.ui.dropdown.change_flag');
             let $languageInput = $row.find('input[name="style_change_language[]"]');
             let $flagInput = $row.find('input[name="style_change_flag[]"]');
-            
+
             // Get current dropdown values
             let langValue = $languageDropdown.dropdown('get value');
             let flagValue = $flagDropdown.dropdown('get value');
-            
+
             // Update hidden inputs with current dropdown values
             if ($languageInput.length && langValue) {
                 $languageInput.val(langValue);
@@ -1260,27 +1771,27 @@ jQuery(document).ready(function ($) {
                 $flagInput.val(flagValue);
             }
         });
-        
+
         // Now collect from hidden inputs
         let style_change_language = [];
         let style_change_flag = [];
-        
+
         $('.style-language').each(function () {
             let $row = $(this);
             let $languageInput = $row.find('input[name="style_change_language[]"]');
             let $flagInput = $row.find('input[name="style_change_flag[]"]');
-            
+
             // Get values from hidden inputs
             let langValue = $languageInput.length ? $languageInput.val() : '';
             let flagValue = $flagInput.length ? $flagInput.val() : '';
-            
+
             // Only add if language is set
             if (langValue && langValue.trim() !== '') {
                 style_change_language.push(langValue.trim());
                 style_change_flag.push(flagValue ? flagValue.trim() : '');
             }
         });
-        
+
 
         let exclusion_blocks = [];
         $('div.exclusion_block').each(function () {
@@ -1361,19 +1872,19 @@ jQuery(document).ready(function ($) {
                 selectedLanguages.push(langValue.trim());
             }
         });
-        
+
         // Update all language dropdowns
         $('.ui.dropdown.change_language').each(function() {
             let $currentDropdown = $(this);
             let $currentRow = $currentDropdown.closest('.style-language');
             let $currentInput = $currentRow.find('input[name="style_change_language[]"]');
             let currentValue = $currentInput.length ? $currentInput.val() : '';
-            
+
             // Enable/disable items in this dropdown
             $currentDropdown.find('.menu .item').each(function() {
                 let $item = $(this);
                 let itemValue = $item.attr('data-value');
-                
+
                 // If this language is selected in another row, disable it (unless it's the current row's selection)
                 if (selectedLanguages.includes(itemValue) && itemValue !== currentValue) {
                     $item.addClass('disabled');
@@ -1399,7 +1910,7 @@ jQuery(document).ready(function ($) {
                 updateLanguageDropdownAvailability();
 
                 let $dropdown = $(this).closest('.row').find('.ui.dropdown.change_flag');
-                
+
                 // Check if flag_codes exists for this language
                 if (languages[value] && languages[value]['flag_codes']) {
                     let flagCodes = languages[value]['flag_codes'];
@@ -1419,7 +1930,7 @@ jQuery(document).ready(function ($) {
                                         </div>');
                         $dropdown.find('.menu').append(newItem);
                     });
-                    
+
                     // Destroy and reinitialize dropdown to ensure it recognizes new items
                     try {
                         $dropdown.dropdown('destroy');
@@ -1442,13 +1953,13 @@ jQuery(document).ready(function ($) {
             },
             onRemove: function (value) {
                 // When language is cleared/removed
-                
+
                 // Clear the hidden input
                 let $languageInput = $(this).closest('.row').find('input[name="style_change_language[]"]');
                 if ($languageInput.length) {
                     $languageInput.val('');
                 }
-                
+
                 // Update availability - re-enable this language in other dropdowns
                 updateLanguageDropdownAvailability();
             }
@@ -1479,19 +1990,19 @@ jQuery(document).ready(function ($) {
             // Initialize language dropdown if value exists
             if ($languageInput.length && $languageInput.val()) {
                 let languageValue = $languageInput.val();
-                
+
                 // Set the language dropdown value
                 if (languages[languageValue]) {
                     $languageDropdown.dropdown('set selected', languageValue);
-                    
+
                     // Populate flags if flag_codes exists
                     if (languages[languageValue]['flag_codes']) {
                         let flagCodes = languages[languageValue]['flag_codes'];
-                        
+
                         // Clear existing menu items
                         $flagDropdown.find('.menu').empty();
                         $flagDropdown.find('.text').text('Select Flag');
-                        
+
                         $.each(flagCodes, function (code, title) {
                             let newItem = $('<div class="item" data-value="' + code + '">\
                                 <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%;\
@@ -1501,7 +2012,7 @@ jQuery(document).ready(function ($) {
                             </div>');
                             $flagDropdown.find('.menu').append(newItem);
                         });
-                        
+
                         // Destroy and reinitialize dropdown to ensure it recognizes new items
                         try {
                             $flagDropdown.dropdown('destroy');
@@ -1519,13 +2030,12 @@ jQuery(document).ready(function ($) {
                 }
             }
         });
-        
+
         // Update language availability after initialization
         updateLanguageDropdownAvailability();
     }
 
     function getUserPlan() {
-        console.log("* getUserPlan()")
         try {
             let apiKey = $("#conveythis_api_key").val();
 
@@ -1534,8 +2044,6 @@ jQuery(document).ready(function ($) {
                     url: "https://api.conveythis.com/admin/account/plan/api-key/" + apiKey + "/",
                     success: function (result) {
                         if (result.data && result.data.languages) {
-                            console.log("### plan result ###");
-                            console.log(result)
                             let plan_name = ""
                             if(result.data.meta.alias){
                                 plan_name = result.data.meta.alias
@@ -1545,7 +2053,6 @@ jQuery(document).ready(function ($) {
 
                                 if(result.data.trial_expires_at  && plan_name === 'pro_trial'  ){
                                     let trial_expires_at = result.data.trial_expires_at
-                                    console.log("trial_expires_at:" + trial_expires_at)
                                     let expiryDate = new Date(result.data.trial_expires_at);
                                     let currentDate = new Date();
 
@@ -1566,20 +2073,20 @@ jQuery(document).ready(function ($) {
 
                                     $("#trial_days_message").html(trial_days_message)
                                     $("#trial_days_info").removeClass("d-none")
-/*
-                                    if (remainingDays > 0) {
-                                        $('#trial-days').text(remainingDays);
-                                        $('#trial-period').text(' days');
-                                        $('#conveythis_trial_period').css('display', 'block');
-                                    } else if (remainingDays === 0) {
-                                        $('#trial-days').text('Less than 24');
-                                        $('#trial-period').text('hours');
-                                        $('#conveythis_trial_period').css('display', 'block');
-                                    } else {
-                                        console.log("Your trial has expired.");
-                                    }
+                                    /*
+                                                                        if (remainingDays > 0) {
+                                                                            $('#trial-days').text(remainingDays);
+                                                                            $('#trial-period').text(' days');
+                                                                            $('#conveythis_trial_period').css('display', 'block');
+                                                                        } else if (remainingDays === 0) {
+                                                                            $('#trial-days').text('Less than 24');
+                                                                            $('#trial-period').text('hours');
+                                                                            $('#conveythis_trial_period').css('display', 'block');
+                                                                        } else {
+                                                                            console.log("Your trial has expired.");
+                                                                        }
 
- */
+                                     */
                                 }
 
 
@@ -1648,31 +2155,31 @@ jQuery(document).ready(function ($) {
                                 $('#conveythis_clear_cache').prop('disabled', true);
                             }
 
-/*
-                            const expiryDate = new Date(result.data.trial_expires_at);
-                            const currentDate = new Date();
+                            /*
+                                                        const expiryDate = new Date(result.data.trial_expires_at);
+                                                        const currentDate = new Date();
 
-                            const diffInMs = expiryDate - currentDate;
-                            const remainingDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+                                                        const diffInMs = expiryDate - currentDate;
+                                                        const remainingDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
 
-                            if (remainingDays > 0) {
-                                $('#trial-days').text(remainingDays);
-                                $('#trial-period').text(' days');
-                                $('#conveythis_trial_period').css('display', 'block');
-                            } else if (remainingDays === 0) {
-                                $('#trial-days').text('Less than 24');
-                                $('#trial-period').text('hours');
-                                $('#conveythis_trial_period').css('display', 'block');
-                            } else {
-                                console.log("Your trial has expired.");
-                            }
-*/
+                                                        if (remainingDays > 0) {
+                                                            $('#trial-days').text(remainingDays);
+                                                            $('#trial-period').text(' days');
+                                                            $('#conveythis_trial_period').css('display', 'block');
+                                                        } else if (remainingDays === 0) {
+                                                            $('#trial-days').text('Less than 24');
+                                                            $('#trial-period').text('hours');
+                                                            $('#conveythis_trial_period').css('display', 'block');
+                                                        } else {
+                                                            console.log("Your trial has expired.");
+                                                        }
+                            */
 
-/*
-                            if (result.data.is_trial_expired === "1") {
-                                $('#conveythis_trial_finished').css('display', 'block')
-                            }
- */
+                            /*
+                                                        if (result.data.is_trial_expired === "1") {
+                                                            $('#conveythis_trial_finished').css('display', 'block')
+                                                        }
+                             */
 
 
                             if (typeof (result.data.is_confirmed) !== "undefined" && result.data.is_confirmed !== null
