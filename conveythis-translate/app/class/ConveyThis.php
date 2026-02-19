@@ -411,7 +411,9 @@ class ConveyThis {
 
                 if ($field === 'style_change_language' || $field === 'style_change_flag') {
                     if (is_array($value)) {
-                        $value = array_values($value);
+                        $value = array_values(array_filter($value, function ($v) {
+                            return $v !== '' && $v !== null;
+                        }));
                     }
                 }
 

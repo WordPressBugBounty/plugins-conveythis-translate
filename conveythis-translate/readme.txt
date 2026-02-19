@@ -5,7 +5,7 @@ Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 269.4
+Stable tag: 269.5
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -217,6 +217,9 @@ Learn how your data and content are securely handled by ConveyThis.
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 269.5 =
+* Instructions for Exclusion pages added
+
 = 269.4 =
 * Updated Glossary, Import/Export and Aggregation, Pagination features.
 * Style improvements.

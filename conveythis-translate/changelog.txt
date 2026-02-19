@@ -1,4 +1,7 @@
 == Changelog ==
+= 269.5 =
+* Instructions for Exclusion pages added
+
 = 269.4 =
 * Updated Glossary, Import/Export, Aggregation and Pagination features.
 * Style improvements.

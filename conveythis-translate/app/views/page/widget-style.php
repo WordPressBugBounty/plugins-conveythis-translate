@@ -70,6 +70,7 @@
                 <div class="row w-100">
                     <div class="col-md-6">
                         <div class="ui fluid search selection dropdown change_language">
+                            <input type="hidden" name="style_change_language[]" value="">
                             <i class="dropdown icon"></i>
                             <div class="default text"><?php echo  esc_html(__( 'Select language', 'conveythis-translate' )); ?></div>
                             <div class="menu">
@@ -87,6 +88,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="ui fluid search selection dropdown change_flag">
+                            <input type="hidden" name="style_change_flag[]" value="">
                             <i class="dropdown icon"></i>
                             <div class="default text"><?php echo  esc_html(__( 'Select Flag', 'conveythis-translate' )); ?></div>
                             <div class="menu">
