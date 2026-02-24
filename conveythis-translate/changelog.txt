@@ -1,4 +1,7 @@
 == Changelog ==
+= 269.6 =
+* Dialects + fixes added
+
 = 269.5 =
 * Instructions for Exclusion pages added
 

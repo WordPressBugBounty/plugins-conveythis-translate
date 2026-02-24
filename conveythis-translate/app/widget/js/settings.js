@@ -679,7 +679,16 @@ jQuery(document).ready(function ($) {
         906: {'title_en': 'Tswana', 'title': 'Tswana', 'code2': 'tn', 'code3': 'tsn', 'flag': 'Vf3'},
         907: {'title_en': 'Twi', 'title': 'Twi', 'code2': 'ak', 'code3': 'aka', 'flag': '6Mr'},
         908: {'title_en': 'Upper Sorbian', 'title': 'Upper Sorbian', 'code2': 'hsb', 'code3': 'hsb', 'flag': 'K7e'},
-        909: {'title_en': 'Yucatec Maya', 'title': 'Yucatec Maya', 'code2': 'yua', 'code3': 'yua', 'flag': '8Qb'}
+        909: {'title_en': 'Yucatec Maya', 'title': 'Yucatec Maya', 'code2': 'yua', 'code3': 'yua', 'flag': '8Qb'},
+
+        // New Languages
+        910: {'title_en': 'Arabic (Egypt)', 'title': 'Arabic (Egypt)', 'code2': 'ar-eg', 'code3': 'ara', 'flag': 'eg'},
+        911: {'title_en': 'Arabic (UAE)', 'title': 'Arabic (UAE)', 'code2': 'ar-ae', 'code3': 'ara', 'flag': 'ae'},
+        912: {'title_en': 'English (UK)', 'title': 'English (UK)', 'code2': 'en-gb', 'code3': 'eng', 'flag': 'gb'},
+        913: {'title_en': 'English (Australia)', 'title': 'English (Australia)', 'code2': 'en-au', 'code3': 'eng', 'flag': 'au'},
+        914: {'title_en': 'Spanish (Mexico)', 'title': 'Spanish (Mexico)', 'code2': 'es-mx', 'code3': 'spa', 'flag': 'mx'},
+        915: {'title_en': 'Spanish (USA)', 'title': 'Spanish (USA)', 'code2': 'es-us', 'code3': 'spa', 'flag': 'us'},
+        916: {'title_en': 'French (Canada)', 'title': 'French (Canada)', 'code2': 'fr-ca', 'code3': 'fre', 'flag': 'ca'},
     }
 
     $("#range-style-indenting-vertical").slider({

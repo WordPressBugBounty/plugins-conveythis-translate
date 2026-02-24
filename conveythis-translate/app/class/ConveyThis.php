@@ -9,8 +9,19 @@ class ConveyThis {
     private $ConveyThisSEO;
     private $nodePathList = [];
     private $nodePathListSpace = [];
+    private $templateVarMap = [];
 
     function __construct() {
+        if (!isset($_SERVER['HTTP_HOST'])) {
+            $_SERVER['HTTP_HOST'] = parse_url(home_url(), PHP_URL_HOST) ?: '';
+        }
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            $_SERVER['REQUEST_URI'] = '/';
+        }
+        if (!isset($_SERVER['REQUEST_SCHEME'])) {
+            $_SERVER['REQUEST_SCHEME'] = is_ssl() ? 'https' : 'http';
+        }
+
         $this->print_log('__construct()');
         $this->print_log("***********************");
         $this->print_log("CONVEYTHIS_APP_URL:" . CONVEYTHIS_APP_URL);
@@ -2479,11 +2490,22 @@ class ConveyThis {
         $doc->preserveWhiteSpace = false;
         $doc->formatOutput = true;
         libxml_use_internal_errors(true);
-        if (extension_loaded('mbstring')) {
-            $doc->loadHTML(mb_convert_encoding($output, 'HTML-ENTITIES', 'UTF-8'));
+
+        // Inject UTF-8 charset declaration so DOMDocument interprets the
+        // document correctly. Replaces deprecated mb_convert_encoding().
+        // Compatible with PHP 7.x and PHP 8.x.
+        if (stripos($output, '<head') !== false) {
+            $output = preg_replace(
+                '/<head(\s[^>]*)?>/i',
+                '<head$1><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">',
+                $output,
+                1
+            );
         } else {
-            $doc->loadHTML($output);
+            $output = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>' . $output . '</body></html>';
         }
+
+        $doc->loadHTML($output);
         libxml_clear_errors();
         return $doc;
     }
@@ -2491,6 +2513,7 @@ class ConveyThis {
     function searchSegment($value) {
         $this->print_log("* searchSegment()");
         $source_text = html_entity_decode($value);
+        $source_text = $this->protectTemplateVars($source_text);
         $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
 
         if (count($this->variables->segments_hash) && !isset($this->variables->segments_hash[md5($source_text)])) {
@@ -2501,7 +2524,7 @@ class ConveyThis {
             foreach ($this->variables->items as $item) {
                 $source_text2 = isset($item['source_text']) ? html_entity_decode($item['source_text']) : '';
                 if (strcmp($source_text, trim($source_text2)) === 0) {
-                    return str_replace($source_text, $item['translate_text'], $source_text);
+                    return $this->restoreTemplateVars(str_replace($source_text, $item['translate_text'], $source_text));
                 }
             }
 
@@ -2522,7 +2545,7 @@ class ConveyThis {
                 }
 
                 if (strcmp($source_text, trim($source2Lower)) === 0) {
-                    return str_replace($source_text, $item['translate_text'], $source_text);
+                    return $this->restoreTemplateVars(str_replace($source_text, $item['translate_text'], $source_text));
                 }
             }
 
@@ -2535,7 +2558,7 @@ class ConveyThis {
                 }
 
                 if (strcmp($source_text, wp_strip_all_tags($source2Lower)) === 0) {
-                    return str_replace($source_text, $item['translate_text'], $source_text);
+                    return $this->restoreTemplateVars(str_replace($source_text, $item['translate_text'], $source_text));
                 }
             }
         }
@@ -2787,6 +2810,14 @@ class ConveyThis {
                 $content = strtr($content, $commentedScripts);
                 $content = html_entity_decode($content, ENT_HTML5, 'UTF-8');
 
+                // Remove C1 control characters (U+0080–U+009F) that are never valid in
+                // HTML or JavaScript and can cause SyntaxError in browsers.
+                // Compatible with PHP 7.x and PHP 8.x.
+                $cleaned = preg_replace('/[\x{0080}-\x{009F}]/u', '', $content);
+                if ($cleaned !== null) {
+                    $content = $cleaned;
+                }
+
                 //$this->print_log("############ content: #############");
                 // $this->print_log($content);
 
@@ -2820,11 +2851,44 @@ class ConveyThis {
         if ($segments && is_array($segments)) {
             foreach ($segments as $segment) {
                 if (preg_match('/\p{L}/u', $segment)) {
-                    $res[] = $segment;
+                    // Skip segments that consist entirely of template variables
+                    $stripped = preg_replace('/\{\{\{?.+?\}?\}\}/', '', $segment);
+                    if (trim($stripped) === '') {
+                        continue;
+                    }
+                    $res[] = $this->protectTemplateVars($segment);
                 }
             }
         }
         return $res;
+    }
+
+    /**
+     * Replace {{ ... }} and {{{ ... }}} template expressions with deterministic
+     * placeholders so they are not sent for translation.
+     * Compatible with PHP 7.x and PHP 8.x.
+     */
+    private function protectTemplateVars($text) {
+        return preg_replace_callback('/\{\{\{?.+?\}?\}\}/', function ($matches) {
+            $original = $matches[0];
+            $placeholder = 'CTXNTP_' . substr(md5($original), 0, 10);
+            $this->templateVarMap[$placeholder] = $original;
+            return $placeholder;
+        }, $text);
+    }
+
+    /**
+     * Restore template-variable placeholders back to their original {{ ... }} form.
+     */
+    private function restoreTemplateVars($text) {
+        if (!empty($this->templateVarMap)) {
+            $text = str_replace(
+                array_keys($this->templateVarMap),
+                array_values($this->templateVarMap),
+                $text
+            );
+        }
+        return $text;
     }
 
     public function allowCache($items) {
@@ -2927,7 +2991,10 @@ class ConveyThis {
             } elseif (is_string($val) && !isset($NO_TRANSLATE_KEYS[$key])) {
                 $val_trimmed = trim($val);
                 $val_trimmed = html_entity_decode($val_trimmed, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                if (isset($translations[$val_trimmed])) {
+                $val_protected = $this->protectTemplateVars($val_trimmed);
+                if (isset($translations[$val_protected])) {
+                    $val = $this->restoreTemplateVars($translations[$val_protected]);
+                } elseif (isset($translations[$val_trimmed])) {
                     $val = $translations[$val_trimmed];
                 }
             }
