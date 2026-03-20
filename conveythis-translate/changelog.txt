@@ -1,4 +1,7 @@
 == Changelog ==
+= 269.7 =
+* Login Improvements
+
 = 269.6 =
 * Dialects + fixes added
 
