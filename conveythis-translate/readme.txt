@@ -5,7 +5,7 @@ Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 269.7
+Stable tag: 269.8
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -106,7 +106,7 @@ ConveyThis Translate supports **200+ languages**, including major global languag
 
 **Popular languages:** English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Portuguese, Russian, Italian, Dutch, Ukrainian
 
-**Additional languages:** Abkhaz, Acehnese, Acholi, Afrikaans, Albanian, Alur, Amharic, Armenian, Assamese, Awadhi, Aymara, Azerbaijani, Balinese, Bambara, Bashkir, Basque, Batak Karo, Batak Simalungun, Batak Toba, Belarusian, Bemba, Bengali, Betawi, Bhojpuri, Bikol, Bodo, Bosnian, Breton, Bulgarian, Burmese, Buryat, Cantonese, Catalan, Cebuano, Chhattisgarhi, Chichewa, Chinese (Simplified), Chinese (Traditional), Chuvash, Corsican, Crimean Tatar, Croatian, Czech, Danish, Dari, Dinka, Divehi, Dogri, Dombe, Dutch, Dzongkha, English, English (UK), English (Australia), Esperanto, Estonian, Ewe, Faroese, Fijian, Finnish, French, French (Canada), Frisian, Fulfulde, Ga, Galician, Ganda, Georgian, German, Greek, Guarani, Gujarati, Haitian Creole, Hakha Chin, Hausa, Hawaiian, Hebrew, Hiligaynon, Hindi, Hmong, Hungarian, Hunsrik, Icelandic, Igbo, Iloko, Indonesian, Inuinnaqtun, Inuktitut, Irish, Italian, Japanese, Javanese, Kannada, Kapampangan, Kashmiri, Kazakh, Khmer, Kiga, Kinyarwanda, Kituba, Konkani, Korean, Krio, Kurdish, Kurdish (Central), Kyrgyz, Laotian, Latgalian, Latin, Latvian, Ligurian, Limburgan, Lingala, Lithuanian, Lombard, Lower Sorbian, Luo, Luxembourgish, Macedonian, Maithili, Makassar, Malagasy, Malay, Malayalam, Maltese, Manipuri, Maori, Marathi, Meadow Mari, Minang, Mizo, Mongolian, Ndebele (South), Nepalbhasa, Nepali, Northern Sotho, Norwegian, Nuer, Occitan, Odia, Oromo, Pangasinan, Papiamento, Pashto, Persian, Polish, Portuguese, Portuguese (Brazil), Portuguese (Portugal), Punjabi, Quechua, Queretaro Otomi, Romani, Romanian, Rundi, Samoan, Sango, Sanskrit, Scottish Gaelic, Serbian, Sesotho, Seychellois Creole, Shan, Shona, Sicilian, Silesian, Sindhi, Sinhala, Slovak, Slovenian, Somali, Spanish, Spanish (Mexico), Spanish (United States), Sundanese, Swahili, Swati, Swedish, Tagalog, Tahitian, Tajik, Tamil, Tatar, Telugu, Tetum, Thai, Tibetan, Tigrinya, Tongan, Tsonga, Tswana, Turkish, Turkmen, Twi, Ukrainian, Upper Sorbian, Urdu, Uyghur, Uzbek, Vietnamese, Welsh, Xhosa, Yiddish, Yoruba, Yucatec Maya, Zulu
+**Additional languages:** Abkhaz, Acehnese, Acholi, Afrikaans, Albanian, Alur, Amharic, Armenian, Assamese, Awadhi, Aymara, Azerbaijani, Bashkir, Balinese, Bambara, Bashkir, Basque, Batak Karo, Batak Simalungun, Batak Toba, Belarusian, Bemba, Bengali, Betawi, Bhojpuri, Bikol, Bodo, Bosnian, Breton, Bulgarian, Burmese, Buryat, Cantonese, Catalan, Cebuano, Chhattisgarhi, Chichewa, Chinese (Simplified), Chinese (Traditional), Chuvash, Corsican, Crimean Tatar, Croatian, Czech, Danish, Dari, Dinka, Divehi, Dogri, Dombe, Dutch, Dzongkha, English, English (UK), English (Australia), Esperanto, Estonian, Ewe, Faroese, Fijian, Finnish, French, French (Canada), Frisian, Fulfulde, Ga, Galician, Ganda, Georgian, German, Greek, Guarani, Gujarati, Haitian Creole, Hakha Chin, Hausa, Hawaiian, Hebrew, Hiligaynon, Hindi, Hmong, Hungarian, Hunsrik, Icelandic, Igbo, Iloko, Indonesian, Inuinnaqtun, Inuktitut, Irish, Italian, Japanese, Javanese, Kannada, Kapampangan, Kashmiri, Kazakh, Khmer, Kiga, Kinyarwanda, Kituba, Konkani, Korean, Krio, Kurdish, Kurdish (Central), Kyrgyz, Laotian, Latgalian, Latin, Latvian, Ligurian, Limburgan, Lingala, Lithuanian, Lombard, Lower Sorbian, Luo, Luxembourgish, Macedonian, Maithili, Makassar, Malagasy, Malay, Malayalam, Maltese, Manipuri, Maori, Marathi, Meadow Mari, Minang, Mizo, Mongolian, Ndebele (South), Nepalbhasa, Nepali, Northern Sotho, Norwegian, Nuer, Occitan, Odia, Oromo, Papiamento, Pangasinan, Papiamento, Pashto, Persian, Polish, Portuguese, Portuguese (Brazil), Portuguese (Portugal), Punjabi, Quechua, Queretaro Otomi, Romani, Romanian, Rundi, Samoan, Sango, Sanskrit, Scottish Gaelic, Serbian, Sesotho, Seychellois Creole, Shan, Shona, Sicilian, Silesian, Sindhi, Sinhala, Slovak, Slovenian, Somali, Spanish, Spanish (Mexico), Spanish (United States), Sundanese, Swahili, Swati, Swedish, Tagalog, Tahitian, Tajik, Tamil, Tatar, Telugu, Tetum, Thai, Tibetan, Tigrinya, Tongan, Tsonga, Tswana, Turkish, Turkmen, Twi, Ukrainian, Upper Sorbian, Urdu, Uyghur, Uzbek, Vietnamese, Welsh, Xhosa, Yiddish, Yoruba, Yucatec Maya, Zulu
 
 **Custom languages & dialects:** Choose from regional variants including English (UK, Australia), French (Canada), Spanish (US, Mexico), Portuguese (Brazil, Portugal), and Arabic (Egypt, UAE)
 
@@ -217,6 +217,10 @@ Learn how your data and content are securely handled by ConveyThis.
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 269.8 =
+* Added support for Papiamento and Bashkir languages
+* Applied fix for SEO hreflang translations
+
 = 269.7 =
 * Login Improvements
 

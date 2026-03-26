@@ -1,4 +1,8 @@
 == Changelog ==
+= 269.8 =
+* Added support for Papiamento and Bashkir languages
+* Applied fix for SEO hreflang translations
+
 = 269.7 =
 * Login Improvements
 

@@ -1184,16 +1184,17 @@ class ConveyThis {
 
                 if (!empty($this->variables->alternate)) {
                     add_action('wp_head', array($this, 'alternate'), 0);
-                    if (!empty($this->variables->language_code)) {
-                        add_filter('locale', function ($value) {
-                            return $this->variables->language_code;
-                        });
-                    } elseif (!class_exists('WooCommerce')) {
-                        add_filter('locale', function ($value) {
-                            $langs = explode('_', $value);
-                            return $langs[0];
-                        });
-                    }
+                }
+
+                if (!empty($this->variables->language_code)) {
+                    add_filter('locale', function ($value) {
+                        return $this->variables->language_code;
+                    });
+                } elseif (!class_exists('WooCommerce')) {
+                    add_filter('locale', function ($value) {
+                        $langs = explode('_', $value);
+                        return $langs[0];
+                    });
                 }
                 $local_lang = get_locale();
                 $this->print_log("##### local_lang: " . $local_lang);
@@ -1208,6 +1209,17 @@ class ConveyThis {
                         add_action('wp_head', array($this, 'alternate'), 0);
                     }
                     add_action('wp_footer', array($this, 'inline_script'));
+                }
+
+                if (!empty($this->variables->language_code)) {
+                    add_filter('locale', function ($value) {
+                        return $this->variables->language_code;
+                    });
+                } elseif (!class_exists('WooCommerce')) {
+                    add_filter('locale', function ($value) {
+                        $langs = explode('_', $value);
+                        return $langs[0];
+                    });
                 }
                 $local_lang = get_locale();
                 $this->print_log("##### local_lang: " . $local_lang);
