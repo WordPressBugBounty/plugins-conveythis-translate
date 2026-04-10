@@ -1,4 +1,7 @@
 == Changelog ==
+= 269.9 =
+* Glossary fixes
+
 = 269.8 =
 * Added support for Papiamento and Bashkir languages
 * Applied fix for SEO hreflang translations

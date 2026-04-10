@@ -377,6 +377,7 @@ class ConveyThis {
         }
         // So that update_option('glossary') later saves the same full array we send to the API
         if (is_array($glossary)) {
+            $glossary = $this->filter_glossary_to_active_target_languages($glossary);
             $incoming['glossary'] = $glossary;
         }
 
@@ -3037,6 +3038,47 @@ class ConveyThis {
         return $ldJsonScripts;
     }
 
+    /**
+     * Remove glossary rows tied to a target language that is no longer selected for the site.
+     *
+     * @param array $rules Glossary rules from the form or API sync.
+     * @return array
+     */
+    private function filter_glossary_to_active_target_languages($rules) {
+        if (! is_array($rules)) {
+            return $rules;
+        }
+        $raw = null;
+        if (isset($_POST['settings']) && is_array($_POST['settings']) && isset($_POST['settings']['target_languages'])) {
+            $raw = wp_unslash($_POST['settings']['target_languages']);
+        } elseif (isset($_POST['target_languages'])) {
+            $raw = wp_unslash($_POST['target_languages']);
+        }
+        if ($raw === null || $raw === '') {
+            return $rules;
+        }
+        if (is_array($raw)) {
+            $codes = array_values(array_filter(array_map('trim', $raw)));
+        } else {
+            $codes = array_filter(array_map('trim', explode(',', (string) $raw)));
+        }
+        if (empty($codes)) {
+            return $rules;
+        }
+        $allowed = array_flip($codes);
+        $out = [];
+        foreach ($rules as $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+            $tl = isset($rule['target_language']) ? trim((string) $rule['target_language']) : '';
+            if ($tl !== '' && ! isset($allowed[$tl])) {
+                continue;
+            }
+            $out[] = $rule;
+        }
+        return array_values($out);
+    }
 
     private function updateRules($rules, $type) {
         $this->print_log("* updateRules() type=" . $type);
@@ -3051,6 +3093,9 @@ class ConveyThis {
                 'rules' => $rules
             ));
         } elseif ($type == 'glossary') {
+            if (is_array($rules)) {
+                $rules = $this->filter_glossary_to_active_target_languages($rules);
+            }
             $rules_count = is_array($rules) ? count($rules) : 0;
             $this->print_log('[Glossary Save] updateRules(glossary): sending ' . $rules_count . ' rules to API');
             $referrer = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
@@ -3067,10 +3112,9 @@ class ConveyThis {
                 if (array_key_exists('translate_text', $rules_for_api[ $i ]) && $rules_for_api[ $i ]['translate_text'] === '') {
                     $rules_for_api[ $i ]['translate_text'] = null;
                 }
-                // prevent = do not translate; translate_text and target_language are not used, keep null
+                // prevent = do not translate; translate_text is unused; target_language still scopes the rule (null/empty = all languages)
                 if ( ! empty( $rules_for_api[ $i ]['rule'] ) && $rules_for_api[ $i ]['rule'] === 'prevent' ) {
                     $rules_for_api[ $i ]['translate_text'] = null;
-                    $rules_for_api[ $i ]['target_language'] = null;
                 }
             }
             $payload = array(

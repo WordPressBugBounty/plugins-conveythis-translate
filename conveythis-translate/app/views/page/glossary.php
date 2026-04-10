@@ -38,7 +38,14 @@
                     ) : ?>
                         <?php foreach( $this->variables->glossary as $glossary ): ?>
                             <?php if (is_array($glossary)) : ?>
-                                <div class="glossary position-relative w-100" data-target-language="<?php echo esc_attr(isset($glossary['target_language']) ? $glossary['target_language'] : ''); ?>">
+                                <?php
+                                $glossary_tl = isset($glossary['target_language']) ? (string) $glossary['target_language'] : '';
+                                $glossary_tl_in_targets = $glossary_tl !== '' && in_array($glossary_tl, $this->variables->target_languages, true);
+                                if ($glossary_tl !== '' && ! $glossary_tl_in_targets) {
+                                    continue;
+                                }
+                                ?>
+                                <div class="glossary position-relative w-100" data-target-language="<?php echo esc_attr($glossary_tl); ?>">
                                     <input type="hidden" class="glossary_id" value="<?php echo (isset($glossary['glossary_id']) ? esc_attr($glossary['glossary_id']) : '') ?>"/>
                                     <a role="button" class="conveythis-delete-page glossary-delete-btn" data-action="delete-glossary-row" aria-label="Delete rule"></a>
                                     <div class="row w-100 mb-2">
@@ -62,7 +69,7 @@
                                         </div>
                                         <div class="col-md-3">
                                             <div class="ui input">
-                                                <input type="text" class="conveythis-input-text translate_text w-100" value="<?php echo (isset($glossary['translate_text']) ? esc_attr($glossary['translate_text']): '') ?>" <?php echo (isset($glossary['rule']) &&  $glossary['rule'] == 'prevent' ? ' disabled="disabled"' : '');?>>
+                                                <input type="text" class="conveythis-input-text glossary_translate_value w-100" value="<?php echo (isset($glossary['translate_text']) ? esc_attr($glossary['translate_text']): '') ?>" <?php echo (isset($glossary['rule']) &&  $glossary['rule'] == 'prevent' ? ' disabled="disabled"' : '');?>>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
@@ -70,7 +77,7 @@
                                                 <option value="">All languages</option>
                                                 <?php foreach ($this->variables->languages as $language) :?>
                                                     <?php if (in_array($language['code2'], $this->variables->target_languages)):?>
-                                                        <option value="<?php echo  esc_attr($language['code2']); ?>"<?php echo ($glossary['target_language'] == $language['code2']?' selected':'')?>>
+                                                        <option value="<?php echo  esc_attr($language['code2']); ?>"<?php echo ($glossary_tl === $language['code2'] ? ' selected' : ''); ?>>
                                                             <?php echo  esc_html($languages[$language['code2']]); ?>
                                                         </option>
                                                     <?php endif; ?>

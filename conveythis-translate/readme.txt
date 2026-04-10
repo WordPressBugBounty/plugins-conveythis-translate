@@ -1,11 +1,11 @@
-﻿=== Translate WordPress Websites Globally with ConveyThis Translate ===
+=== Translate WordPress Websites Globally with ConveyThis Translate ===
 Contributors: alexburan, conveythis
 Tags: language, translate, languages, translators, translator
 Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 269.8
+Stable tag: 269.9
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -217,6 +217,9 @@ Learn how your data and content are securely handled by ConveyThis.
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 269.9 =
+* Glossary fixes
+
 = 269.8 =
 * Added support for Papiamento and Bashkir languages
 * Applied fix for SEO hreflang translations

@@ -884,7 +884,7 @@ jQuery(document).ready(function ($) {
             var searchMatch = true;
             if (searchQuery) {
                 var sourceText = ($row.find('input.source_text').val() || '').toLowerCase();
-                var translateText = ($row.find('input.translate_text').val() || '').toLowerCase();
+                var translateText = ($row.find('input.glossary_translate_value').val() || '').toLowerCase();
                 searchMatch = sourceText.indexOf(searchQuery) !== -1 || translateText.indexOf(searchQuery) !== -1;
             }
             var passesFilter = langMatch && searchMatch;
@@ -982,7 +982,7 @@ jQuery(document).ready(function ($) {
             '                            </div>\n' +
             '                            <div class="col-md-3">\n' +
             '                                <div class="ui input">\n' +
-            '                                    <input type="text" class="conveythis-input-text translate_text w-100" disabled>\n' +
+            '                                    <input type="text" class="conveythis-input-text glossary_translate_value w-100" disabled>\n' +
             '                                </div>\n' +
             '                            </div>\n' +
             '                            <div class="col-md-3">\n' +
@@ -1001,12 +1001,11 @@ jQuery(document).ready(function ($) {
                 $targetLanguagesSelect.append('<option value="' + language.code2 + '">' + language.title_en + '</option>');
             }
         }
-
         $glossary.find('input.source_text').val(sourceText);
         $glossary.find('select.rule').val(rule);
-        $glossary.find('input.translate_text').val(translateText);
+        $glossary.find('input.glossary_translate_value').val(translateText);
         var shouldEnable = (rule === 'replace');
-        $glossary.find('input.translate_text').prop('disabled', !shouldEnable);
+        $glossary.find('input.glossary_translate_value').prop('disabled', !shouldEnable);
         $targetLanguagesSelect.val(targetLang);
         $glossary.data('target-language', targetLang);
 
@@ -1034,18 +1033,32 @@ jQuery(document).ready(function ($) {
             if (currentFilter && $filter.find('option[value="' + currentFilter + '"]').length) $filter.val(currentFilter);
         }
         $('#glossary_wrapper').children('.glossary').each(function () {
-            var $select = $(this).find('select.target_language');
+            var $row = $(this);
+            var $select = $row.find('select.target_language');
             if (!$select.length) return;
-            var currentVal = $select.val();
+            var fromSelect = ($select.val() || '').trim();
+            var fromAttr = ($row.attr('data-target-language') || '').trim();
+            var fromDataRaw = $row.data('target-language');
+            var fromData = (fromDataRaw !== undefined && fromDataRaw !== null) ? String(fromDataRaw).trim() : '';
+            var currentVal = fromSelect || fromAttr || fromData;
+            if (currentVal && targetCodes.indexOf(currentVal) === -1) {
+                $row.remove();
+                return;
+            }
             $select.empty().append('<option value="">All languages</option>');
             for (var id in languages) {
                 if (languages.hasOwnProperty(id) && targetCodes.indexOf(languages[id].code2) !== -1) {
                     $select.append('<option value="' + languages[id].code2 + '">' + (languages[id].title_en || languages[id].code2) + '</option>');
                 }
             }
-            if (currentVal && $select.find('option[value="' + currentVal + '"]').length) $select.val(currentVal);
-            $(this).data('target-language', $select.val() || '');
+            if (currentVal && $select.find('option').filter(function () {
+                return $(this).attr('value') === currentVal;
+            }).length) {
+                $select.val(currentVal);
+            }
+            $row.data('target-language', currentVal || '');
         });
+        applyGlossaryFilters();
     }
 
     syncGlossaryLanguageDropdowns();
@@ -1060,7 +1073,7 @@ jQuery(document).ready(function ($) {
         rule = (rule === 'replace' || rule === 'prevent') ? rule : 'prevent';
 
         var $sourceInput = $row.find('input.source_text');
-        var $translateInput = $row.find('input.translate_text');
+        var $translateInput = $row.find('input.glossary_translate_value');
         var source = ($sourceInput.val() || '').trim();
         var translate = ($translateInput.val() || '').trim();
         var lang = $row.data('target-language');
@@ -1180,7 +1193,7 @@ jQuery(document).ready(function ($) {
             var r = rules[i];
             var targetLang = (r.target_language && r.target_language.trim()) ? r.target_language.trim() : 'all';
             var translateVal = (r.rule === 'prevent') ? '' : (r.translate_text || '');
-            var targetVal = (r.rule === 'prevent') ? '' : targetLang;
+            var targetVal = targetLang;
             rows.push([
                 escapeCsvField(r.rule),
                 escapeCsvField(r.source_text),
@@ -1409,7 +1422,7 @@ jQuery(document).ready(function ($) {
     $(document).on('change', '#glossary_wrapper select.rule', function (e) {
         e.preventDefault();
         var $row = $(this).closest('.glossary');
-        var $input = $row.find('input.translate_text');
+        var $input = $row.find('input.glossary_translate_value');
         if (this.value === 'prevent') {
             $input.prop('disabled', true);
         } else {
@@ -1423,7 +1436,7 @@ jQuery(document).ready(function ($) {
             var $row = $(this);
             var $ruleSelect = $row.find('select.rule');
             var rule = $ruleSelect.val();
-            var $input = $row.find('input.translate_text');
+            var $input = $row.find('input.glossary_translate_value');
             var disabled = (rule !== 'replace');
             $input.prop('disabled', disabled);
         });
@@ -1596,6 +1609,12 @@ jQuery(document).ready(function ($) {
                 $("#target_languages_translations").append(row);
                 $("#default_language_list").append('<div class="item" data-value="' + langCode + '">' + languages[language_id].title_en + '</div>');
             }
+        }
+        if (typeof syncGlossaryLanguageDropdowns === 'function') {
+            syncGlossaryLanguageDropdowns();
+        }
+        if (typeof applyGlossaryFilters === 'function') {
+            applyGlossaryFilters();
         }
     });
 
