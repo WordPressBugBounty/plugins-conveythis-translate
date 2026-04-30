@@ -1410,7 +1410,21 @@ jQuery(document).ready(function ($) {
             success: function (result) {
                 $('.spinner-cache').addClass('d-none')
 
-                if (result.clear_cache_translate) {
+                // The button clears two layers:
+                //   1) WP-side file cache -> result.clear_cache_translate
+                //   2) API tbl_cache + CDN proxy cache -> result.api_cache
+                // Treat the action as successful whenever either layer
+                // actually removed something so admins don't see a false
+                // "No cache found" when only the server cache was stale.
+                var wpCleared = !!(result && result.clear_cache_translate);
+                var apiCleared = !!(
+                    result && result.api_cache && (
+                        (result.api_cache.deleted_cache_rows && result.api_cache.deleted_cache_rows > 0) ||
+                        result.api_cache.proxy_cache_purged
+                    )
+                );
+
+                if (wpCleared || apiCleared) {
                     $('.clear-success').removeClass('d-none')
                 } else {
                     $('.clear-failure').removeClass('d-none')
@@ -1550,7 +1564,7 @@ jQuery(document).ready(function ($) {
             type: 'POST',
             data: {
                 action: 'check_dns',
-                _ajax_nonce: conveythis_plugin_ajax.nonce
+                nonce: conveythis_plugin_ajax.nonce
             },
             beforeSend: function () {
                 $("#dns-setup-records .dns-status").remove();
@@ -2265,5 +2279,255 @@ jQuery(document).ready(function ($) {
         // validateApiKey()
         getUserPlan();
     }, 1000);
+
+    // ========================================
+    // Sitemap Scanning
+    // ========================================
+    $('#btn_scan_sitemap').on('click', function() {
+        var url = $('#sitemap_url_input').val().trim();
+        if (!url) {
+            toastr.error('Please enter a sitemap URL');
+            return;
+        }
+        var $btn = $(this);
+        var $loader = $('#sitemap_loader');
+        var $progress = $('#sitemap_scan_progress');
+        // Lazily create a progress element next to the loader if the markup
+        // doesn't already have one, so status lines have somewhere to go.
+        if ($progress.length === 0) {
+            $progress = $('<div id="sitemap_scan_progress" class="text-muted small mt-1"></div>');
+            $loader.after($progress);
+        }
+        $btn.prop('disabled', true);
+        $loader.show();
+        $progress.text('Starting scan…').show();
+        $('#sitemap_scan_summary, #sitemap_scan_errors, #sitemap_url_table_wrapper').hide();
+
+        var ajaxUrl = typeof conveythis_plugin_ajax !== 'undefined' ? conveythis_plugin_ajax.ajax_url : '';
+        var nonce = $('input[name="conveythis_nonce"]').val();
+
+        // Aborted if the admin navigates away or clicks scan again.
+        var aborted = false;
+
+        function finishWithError(msg) {
+            aborted = true;
+            $btn.prop('disabled', false);
+            $loader.hide();
+            $progress.hide().empty();
+            toastr.error(msg || 'Failed to parse sitemap');
+        }
+
+        function renderFinal(d) {
+            $btn.prop('disabled', false);
+            $loader.hide();
+            $progress.hide().empty();
+            $('#sitemap_scan_summary').html(
+                'Found <strong>' + d.total + '</strong> URLs: ' +
+                '<strong>' + d.with_slash + '</strong> with trailing slash, ' +
+                '<strong>' + d.without_slash + '</strong> without.'
+            ).show();
+            if (d.errors && d.errors.length > 0) {
+                $('#sitemap_scan_errors').html('Warnings: ' + d.errors.join('<br>')).show();
+            }
+            $('#conveythis_trailing_slash_map').val(JSON.stringify(d.map));
+            $('#conveythis_trailing_slash_auto_source').val(url);
+            var $tbody = $('#sitemap_url_table tbody').empty();
+            var paths = Object.keys(d.map).sort();
+            var maxDisplay = 500;
+            for (var i = 0; i < Math.min(paths.length, maxDisplay); i++) {
+                var path = paths[i];
+                var hasSlash = d.map[path];
+                $tbody.append(
+                    '<tr>' +
+                    '<td><code>' + $('<span>').text(path).html() + '</code></td>' +
+                    '<td>' + (hasSlash ? 'Yes' : 'No') + '</td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-secondary toggle_slash" data-path="' +
+                    $('<span>').text(path).html() + '">' + (hasSlash ? 'Remove' : 'Add') + '</button></td>' +
+                    '</tr>'
+                );
+            }
+            if (paths.length > maxDisplay) {
+                $tbody.append('<tr><td colspan="3" class="text-muted">... and ' + (paths.length - maxDisplay) + ' more URLs</td></tr>');
+            }
+            $('#sitemap_url_table_wrapper').show();
+        }
+
+        function step(payload) {
+            if (aborted) { return; }
+            $.post(ajaxUrl, payload, function(response) {
+                if (aborted) { return; }
+                if (!response || !response.success) {
+                    finishWithError((response && response.data) || 'Failed to parse sitemap');
+                    return;
+                }
+                var d = response.data || {};
+                if (d.done) {
+                    renderFinal(d);
+                    return;
+                }
+                // Progressive feedback so the admin knows we're alive during a
+                // multi-minute scan on slow (e.g. uncached Rank Math) sites.
+                var msg = 'Scanning… ' + (d.processed || 0) + ' sitemap(s) processed, '
+                    + (d.remaining || 0) + ' remaining, '
+                    + (d.url_count || 0) + ' URLs found so far.';
+                $progress.text(msg);
+                // Continue with the server-issued job_id.
+                step({
+                    action: 'conveythis_parse_sitemap',
+                    nonce: nonce,
+                    job_id: d.job_id
+                });
+            }).fail(function(xhr) {
+                // Proxy 504 / network blip: surface a targeted message so the
+                // admin can tell this from a plugin failure.
+                var hint = (xhr && xhr.status === 504)
+                    ? 'Server gateway timed out. The site\'s sitemap generator may be too slow for a single request — try again, or raise nginx\'s fastcgi_read_timeout.'
+                    : 'Request failed';
+                finishWithError(hint);
+            });
+        }
+
+        // Kick off with the URL; server will mint a job_id and we carry it
+        // forward on subsequent steps.
+        step({
+            action: 'conveythis_parse_sitemap',
+            nonce: nonce,
+            sitemap_url: url
+        });
+    });
+
+    // Toggle slash override in sitemap table
+    $(document).on('click', '.toggle_slash', function() {
+        var $btn = $(this);
+        var path = $btn.data('path');
+        var map = JSON.parse($('#conveythis_trailing_slash_map').val() || '{}');
+
+        delete map[path];
+        if ($btn.text() === 'Remove') {
+            // Currently has slash, remove it
+            var newPath = path.replace(/\/$/, '');
+            map[newPath] = false;
+            $btn.text('Add').closest('tr').find('td:eq(0) code').text(newPath);
+            $btn.closest('tr').find('td:eq(1)').text('No');
+            $btn.data('path', newPath);
+        } else {
+            // Currently no slash, add it
+            var newPath = path.replace(/\/$/, '') + '/';
+            map[newPath] = true;
+            $btn.text('Remove').closest('tr').find('td:eq(0) code').text(newPath);
+            $btn.closest('tr').find('td:eq(1)').text('Yes');
+            $btn.data('path', newPath);
+        }
+        $('#conveythis_trailing_slash_map').val(JSON.stringify(map));
+    });
+
+    // Show/hide custom trailing slash notice
+    $('input[name="use_trailing_slash"]').on('change', function() {
+        if ($(this).val() === '2') {
+            $('#trailing_slash_custom_notice').show();
+            var mapVal = $('#conveythis_trailing_slash_map').val();
+            var map = mapVal ? JSON.parse(mapVal) : {};
+            if (Object.keys(map).length === 0) {
+                $('#sitemap_map_status').html('<strong>No sitemap loaded yet.</strong>');
+            } else {
+                $('#sitemap_map_status').html(Object.keys(map).length + ' URLs in map.');
+            }
+        } else {
+            $('#trailing_slash_custom_notice').hide();
+        }
+    }).filter(':checked').trigger('change');
+
+    // ========================================
+    // Link Translation Rules CRUD
+    // ========================================
+    $('#add_link_rule').on('click', function() {
+        var ruleHtml =
+            '<div class="link_rule position-relative w-100 row mb-2 align-items-center">' +
+            '<div class="col-md-2"><select class="form-select rule_type">' +
+            '<option value="exclude">Exclude</option><option value="include">Include</option></select></div>' +
+            '<div class="col-md-2"><select class="form-select rule_match">' +
+            '<option value="prefix">Starts with</option><option value="suffix">Ends with</option>' +
+            '<option value="contains">Contains</option><option value="exact">Exact match</option>' +
+            '<option value="regex">Regex</option></select></div>' +
+            '<div class="col-md-4"><input type="text" class="form-control rule_pattern conveythis-input-text" placeholder="/path/"></div>' +
+            '<div class="col-md-2"><div class="form-check">' +
+            '<input type="checkbox" class="form-check-input rule_enabled" checked><label>Enabled</label></div></div>' +
+            '<div class="col-md-2"><button type="button" class="btn btn-sm btn-danger remove_link_rule">Remove</button></div>' +
+            '</div>';
+        $('#link_rules_wrapper').append(ruleHtml);
+        serializeLinkRules();
+    });
+
+    $(document).on('click', '.remove_link_rule', function() {
+        $(this).closest('.link_rule').remove();
+        serializeLinkRules();
+    });
+
+    $(document).on('change', '.rule_type, .rule_match, .rule_enabled', function() {
+        serializeLinkRules();
+    });
+    $(document).on('input', '.rule_pattern', function() {
+        serializeLinkRules();
+    });
+
+    function serializeLinkRules() {
+        var rules = [];
+        var counter = 0;
+        $('#link_rules_wrapper .link_rule').each(function() {
+            var $r = $(this);
+            counter++;
+            rules.push({
+                id: 'rule_' + counter,
+                type: $r.find('.rule_type').val(),
+                match: $r.find('.rule_match').val(),
+                pattern: $r.find('.rule_pattern').val(),
+                enabled: $r.find('.rule_enabled').is(':checked')
+            });
+        });
+        $('#conveythis_link_rules').val(JSON.stringify(rules));
+    }
+
+    // Post type toggles serialization
+    $(document).on('change', '.post_type_toggle', function() {
+        serializePostTypeToggles();
+    });
+
+    function serializePostTypeToggles() {
+        var toggles = {};
+        $('.post_type_toggle').each(function() {
+            toggles[$(this).data('post-type')] = $(this).is(':checked');
+        });
+        $('#conveythis_link_rules_post_types').val(JSON.stringify(toggles));
+    }
+
+    // Ensure serialization happens before save
+    var origPrepare = typeof prepareSettingsBeforeSave === 'function' ? prepareSettingsBeforeSave : function(){};
+    window.prepareSettingsBeforeSave = function() {
+        origPrepare();
+        serializeLinkRules();
+        serializePostTypeToggles();
+    };
+
+    // Translate URLs is a beta feature; confirm OFF->ON transitions.
+    var translateLinksInitial = jQuery('input[name="translate_links"]:checked').val();
+    jQuery('input[name="translate_links"]').on('change', function () {
+        if (this.value === '1' && translateLinksInitial !== '1') {
+            var ok = confirm(
+                'Enable Translate URLs (beta)?\n\n' +
+                'Known edge cases:\n' +
+                '  - Non-ASCII slugs (Cyrillic, Arabic, CJK)\n' +
+                '  - Custom post types not registered with publicly_queryable\n' +
+                '  - Translation API timeouts -> silent fallback to source slug\n\n' +
+                'Test on staging first. OK to enable?'
+            );
+            if (!ok) {
+                jQuery('input[name="translate_links"][value="' + translateLinksInitial + '"]').prop('checked', true);
+            } else {
+                translateLinksInitial = '1';
+            }
+        } else if (this.value === '0') {
+            translateLinksInitial = '0';
+        }
+    });
 
 });

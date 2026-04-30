@@ -1,4 +1,10 @@
 == Changelog ==
+= 270.1 =
+* SEO: Preserve JSON-LD URLs, auto-detect brand/glossary, and enforce meta length limits
+* Trailing slash added options
+* URL translation enhancement
+* Documents: Translation now supports DOC, DOCX, XLS, XLSX, PPT, PPTX
+
 = 269.9 =
 * Glossary fixes
 

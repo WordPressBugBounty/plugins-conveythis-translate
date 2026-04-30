@@ -248,6 +248,106 @@ class Variables {
     public $exceeded = false;
     public $system_links = [];
 
+    public $segment_meta = [];        // [segment_text => ['content_type' => ..., 'meta_field' => ..., 'jsonld_type' => ..., 'jsonld_path' => ..., 'ai_hint' => bool]]
+    public $ldOriginal = [];          // [scriptKey => pre-translation $data tree] for post-validation fallback
+    public $seo_brand = '';
+    public $seo_glossary = [];
+    public $seo_enforce_length = 1;
+    public $seo_jsonld_validation = 1;
+
+    // SEO JSON-LD type rules — resolved + pre-flipped in __construct for O(1) lookup
+    public $SEO_TYPE_RULES = [
+        'Product' => [
+            'protect_paths' => [
+                'sku', 'gtin', 'gtin8', 'gtin12', 'gtin13', 'gtin14', 'mpn',
+                'productID', 'isbn', 'identifier',
+                'brand', 'brand.name', 'brand.url', 'brand.logo',
+                'manufacturer', 'manufacturer.name', 'manufacturer.url',
+                'aggregateRating.ratingValue', 'aggregateRating.bestRating',
+                'aggregateRating.worstRating', 'aggregateRating.ratingCount',
+                'offers.price', 'offers.priceCurrency', 'offers.availability',
+                'offers.sku', 'offers.priceValidUntil', 'offers.url',
+            ],
+            'translate_paths_via_ai' => [],
+        ],
+        'Article' => [
+            'protect_paths' => [
+                'author', 'author.name', 'author.url', 'author.sameAs',
+                'publisher', 'publisher.name', 'publisher.url',
+                'publisher.logo', 'publisher.logo.url',
+                'datePublished', 'dateModified', 'mainEntityOfPage',
+            ],
+            'translate_paths_via_ai' => ['headline', 'description'],
+        ],
+        'BlogPosting'      => '@inherit:Article',
+        'NewsArticle'      => '@inherit:Article',
+        'TechArticle'      => '@inherit:Article',
+        'ScholarlyArticle' => '@inherit:Article',
+        'FAQPage' => [
+            'protect_paths' => ['mainEntity.@type'],
+            'translate_paths_via_ai' => ['mainEntity.name', 'mainEntity.acceptedAnswer.text'],
+        ],
+        'Question' => [
+            'protect_paths' => [],
+            'translate_paths_via_ai' => ['name', 'acceptedAnswer.text'],
+        ],
+        'Review' => [
+            'protect_paths' => [
+                'author', 'author.name', 'author.url',
+                'reviewRating.ratingValue', 'reviewRating.bestRating', 'reviewRating.worstRating',
+                'itemReviewed.name', 'itemReviewed.brand', 'datePublished',
+            ],
+            'translate_paths_via_ai' => [],
+        ],
+        'Organization' => [
+            'protect_paths' => [
+                'name', 'legalName', 'alternateName',
+                'foundingDate', 'taxID', 'vatID', 'duns', 'leiCode',
+                'logo', 'logo.url',
+                'address', 'address.streetAddress', 'address.postalCode',
+                'address.addressLocality', 'address.addressRegion', 'address.addressCountry',
+                'contactPoint.telephone', 'contactPoint.email', 'sameAs',
+            ],
+            'translate_paths_via_ai' => ['description'],
+        ],
+        'LocalBusiness' => '@inherit:Organization',
+        'Restaurant'    => '@inherit:Organization',
+        'Store'         => '@inherit:Organization',
+        'Hotel'         => '@inherit:Organization',
+        'BreadcrumbList' => [
+            'protect_paths' => [
+                'itemListElement.item', 'itemListElement.item.@id', 'itemListElement.position',
+            ],
+            'translate_paths_via_ai' => [],
+        ],
+        'Recipe' => [
+            'protect_paths' => [
+                'author.name', 'datePublished', 'cookTime', 'prepTime', 'totalTime',
+                'recipeYield', 'nutrition.calories', 'nutrition.servingSize',
+                'aggregateRating.ratingValue',
+            ],
+            'translate_paths_via_ai' => ['description'],
+        ],
+        'Event' => [
+            'protect_paths' => [
+                'startDate', 'endDate', 'eventStatus', 'eventAttendanceMode',
+                'location.name', 'location.address', 'location.address.streetAddress',
+                'organizer.name', 'organizer.url',
+                'offers.price', 'offers.priceCurrency', 'offers.url',
+            ],
+            'translate_paths_via_ai' => ['description'],
+        ],
+        'JobPosting' => [
+            'protect_paths' => [
+                'hiringOrganization.name', 'hiringOrganization.sameAs', 'hiringOrganization.logo',
+                'jobLocation.address',
+                'baseSalary.value', 'baseSalary.currency',
+                'datePosted', 'validThrough', 'employmentType',
+            ],
+            'translate_paths_via_ai' => ['description', 'title'],
+        ],
+    ];
+
 
     public $style_change_language;
     public $style_change_flag;
@@ -282,6 +382,14 @@ class Variables {
     public $is_translated;
     public $shortcode_counter = 0;
     public $use_trailing_slash;
+    public $trailing_slash_map = [];
+    public $trailing_slash_auto_source = 'wordpress';
+    public $link_rules = [];
+    public $link_rules_post_types = [];
+    public $link_rules_scope = 'all';
+    // Boot-time gate for in-progress 370 features. See:
+    // docs/superpowers/specs/2026-04-28-disable-incomplete-370-features-design.md
+    public $beta_features = false;
     public $is_active;
     public $pluginPath;
 
@@ -296,21 +404,25 @@ class Variables {
         'svg'
     ];
 
+    // Per-language document swap — matches the CDN widget's documentExt list
+    // (cdn_conveythis/src/class/Translate.js). Admins with translate_document=1
+    // can upload a per-language variant via the ConveyThis dashboard for any
+    // of these file types; the <a href> on translated pages then swaps.
     public $documentExt = [
-        'pdf'
+        'pdf',
+        'doc', 'docx',
+        'xls', 'xlsx',
+        'ppt', 'pptx',
     ];
 
+    // URLs with these extensions bypass language-prefix rewrite in replaceLink() —
+    // they are file URLs, not page URLs. Must include every documentExt entry
+    // plus image/audio/video extensions the plugin recognises.
     public $avoidUrlExt = [
-        'pdf',
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'xml',
-        'xlsx',
-        'docx',
-        'gif',
-        'jpg',
-        'jpeg',
-        'png',
-        'mp3',
-        'mp4',
+        'gif', 'jpg', 'jpeg', 'png',
+        'mp3', 'mp4',
     ];
 
     // Luxemb - Luxembourgish
@@ -843,7 +955,7 @@ class Variables {
         'Widget Style' => ['tag' => 'widget', 'active' => false, 'widget_preview' => true, 'status' => true],
         'Excluded Pages' => ['tag' => 'block', 'active' => false, 'widget_preview' => false, 'status' => true],
         'Glossary' => ['tag' => 'glossary', 'active' => false, 'widget_preview' => false, 'status' => true],
-       // 'Links' => ['tag' => 'links', 'active' => false, 'widget_preview' => false, 'status' => true]
+        'Links' => ['tag' => 'links', 'active' => false, 'widget_preview' => false, 'status' => true],
         'Plan details' => ['tag' => 'plan', 'active' => false, 'widget_preview' => false, 'status' => true]
     ];
 
@@ -865,7 +977,7 @@ class Variables {
         $this->auto_translate = get_option('auto_translate', '1');
         $this->select_region = get_option('conveythis_select_region', 'US');
         $this->hide_conveythis_logo = get_option('hide_conveythis_logo', '1');
-        $this->dynamic_translation = get_option('dynamic_translation', '1');
+        $this->dynamic_translation = get_option('dynamic_translation', '0');
         $this->translate_media = get_option('translate_media', '1');
         $this->translate_document = get_option('translate_document', '0');
         $this->translate_links = get_option('translate_links', '0');
@@ -891,7 +1003,82 @@ class Variables {
         $this->is_active = get_option('is_active_domain', array());
         $this->system_links = get_option('conveythis_system_links', array());
         $this->system_links = $this->system_links ? json_decode($this->system_links, true) : array();
-        $this->use_trailing_slash = get_option( 'use_trailing_slash', '1' );
+        $this->use_trailing_slash = get_option('use_trailing_slash', '0');
+
+        $this->trailing_slash_map = get_option('conveythis_trailing_slash_map', []);
+        if (is_string($this->trailing_slash_map)) {
+            $this->trailing_slash_map = json_decode($this->trailing_slash_map, true) ?: [];
+        }
+        $this->trailing_slash_auto_source = get_option('conveythis_trailing_slash_auto_source', 'wordpress');
+        $this->link_rules = get_option('conveythis_link_rules', []);
+        if (is_string($this->link_rules)) {
+            $this->link_rules = json_decode($this->link_rules, true) ?: [];
+        }
+        $this->link_rules_post_types = get_option('conveythis_link_rules_post_types', []);
+        if (is_string($this->link_rules_post_types)) {
+            $this->link_rules_post_types = json_decode($this->link_rules_post_types, true) ?: [];
+        }
+        $this->link_rules_scope = get_option('conveythis_link_rules_scope', 'all');
+        $this->beta_features = defined('CONVEYTHIS_BETA_FEATURES') && CONVEYTHIS_BETA_FEATURES;
+
+        $this->seo_brand              = (string) get_option('conveythis_seo_brand', '');
+        $gloss                        = get_option('conveythis_seo_glossary', '');
+        $this->seo_glossary           = is_string($gloss)
+            ? array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $gloss))))
+            : (is_array($gloss) ? $gloss : []);
+        $this->seo_enforce_length     = (int) get_option('conveythis_seo_enforce_length', 1);
+        $this->seo_jsonld_validation  = (int) get_option('conveythis_seo_jsonld_validation', 1);
+
+        // Resolve @inherit shorthand in SEO_TYPE_RULES
+        foreach ($this->SEO_TYPE_RULES as $type => $rule) {
+            if (is_string($rule) && strpos($rule, '@inherit:') === 0) {
+                $parent = substr($rule, strlen('@inherit:'));
+                $this->SEO_TYPE_RULES[$type] = isset($this->SEO_TYPE_RULES[$parent]) && is_array($this->SEO_TYPE_RULES[$parent])
+                    ? $this->SEO_TYPE_RULES[$parent]
+                    : ['protect_paths' => [], 'translate_paths_via_ai' => []];
+            }
+        }
+        // Pre-flip protect_paths and ai paths to associative sets for O(1) lookup
+        foreach ($this->SEO_TYPE_RULES as $type => &$rule) {
+            if (!is_array($rule)) continue;
+            $rule['protect_set'] = isset($rule['protect_paths']) ? array_flip($rule['protect_paths']) : [];
+            $rule['ai_set']      = isset($rule['translate_paths_via_ai']) ? array_flip($rule['translate_paths_via_ai']) : [];
+        }
+        unset($rule);
+
+        // Allow site-level overrides
+        if (function_exists('apply_filters')) {
+            $this->SEO_TYPE_RULES = apply_filters('conveythis_seo_jsonld_type_rules', $this->SEO_TYPE_RULES);
+        }
+    }
+
+    /**
+     * SEO: Is a URL-valued key under the given @type on the protected set?
+     * Used by recursiveReplaceLinks to avoid prefixing URLs under image/logo/sameAs/etc.
+     */
+    public function isUrlPathProtectedForType($type, $key): bool {
+        if (!is_string($type) || !isset($this->SEO_TYPE_RULES[$type])) return false;
+        $set = $this->SEO_TYPE_RULES[$type]['protect_set'] ?? [];
+        return is_string($key) && isset($set[$key]);
+    }
+
+    /**
+     * SEO: Is a full dot-path protected under the given @type?
+     * Used by text-collection walker to skip translating protected values.
+     */
+    public function isPathProtected($type, $dotPath): bool {
+        if (!is_string($type) || !isset($this->SEO_TYPE_RULES[$type])) return false;
+        $set = $this->SEO_TYPE_RULES[$type]['protect_set'] ?? [];
+        return is_string($dotPath) && isset($set[$dotPath]);
+    }
+
+    /**
+     * SEO: Should the given path be routed to AI paraphrase (versus regular MT)?
+     */
+    public function shouldRouteToAi($type, $dotPath): bool {
+        if (!is_string($type) || !isset($this->SEO_TYPE_RULES[$type])) return false;
+        $set = $this->SEO_TYPE_RULES[$type]['ai_set'] ?? [];
+        return is_string($dotPath) && isset($set[$dotPath]);
     }
 
     public function __call($name, $arguments) {

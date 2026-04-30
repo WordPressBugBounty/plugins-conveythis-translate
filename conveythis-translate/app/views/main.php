@@ -46,7 +46,7 @@
                         require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/widget-style.php');
                         require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/block-pages.php');
                         require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/glossary.php');
-                       // require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/links.php');
+                        require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/links.php');
                         require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/plan.php');
                         require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/page/cache.php');
                         ?>
@@ -269,10 +269,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         let targetLanguages = <?php echo json_encode($this->variables->target_languages)?>;
         let is_translated = <?php echo esc_html(get_option('is_translated'))?>;
-
-        console.log("prepare congratulations")
-        console.log("targetLanguages:" + targetLanguages)
-        console.log("is_translated:" + is_translated)
 
         if (targetLanguages.length !== 0 && is_translated === 0) {
             const modal = document.getElementById('congrats-modal');

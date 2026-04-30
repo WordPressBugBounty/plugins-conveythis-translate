@@ -4,9 +4,9 @@ if(!defined( 'ABSPATH' )){
     exit;
 }
 
-$dev_server = 'default';
+// $dev_server = 'default';
 
-//$dev_server = 4;
+$dev_server = 'default';
 
 $allowed_app_servers = array(
     1 => 'https://dev-app-1.conveythis.com',
@@ -60,7 +60,7 @@ define('CONVEYTHIS_API_PROXY_URL_FOR_EU', $allowed_api_proxy_servers_EU[$dev_ser
 define('CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', $allowed_cdn_servers[$dev_server]);
 
 define('CONVEYTHIS_LOADER', true);
-define('CONVEYTHIS_PLUGIN_VERSION', '269.9');
+define('CONVEYTHIS_PLUGIN_VERSION', '270.1');
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));
 define('CONVEY_PLUGIN_PATH', plugin_dir_url(__FILE__));
 define('CONVEY_PLUGIN_DIR', plugins_url('', __FILE__));

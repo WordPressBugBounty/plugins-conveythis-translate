@@ -179,9 +179,6 @@
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
-    // DEBUG: confirms updated validation script is loaded (empty key → setup link, invalid key → credentials message)
-    console.log('%c[ConveyThis] Auth form script loaded (validation v2: empty key / invalid key handling)', 'color: #0066cc; font-weight: bold;');
-
     let submitBlocked = true; // flag to prevent initial form submit
 
     // errorContext: { noData: true } = request failed / no response, { apiError: true } = API returned error status
@@ -200,7 +197,6 @@
         const hasKey = typeof apiKeyValue === 'string' && apiKeyValue.trim().length > 0;
 
         if (isValid) {
-            console.log('%c[ConveyThis] Validation: API key valid → continuing to update settings', 'color: green;');
             let target_languages = data.data.target_languages;
             validationLabel.style.display = 'none';
             inputElementsApiKey.classList.remove('validation-failed');
@@ -217,34 +213,26 @@
 
         if (validationText) {
             if (errorContext && errorContext.noData) {
-                console.log('%c[ConveyThis] Validation: no data received (network/request failed)', 'color: #cc6600;');
                 validationText.textContent = 'We couldn’t connect to the server. Please try again in a moment.';
 
             } else if (errorContext && errorContext.dataMissing) {
-                console.log('%c[ConveyThis] Validation: response missing expected data', 'color: #cc6600;');
                 validationText.textContent = 'Something went wrong while validating your API key. Please try again.';
 
             } else if (errorContext && errorContext.apiError) {
-                console.log('%c[ConveyThis] Validation: API returned error status', 'color: #cc6600;');
                 validationText.textContent = 'Complete the setup for this project to get a valid API key. Copy it from the setup page.';
 
             } else if (!hasKey) {
-                console.log('%c[ConveyThis] Validation: no API key entered', 'color: #cc6600;');
                 validationText.textContent = 'Enter your API key to continue. It becomes available after you complete the setup.';
 
             } else {
                 const domain = window.location.hostname;
-                console.log('%c[ConveyThis] Validation: API key does not match a configured website for this domain', 'color: #cc0000;');
                 validationText.textContent = 'Make sure you completed setup and copied the key from the correct setup page.';
             }
         }
     };
 
     const updateSettings = (form, dropdownElements, target_languages) => {
-        console.log("* updateSettings()")
         const apiKeyValue = form.elements['api_key'].value; // get API key value
-        console.log(form)
-        console.log(apiKeyValue)
 
         $.ajax({
             url: 'options.php', // WP options endpoint
@@ -254,8 +242,6 @@
                 'from_js': true // flag request from JS
             },
             success: (response) => {
-                console.log(response)
-
                 if (response !== "null") { // if response exists
                     const data = JSON.parse(response); // parse JSON
                     if (data.source_language && target_languages) {
@@ -277,7 +263,6 @@
                 // dropdownElements.forEach(block => block.style.display = 'block');
 
                 //  $('#submit').off('click').on('click', () => {
-                console.log("$('#submit').off('click').on('click')")
                 $('input[name="source_language"]').removeClass('first-submit'); // remove first submit flag
                 $('input[name="target_languages"]').removeClass('first-submit'); // remove first submit flag
                 submitBlocked = false; // allow next submit
@@ -287,28 +272,22 @@
                 setTimeout(() => {
                     const submitBtn = document.getElementById('submit'); // get submit button
                     if (submitBtn) {
-                        console.log("+++ submitBtn")
                         submitBtn.click(); // trigger final submit
                     }
                     else{
-                        console.log("--- submitBtn")
                     }
                 }, 100); // small delay before submit
 
             },
             error: () => {
-                console.log('Failed to update settings. Please try again.'); // log error
             }
         });
     };
 
     //  const validateApiKey = (apiKeyValue, emailValue, form) => {
     const validateApiKey = (apiKeyValue, form) => {
-        console.log("* validateApiKey()");
         let domain_name = window.location.hostname; // get current domain
-        console.log("* domain_name" + ' ' + domain_name);
         let url = <?php echo json_encode(CONVEYTHIS_API_URL); ?> + '/admin/accounts/check_wordpress/'; // API validation endpoint
-        console.log(url)
         $.ajax({
             // url: 'https://api.conveythis.com/admin/accounts/check/',
             url: url,
@@ -319,32 +298,15 @@
                 'domain': domain_name // send domain
             },
             success: (response) => {
-                console.group('%c✅ AJAX Success', 'color: green; font-weight: bold;');
-                console.log('Timestamp:', new Date().toISOString()); // log time
-                console.log('Response received:', response); // log response
-                console.log('Form element:', form); // log form reference
-                console.groupEnd();
-
                 if (response.status === "error") {
-                    console.log("!!! API returned error status !!!");
                     handleValidationResponse({ data: { check: false } }, form, apiKeyValue, { apiError: true });
                 } else if (!response || !response.data) {
-                    console.log("!!! Response missing data !!!");
                     handleValidationResponse({ data: { check: false } }, form, apiKeyValue, { dataMissing: true });
                 } else {
                     handleValidationResponse(response, form, apiKeyValue);
                 }
             },
             error: (xhr, status, error) => {
-                console.group('%c❌ AJAX Error', 'color: red; font-weight: bold;');
-                console.log('Timestamp:', new Date().toISOString());
-                console.log('Status:', status); // log status
-                console.log('Error message:', error); // log error message
-                console.log('XHR object:', xhr); // log full xhr
-                console.log('Tip: Check your server logs or API endpoint.');
-                console.groupEnd();
-
-                console.log('Server error, please contact support.');
                 handleValidationResponse({ data: { check: false } }, form, apiKeyValue, { noData: true });
             }
         });
@@ -354,9 +316,7 @@
 
     if (settingsForm) {
         settingsForm.addEventListener('submit', (e) => {
-            console.log('login-form-settings.submit')
             if (submitBlocked) { // first submit blocked
-                console.log('submitBlocked')
                 e.preventDefault(); // stop default submit
 
                 const form = e.target; // current form
@@ -369,7 +329,6 @@
                 //  validateApiKey(apiKeyValue, emailValue, form);
                 validateApiKey(apiKeyValue, form); // validate before real submit
             } else {
-                console.log('set submitBlocked')
                 submitBlocked = true; // reset block for next time
             }
         });

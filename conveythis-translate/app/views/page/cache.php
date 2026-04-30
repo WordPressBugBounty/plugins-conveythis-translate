@@ -5,7 +5,7 @@
 
         <div class="block-setting form-group paid-function">
             <p class="m-0">We store translation cache in your WordPress project to optimize translation speed.</p>
-            <p class="mb-2"><strong>Note:</strong> If you've made translation updates using our dashboard, remember to reset the local cache.</p>
+            <p class="mb-2"><strong>Note:</strong> If you've made translation updates using our dashboard, press the button below to reset both the local cache and the shared server-side translation cache for this domain.</p>
             <button class="btn btn-primary" type="button" id="clear_translate_cache" style="background-color: white">
                 <span class="spinner-cache spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 Clear translation cache

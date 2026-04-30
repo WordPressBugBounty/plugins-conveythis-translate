@@ -95,7 +95,7 @@
                     <span id="glossary_page_info" class="mx-2 align-middle">Page 1 of 1</span>
                     <button type="button" id="glossary_next_page" class="btn btn-sm btn-outline-secondary">Next</button>
                 </div>
-                <input type="hidden" id="glossary_data" name="glossary" value='<?php echo json_encode( $this->variables->glossary ); ?>'>
+                <input type="hidden" id="glossary_data" name="glossary" value='<?php echo esc_attr( wp_json_encode( $this->variables->glossary ) ); ?>'>
                 <input type="file" id="glossary_import_file" accept=".csv,.json,text/csv,application/json" style="display: none;">
                 <div class="glossary-actions glossary-buttons mt-2">
                     <button class="btn btn-sm btn-primary" type="button" id="add_glossary">Add more rules</button>

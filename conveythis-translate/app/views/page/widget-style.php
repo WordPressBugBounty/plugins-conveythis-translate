@@ -318,7 +318,7 @@
             <div class="subtitle">Custom CSS</div>
             <div class="d-flex align-items-center w-100">
                 <div class="flex-grow-1">
-                    <input type="hidden" name="custom_css_json" id="custom_css_json" value="<?php echo json_encode($this->variables->custom_css_json); ?>">
+                    <input type="hidden" name="custom_css_json" id="custom_css_json" value="<?php echo esc_attr( wp_json_encode( $this->variables->custom_css_json ) ); ?>">
                     <textarea id="custom_css" class="form-control font-monospace" rows="3"></textarea>
                     <button id="check-css" type="button" class="btn btn-primary btn-sm mt-2">Check CSS</button>
                     <div id="feedback" class="mt-2 font-weight-bold"></div>
@@ -460,8 +460,6 @@
             const cssText = css_editor.getValue();
             const feedback = document.getElementById("feedback");
             const custom_css_json = document.getElementById("custom_css_json");
-            console.log(cssText);
-            console.log(isCssSyntaxValid(cssText));
 
             if (cssText.trim() !== "" && !isCssSyntaxValid(cssText)) {
                 feedback.textContent = "❌ CSS has syntax errors";
@@ -475,8 +473,6 @@
                     if (cssReadyStr !== custom_css_json.value) {
                         custom_css_json.value = cssReadyStr;
                         conveythisSettings.view();
-                        console.log("Sending JSON:", cssReady);
-                        console.log("Sending str", cssReadyStr)
                     }
                 } else {
                     alert("⚠️ Looks like your CSS is in the wrong format");

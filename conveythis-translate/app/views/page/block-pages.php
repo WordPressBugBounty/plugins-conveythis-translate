@@ -39,7 +39,7 @@
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-        <input type="hidden" name="exclusions" value='<?php echo json_encode( $this->variables->exclusions ); ?>'>
+        <input type="hidden" name="exclusions" value='<?php echo esc_attr( wp_json_encode( $this->variables->exclusions ) ); ?>'>
         <button class="btn btn-sm btn-primary" type="button" id="add_exlusion" >Add more rules</button>
         <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
     </div>
@@ -72,7 +72,7 @@
                     <?php endif; ?>
                 <?php endforeach; ?>
         </div>
-        <input type="hidden" name="exclusion_blocks" value='<?php echo  json_encode( $this->variables->exclusion_blocks ); ?>'>
+        <input type="hidden" name="exclusion_blocks" value='<?php echo esc_attr( wp_json_encode( $this->variables->exclusion_blocks ) ); ?>'>
         <button class="btn btn-sm btn-primary" type="button" id="add_exlusion_block" >Add more ids</button>
         <label class="hide-paid" for="">This feature is not available on Free plan. If you want to use this feature, please <a href="https://app.conveythis.com/dashboard/pricing/?utm_source=widget&utm_medium=wordpress" target="_blank" class="grey">upgrade your plan</a>.</label>
     </div>

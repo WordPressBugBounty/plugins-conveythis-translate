@@ -314,10 +314,35 @@ class ConveyThisSEO
         $site_url = str_replace("https://", "", $site_url);
         $site_url = str_replace("http://", "", $site_url);
 
-        if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain")
+        if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
             $translatedUrl = str_replace($site_url, $language . "." . $site_url, $url['loc']);
-        else
+        } else {
             $translatedUrl = str_replace($site_url, $site_url . "/" . $language, $url['loc']);
+
+            // SEO: sitemap URLs MUST match canonical/hreflang. Look up the translated slug
+            // and substitute it in (default mode only — subdomain URLs preserve source path).
+            // Without this, sitemap lists /<lang>/<source-slug> while the actual page is
+            // /<lang>/<translated-slug>; Google then drops the hreflang annotation.
+            $sourcePath = isset($url['loc']) ? parse_url($url['loc'], PHP_URL_PATH) : null;
+            if (is_string($sourcePath) && $sourcePath !== '' && $sourcePath !== '/' && class_exists('ConveyThis')) {
+                $convey = ConveyThis::Instance();
+                if ($convey && method_exists($convey, 'lookupTranslatedPathForHreflang')) {
+                    $translated = $convey->lookupTranslatedPathForHreflang($sourcePath, $language);
+                    if (is_string($translated) && $translated !== '' && $translated !== $sourcePath) {
+                        // Replace only the path portion, preserve scheme/host/query.
+                        $parts = parse_url($translatedUrl);
+                        if ($parts && isset($parts['scheme'], $parts['host'])) {
+                            $rebuilt  = $parts['scheme'] . '://' . $parts['host'];
+                            if (isset($parts['port']))  $rebuilt .= ':' . $parts['port'];
+                            $rebuilt .= '/' . $language . '/' . ltrim($translated, '/');
+                            if (isset($parts['query']))    $rebuilt .= '?' . $parts['query'];
+                            if (isset($parts['fragment'])) $rebuilt .= '#' . $parts['fragment'];
+                            $translatedUrl = $rebuilt;
+                        }
+                    }
+                }
+            }
+        }
 
 
         $loc = "\t\t<loc>" . $translatedUrl . "</loc>\n";
