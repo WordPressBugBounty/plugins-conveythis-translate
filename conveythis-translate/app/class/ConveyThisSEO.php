@@ -279,10 +279,25 @@ class ConveyThisSEO
 	    $alternate .= "\t<xhtml:link hreflang='x-default' href='" . $url['loc'] . "' rel='alternate'/>\n\t";
 	    $alternate .= "\t<xhtml:link hreflang='" . $this->variables->source_language . "' href='" . $url['loc'] . "' rel='alternate'/>\n\t";
 
-        foreach ($this->variables->target_languages as $language) {
-            $modifiedResult = $this->modify_url($url, $language);
+        // Per-language sitemap callers (rm_enable_custom_sitemap, sp_serve_custom_sitemaps,
+        // generate_custom_sitemap_content) pass the target $language so we render exactly
+        // one row per post. The general /sitemap_index.xml hook (rank_math/sitemap/url,
+        // wpseo_sitemap_url, seopress_sitemaps_url) has no per-language scope and passes
+        // '' — we then iterate all configured languages, matching the original behavior
+        // for that index path only.
+        //
+        // Without this guard, every per-language sitemap re-iterated all
+        // target_languages because the loop variable shadowed the parameter,
+        // causing 93x the API lookups and the FPM-pool exhaustion documented at
+        // docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+        $languages_to_render = ($language !== '' && is_string($language))
+            ? [$language]
+            : $this->variables->target_languages;
 
-            if (str_contains($actual_link, '-' . $language . '-') === false) {
+        foreach ($languages_to_render as $lang) {
+            $modifiedResult = $this->modify_url($url, $lang);
+
+            if (str_contains($actual_link, '-' . $lang . '-') === false) {
                 $alternate .= $modifiedResult['alternate'];
                 continue;
             } else {

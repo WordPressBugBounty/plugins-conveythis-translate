@@ -1569,7 +1569,13 @@ class ConveyThis {
      */
     public function invalidate_on_slug_change($post_id, $post_after, $post_before) {
         if (!$post_before || !$post_after) { return; }
-        if ($post_before->post_name === $post_after->post_name) { return; }
+        // Guard the same way the original did: same name = no URL change = no
+        // invalidation. Also catch post_type changes (post -> page etc.) which
+        // do reshape the permalink. Anything else (content/meta/categories) is
+        // intentionally a no-op so the slug cache isn't churned by every save.
+        $slug_changed = $post_before->post_name !== $post_after->post_name;
+        $type_changed = $post_before->post_type !== $post_after->post_type;
+        if (!$slug_changed && !$type_changed) { return; }
         $this->print_log("* invalidate_on_slug_change() {$post_before->post_name} -> {$post_after->post_name}");
 
         $languages = $this->variables->target_languages ?? [];
@@ -1579,7 +1585,9 @@ class ConveyThis {
         // the live post would return the new URL already, so we construct the
         // old one by swapping the post name back in.
         $new_link = get_permalink($post_id);
-        $old_link = $new_link ? str_replace('/' . $post_after->post_name . '/', '/' . $post_before->post_name . '/', $new_link) : null;
+        $old_link = ($new_link && $slug_changed)
+            ? str_replace('/' . $post_after->post_name . '/', '/' . $post_before->post_name . '/', $new_link)
+            : $new_link;
 
         foreach ($languages as $targetLanguage) {
             if ($old_link) {
@@ -1587,6 +1595,23 @@ class ConveyThis {
             }
             if ($new_link) {
                 ConveyThisCache::clearPageCache($this->getTranslateSiteUrl($new_link, $targetLanguage), null);
+            }
+        }
+
+        // Forward-direction slug cache invalidation. Bounded surface: at most
+        // 2 paths (old + new) x N target_languages. Spec:
+        // docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+        if ($this->ConveyThisCache instanceof ConveyThisCache) {
+            $sourceLang = (string) ($this->variables->source_language ?? '');
+            if ($sourceLang !== '') {
+                $old_path = $old_link ? parse_url($old_link, PHP_URL_PATH) : null;
+                $new_path = $new_link ? parse_url($new_link, PHP_URL_PATH) : null;
+                if (is_string($old_path) && $old_path !== '') {
+                    $this->ConveyThisCache->delete_fwd_slug_for_path_all_langs($old_path, $sourceLang, $languages);
+                }
+                if (is_string($new_path) && $new_path !== '' && $new_path !== $old_path) {
+                    $this->ConveyThisCache->delete_fwd_slug_for_path_all_langs($new_path, $sourceLang, $languages);
+                }
             }
         }
     }
@@ -1602,6 +1627,17 @@ class ConveyThis {
         $languages = $this->variables->target_languages ?? [];
         foreach ($languages as $targetLanguage) {
             ConveyThisCache::clearPageCache($this->getTranslateSiteUrl($postLink, $targetLanguage), null);
+        }
+
+        // Forward-direction slug cache: drop the deleted post's source path
+        // across all target languages so freed shard space is reclaimed by cron
+        // and a future post reusing the same path gets a clean fetch.
+        if ($this->ConveyThisCache instanceof ConveyThisCache) {
+            $sourceLang = (string) ($this->variables->source_language ?? '');
+            $path = parse_url($postLink, PHP_URL_PATH);
+            if ($sourceLang !== '' && is_string($path) && $path !== '' && !empty($languages)) {
+                $this->ConveyThisCache->delete_fwd_slug_for_path_all_langs($path, $sourceLang, $languages);
+            }
         }
     }
 
@@ -2607,7 +2643,7 @@ class ConveyThis {
         }
 
         $conveythisLogo = '<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
-        $conveythisLogo = $this->variables->hide_conveythis_logo ? $conveythisLogo : "";
+        $conveythisLogo = $this->variables->hide_conveythis_logo ?  "" : $conveythisLogo;
 
         $languageHtml = '<div class="conveythis-widget-languages" id="language-list" style="display: none;">
                             ' . $conveythisLogo . '
@@ -2868,21 +2904,54 @@ class ConveyThis {
     /**
      * Look up the translated slug for a given source path + target language.
      * Public so ConveyThisSEO::modify_url() can keep sitemap URLs aligned with hreflang/canonical.
+     *
+     * Three-tier caching, in order:
+     *   L1: static $reqCache  — request-scoped dedup. Free, microsecond reads,
+     *                            covers the "render 93 hreflang tags on one page" case.
+     *   L2: ConveyThisCache::get_fwd_slug — on-disk shard, survives FPM workers.
+     *                            Covers sitemap crawls (the hot path that exhausted
+     *                            php-fpm pools before this fix).
+     *   L3: find_translation()   — cold path, hits the ConveyThis API. Result is
+     *                            written to L2 (positive or negative) so the next
+     *                            caller short-circuits.
+     *
+     * Negative cache is required: paths with no translation are extremely common
+     * (post not yet translated to obscure language) and re-asking the API every
+     * time would defeat the cache. Short TTL (CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE)
+     * lets a newly-translated post become discoverable within hours.
+     *
+     * Spec: docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
      */
     public function lookupTranslatedPathForHreflang(string $sourcePath, string $targetLanguageCode): ?string
     {
-        static $cache = [];
-        $key = md5($sourcePath . '|' . $targetLanguageCode);
-        if (array_key_exists($key, $cache)) {
-            return $cache[$key];
+        static $reqCache = [];
+        $key = $sourcePath . '|' . $targetLanguageCode;
+        if (array_key_exists($key, $reqCache)) {
+            return $reqCache[$key];
         }
-        $result = $this->find_translation($sourcePath, $this->variables->source_language, $targetLanguageCode, $this->variables->referrer);
+
+        $sourceLang = (string) ($this->variables->source_language ?? '');
+
+        if ($sourcePath !== '' && $sourceLang !== '' && $targetLanguageCode !== '' && $this->ConveyThisCache instanceof ConveyThisCache) {
+            $hit = $this->ConveyThisCache->get_fwd_slug($sourcePath, $sourceLang, $targetLanguageCode);
+            if (!empty($hit['hit']) && empty($hit['expired'])) {
+                return $reqCache[$key] = ($hit['neg'] ? null : $hit['value']);
+            }
+        }
+
+        $result = $this->find_translation($sourcePath, $sourceLang, $targetLanguageCode, $this->variables->referrer);
+
         if (!is_string($result) || $result === '') {
-            $cache[$key] = null;
-            return null;
+            if ($sourcePath !== '' && $sourceLang !== '' && $targetLanguageCode !== '' && $this->ConveyThisCache instanceof ConveyThisCache) {
+                $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $targetLanguageCode, null, true);
+            }
+            return $reqCache[$key] = null;
         }
-        $cache[$key] = $result;
-        return $result;
+
+        if ($sourcePath !== '' && $sourceLang !== '' && $targetLanguageCode !== '' && $this->ConveyThisCache instanceof ConveyThisCache) {
+            $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $targetLanguageCode, $result, false);
+        }
+        return $reqCache[$key] = $result;
     }
 
     /**
@@ -3345,7 +3414,13 @@ class ConveyThis {
                             $link = parse_url($href);
 
                             if ((!$pageHost || $pageHost == $this->variables->site_host) && isset($link['path']) && $link['path'] && $link['path'] != '/') {
-                                if ($this->shouldTranslateLink($link['path'], $this->getLinkContext($child))) {
+                                // File/media URLs (PDFs, images, etc.) must not enter the slug-translation
+                                // pipeline — it would split /wp-content/uploads/ on slashes and translate the
+                                // path components as text, producing /contenuto-wp/caricamenti/... in Italian.
+                                $pathExt = strtolower(pathinfo($link['path'], PATHINFO_EXTENSION));
+                                $isFileUrl = $pathExt !== '' && in_array($pathExt, $this->variables->avoidUrlExt, true);
+
+                                if (!$isFileUrl && $this->shouldTranslateLink($link['path'], $this->getLinkContext($child))) {
                                     $canonicalPath = $this->canonicalizeLinkPath($link['path']);
                                     $this->variables->segments[$canonicalPath] = $canonicalPath;
                                     $this->variables->links[$canonicalPath] = $canonicalPath;
@@ -4095,6 +4170,22 @@ class ConveyThis {
             return $item; // false (hash miss) or null (no match) — preserves prior contract
         }
         $source_text = $this->normalizeSearchSegmentValue($value);
+        // API/dashboard may return the same URL with only different casing for
+        // root-relative /wp-content/ paths (absolute https URLs are often unchanged).
+        if ($this->isRootRelativeWpContentSegment($source_text)) {
+            $translatedRaw = isset($item['translate_text']) ? $item['translate_text'] : '';
+            $translatedNorm = trim(html_entity_decode((string) $translatedRaw));
+            if ($translatedNorm !== '') {
+                if (!extension_loaded('mbstring')) {
+                    $sameCaseFolding = (strcasecmp($source_text, $translatedNorm) === 0);
+                } else {
+                    $sameCaseFolding = (mb_strtolower($source_text, 'UTF-8') === mb_strtolower($translatedNorm, 'UTF-8'));
+                }
+                if ($sameCaseFolding && strcmp($source_text, $translatedNorm) !== 0) {
+                    return $this->restoreTemplateVars($source_text);
+                }
+            }
+        }
         return $this->restoreTemplateVars(str_replace($source_text, $item['translate_text'], $source_text));
     }
 
@@ -4126,6 +4217,12 @@ class ConveyThis {
             if (strcmp($source_text, trim($source_text2)) === 0) {
                 return $item;
             }
+        }
+
+        // Root-relative /wp-content/ only: case-insensitive matching could pair
+        // mixed-case filenames with a different-casing cache/API row.
+        if ($this->isRootRelativeWpContentSegment($source_text)) {
+            return null;
         }
 
         // Pass 2: case-insensitive match
@@ -4173,6 +4270,21 @@ class ConveyThis {
         $source_text = html_entity_decode($value);
         $source_text = $this->protectTemplateVars($source_text);
         return trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
+    }
+
+    /**
+     * Root-relative WordPress uploads/assets only (not https://…), matching the
+     * case where the API often alters casing only for path-only /wp-content/ URLs.
+     * Keeps behavior unchanged for absolute URLs and non-upload segments.
+     */
+    private function isRootRelativeWpContentSegment(string $value): bool {
+        if ($value === '') {
+            return false;
+        }
+        if (preg_match('#^https?://#i', $value) || strpos($value, '//') === 0) {
+            return false;
+        }
+        return stripos($value, '/wp-content/') !== false || stripos($value, 'wp-content/') === 0;
     }
 
     public function is_wordpress_url($url) {
@@ -4583,8 +4695,15 @@ class ConveyThis {
         $source_text = html_entity_decode($segments_value);
         $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", $source_text));
         $source_text2 = html_entity_decode($response_value);
-        if (strcmp($source_text, trim($source_text2)) === 0) {
+        $trimmedResponse = trim($source_text2);
+        if (strcmp($source_text, $trimmedResponse) === 0) {
             return true;
+        }
+        if (
+            $this->isRootRelativeWpContentSegment($source_text)
+            || $this->isRootRelativeWpContentSegment($trimmedResponse)
+        ) {
+            return false;
         }
         if (!extension_loaded('mbstring')) {
             $sourceLower = iconv('UTF-8', 'utf-8//TRANSLIT//IGNORE', $source_text);

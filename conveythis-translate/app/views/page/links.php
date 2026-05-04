@@ -1,10 +1,14 @@
 <div class="tab-pane fade" id="v-pills-links" role="tabpanel" aria-labelledby="links-tab">
 
     <?php if ($this->variables->translate_links == 1) : ?>
+        <?php
+        $conveythis_my_translations_url = rtrim(CONVEYTHIS_APP_URL, '/') . '/dashboard/translation/edit-translation/';
+        ?>
         <div class="alert alert-warning" style="margin: 0 0 16px 0; max-width: 900px;">
-            <strong>Translate URLs is enabled.</strong> Verify your hreflang &amp; canonical
-            tags on translated pages — known edge cases include non-ASCII slugs and
-            custom post types. See General Settings → Translate URLs for details.
+            <strong>Translate URLs is enabled.</strong>
+            To review or change how links are translated, sign in to
+            <a href="<?php echo esc_url($conveythis_my_translations_url); ?>" target="_blank" rel="noopener noreferrer">the ConveyThis dashboard</a>,
+            open <strong>Translation Management</strong> → <strong>My Translations</strong>, and edit the relevant URL entries from there.
         </div>
     <?php endif; ?>
 

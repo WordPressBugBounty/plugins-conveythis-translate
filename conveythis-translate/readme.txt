@@ -1,25 +1,32 @@
-=== Translate WordPress Websites Globally with ConveyThis Translate ===
+﻿=== Translate WordPress with ConveyThis – AI Multilingual Plugin ===
 Contributors: alexburan, conveythis
-Tags: language, translate, languages, translators, translator
+Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 270.1
+Stable tag: 270.2
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Make your WordPress site multilingual in minutes! 🌐 AI translations, 200+ languages, SEO & WooCommerce ready — no coding needed!
+Translate WordPress into 200+ languages. AI translation plugin for multilingual websites — WooCommerce, SEO, hreflang, Google Translate.
 == Description ==
 
-**ConveyThis Translate** is a professional **WordPress translation plugin** that lets you make your website **multilingual in minutes**. Instantly translate your entire site into **200+ languages** without any coding.
+**ConveyThis is a WordPress translation plugin** that helps you **translate WordPress** into **200+ languages**. Build a fast, **multilingual** site with **automatic translation** and **AI translation** backed by Google Translate and ConveyThis — ideal for **multilingual** WooCommerce stores, blogs, and business sites that need hreflang-ready URLs and SEO-friendly translated pages.
 
 ⚡ **Fast, Accurate AI Translations** – Powered by **Google Translate** and **ConveyThis’** own AI engine, your website gets high-quality translations instantly. Need perfect wording? Refine them manually or order professional translations directly from your dashboard.
 
 🎯 **Maintain Your Brand Voice** – Build your own **AI Language Model** with ConveyThis. Customize translations using your **glossary, past edits, and style preferences** to ensure consistent messaging across all languages.
 
 💡 **Flexible Plans for Every Website** – Start with a **free trial**, or pick a plan that fits your needs. Learn more at [ConveyThis Pricing](https://www.conveythis.com/pricing).
+
+=== What you can do with this WordPress translation plugin ===
+
+* **Translate WordPress site** – Turn any public site **multilingual** in minutes; visitors get the right language without manual copy-pasting.
+* **Translate WooCommerce** – Product pages, cart, checkout, and emails stay consistent across languages for a **multilingual** storefront.
+* **Automatic translation** – New posts and products are picked up and translated on the fly so your **multilingual** content stays current.
+* **AI translation** – Machine translation plus glossary, edits, and optional pros so quality matches your brand on every **multilingual** page.
 
 [youtube https://www.youtube.com/watch?v=SWV_qAhnWp0]
 
@@ -68,9 +75,9 @@ Make your WordPress site multilingual in minutes! 🌐 AI translations, 200+ lan
 * Supports small blogs to large e-commerce stores
 * Unlimited pages and languages with premium plans
 
-==How ConveyThis Works==
+== How this WordPress translation plugin works ==
 
-Watch this quick video to see how easy it is to install and configure ConveyThis Translate on your WordPress site. Then follow the steps below to get your website multilingual in just a few minutes.
+Watch this quick video to see how easy it is to install and configure ConveyThis Translate on your WordPress site. Then follow the steps below to get your website **multilingual** in just a few minutes.
 
 [youtube https://www.youtube.com/watch?v=Y8hMmJhweus]
 
@@ -98,11 +105,11 @@ Go to [My Translation](https://app.conveythis.com/domains) in your account to ed
 * **Full Compatibility:** Works with **all WordPress themes and plugins**, including **WooCommerce, Elementor, Divi, and Yoast SEO**, so your website stays fully functional in every language.
 * **Fast & Reliable**: Translations and media are served via **ConveyThis CDN**, ensuring pages load quickly worldwide.
 * **Secure & GDPR Compliant**: All translations are processed safely on **ConveyThis servers**, respecting privacy and data regulations.
-* **Easy Integration**: No coding required — just install, add your API key, and your multilingual site is ready.
+* **Easy Integration**: No coding required — just install, add your API key, and your **multilingual** site is ready.
 
-==Supported Languages 🌍==
+== Translate WordPress into any language ==
 
-ConveyThis Translate supports **200+ languages**, including major global languages and regional variations:
+ConveyThis Translate supports **200+ languages** 🌍, including major global languages and regional variations:
 
 **Popular languages:** English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Portuguese, Russian, Italian, Dutch, Ukrainian
 
@@ -166,9 +173,9 @@ Friday: 10:00 AM – 5:00 PM (EST / GMT-4)
 
 We respond to all inquiries within **24 hours on weekdays**.
 
-==Ready to Go Multilingual?==
+== Ready to go multilingual with a WordPress translation plugin? ==
 
-Install **ConveyThis Translate** today and **expand your website’s reach globally**.
+Install **ConveyThis Translate** today and **expand your website’s reach globally** with a proven **WordPress translation plugin**.
 Choose the plan that fits your business needs and start translating instantly.
 
 ==Useful links==
@@ -239,6 +246,9 @@ The previous CONVEYTHIS_DYNAMIC_TRANSLATE_BETA constant has been removed.
 its default for new installs remains OFF.
 
 == Changelog ==
+= 270.2 =
+* Fix for Links (cache revalidation, case handling)
+
 = 270.1 =
 * SEO: Preserve JSON-LD URLs, auto-detect brand/glossary, and enforce meta length limits
 * Trailing slash added options

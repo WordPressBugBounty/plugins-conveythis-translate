@@ -70,6 +70,63 @@ class ConveyThisCron
 
         }
 
+        self::PruneFwdSlugShards();
+
+    }
+
+    /*
+     * Per-entry TTL sweep over the forward-direction slug shards.
+     * Whole-file mtime is unreliable here because every write refreshes the
+     * file mtime even for rows that are already old, so we walk entries and
+     * prune by their own 'ts' against positive/negative TTL constants.
+     *
+     * Spec: docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+     */
+    public static function PruneFwdSlugShards() {
+        if (!defined('CONVEYTHIS_CACHE_FWD_SLUGS_PATH') || !file_exists(CONVEYTHIS_CACHE_FWD_SLUGS_PATH)) {
+            return;
+        }
+        $now    = time();
+        $posTtl = defined('CONVEYTHIS_FWD_SLUG_TTL_POSITIVE') ? (int) CONVEYTHIS_FWD_SLUG_TTL_POSITIVE : 7 * DAY_IN_SECONDS;
+        $negTtl = defined('CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE') ? (int) CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE : 6 * HOUR_IN_SECONDS;
+
+        foreach (glob(CONVEYTHIS_CACHE_FWD_SLUGS_PATH . '*.json') ?: [] as $shard) {
+            $fp = @fopen($shard, 'c+'); //phpcs:ignore
+            if (!$fp) {
+                continue;
+            }
+            try {
+                if (!flock($fp, LOCK_EX)) {
+                    continue;
+                }
+                $raw = stream_get_contents($fp);
+                $data = ($raw === '' || $raw === false) ? null : json_decode($raw, true);
+                if (!is_array($data) || empty($data['entries']) || !is_array($data['entries'])) {
+                    continue;
+                }
+                $changed = false;
+                foreach ($data['entries'] as $key => $row) {
+                    $ts  = isset($row['ts']) ? (int) $row['ts'] : 0;
+                    $ttl = !empty($row['neg']) ? $negTtl : $posTtl;
+                    if (($now - $ts) > $ttl) {
+                        unset($data['entries'][$key]);
+                        $changed = true;
+                    }
+                }
+                if ($changed) {
+                    $tmp = $shard . '.tmp.' . getmypid();
+                    $bytes = @file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); //phpcs:ignore
+                    if ($bytes !== false) {
+                        @rename($tmp, $shard); //phpcs:ignore
+                    } elseif (file_exists($tmp)) {
+                        @unlink($tmp); //phpcs:ignore
+                    }
+                }
+            } finally {
+                @flock($fp, LOCK_UN); //phpcs:ignore
+                @fclose($fp); //phpcs:ignore
+            }
+        }
     }
 }
 

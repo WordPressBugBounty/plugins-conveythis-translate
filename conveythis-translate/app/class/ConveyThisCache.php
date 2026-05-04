@@ -156,6 +156,10 @@ class ConveyThisCache
         if (has_action('cachify_flush_cache')) {
             do_action('cachify_flush_cache');
         }
+        // ConveyThis forward-direction slug cache (sitemap/hreflang).
+        // Bundled here so the existing 'Clear all cache' admin button is one
+        // button that resets every cache the plugin owns.
+        self::clear_fwd_slugs();
     }
 
     public function flush_cache($option){
@@ -314,5 +318,197 @@ class ConveyThisCache
             }
         }
         return false;
+    }
+
+    /*
+     * Forward-direction slug cache (source path -> translated path).
+     *
+     * Sharded one file per (source_language, target_language) pair under
+     * CONVEYTHIS_CACHE_FWD_SLUGS_PATH. Backs ConveyThis::lookupTranslatedPathForHreflang
+     * to keep sitemap/hreflang rendering off the API hot path.
+     *
+     * Spec: docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+     *
+     * Why a separate layout from get_cached_slug / save_cached_slug above:
+     *   - Existing slug.json is a single global file shared across all language
+     *     pairs; under concurrent FPM workers writes race and the loser's entries
+     *     get clobbered. The reverse-direction caller (find_original_slug) is low
+     *     traffic so the race is invisible there.
+     *   - Sitemap rendering hits this path for hundreds of (path, lang) tuples in
+     *     one request, with many workers in parallel. We need flock and shard
+     *     isolation, not a global JSON blob.
+     *   - We deliberately leave the legacy file alone so reverse-direction code
+     *     keeps working unchanged.
+     */
+
+    private static function fwdShardPath($source_language, $target_language) {
+        $src = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $source_language);
+        $tgt = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $target_language);
+        if ($src === '' || $tgt === '') {
+            return null;
+        }
+        return CONVEYTHIS_CACHE_FWD_SLUGS_PATH . $src . '_' . $tgt . '.json';
+    }
+
+    private static function fwdEntryKey($source_path) {
+        return sha1((string) $source_path);
+    }
+
+    private static function fwdEnsureDir() {
+        if (!file_exists(CONVEYTHIS_CACHE_FWD_SLUGS_PATH)) {
+            @mkdir(CONVEYTHIS_CACHE_FWD_SLUGS_PATH, 0777, true); //phpcs:ignore
+        }
+    }
+
+    /*
+     * Read-modify-write under flock(LOCK_EX) with atomic rename-into-place.
+     * Mutator receives the decoded array and returns the new array (or null to
+     * skip the write). Falls through silently on disk-full / permission errors —
+     * callers degrade to live API lookups, which is the existing behavior.
+     */
+    private static function fwdWithShardLock($shardPath, callable $mutator) {
+        if ($shardPath === null) {
+            return;
+        }
+        self::fwdEnsureDir();
+        $fp = @fopen($shardPath, 'c+'); //phpcs:ignore
+        if (!$fp) {
+            return;
+        }
+        try {
+            if (!flock($fp, LOCK_EX)) {
+                return;
+            }
+            $raw = stream_get_contents($fp);
+            $data = ($raw === '' || $raw === false) ? null : json_decode($raw, true);
+            if (!is_array($data) || !isset($data['entries']) || !is_array($data['entries'])) {
+                $data = ['schema' => 1, 'entries' => []];
+            }
+            $next = $mutator($data);
+            if ($next === null) {
+                return;
+            }
+            $tmp = $shardPath . '.tmp.' . getmypid();
+            $bytes = @file_put_contents($tmp, json_encode($next, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); //phpcs:ignore
+            if ($bytes !== false) {
+                @rename($tmp, $shardPath); //phpcs:ignore
+            } elseif (file_exists($tmp)) {
+                @unlink($tmp); //phpcs:ignore
+            }
+        } finally {
+            @flock($fp, LOCK_UN); //phpcs:ignore
+            @fclose($fp); //phpcs:ignore
+        }
+    }
+
+    /*
+     * Returns ['hit' => bool, 'value' => string|null, 'neg' => bool, 'expired' => bool].
+     * 'hit' false        -> caller must fetch and call set_fwd_slug.
+     * 'hit' true,!expired -> trust 'value' (or null when 'neg' is true).
+     * 'hit' true, expired -> stale; caller refetches but a concurrent fetch is OK
+     *                        because writes are flock-serialized.
+     *
+     * Read uses LOCK_SH so concurrent readers don't serialize, while still
+     * waiting out an in-flight writer.
+     */
+    public function get_fwd_slug($source_path, $source_language, $target_language) {
+        $miss = ['hit' => false, 'value' => null, 'neg' => false, 'expired' => false];
+        $shard = self::fwdShardPath($source_language, $target_language);
+        if ($shard === null || !file_exists($shard)) {
+            return $miss;
+        }
+        $fp = @fopen($shard, 'r'); //phpcs:ignore
+        if (!$fp) {
+            return $miss;
+        }
+        try {
+            if (!flock($fp, LOCK_SH)) {
+                return $miss;
+            }
+            $raw = stream_get_contents($fp);
+        } finally {
+            @flock($fp, LOCK_UN); //phpcs:ignore
+            @fclose($fp); //phpcs:ignore
+        }
+        $data = ($raw === '' || $raw === false) ? null : json_decode($raw, true);
+        if (!is_array($data) || empty($data['entries'])) {
+            return $miss;
+        }
+        $key = self::fwdEntryKey($source_path);
+        if (!isset($data['entries'][$key])) {
+            return $miss;
+        }
+        $row = $data['entries'][$key];
+        $neg = !empty($row['neg']);
+        $ts  = isset($row['ts']) ? (int) $row['ts'] : 0;
+        $ttl = $neg ? CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE : CONVEYTHIS_FWD_SLUG_TTL_POSITIVE;
+        return [
+            'hit'     => true,
+            'value'   => $neg ? null : (isset($row['t']) ? (string) $row['t'] : null),
+            'neg'     => $neg,
+            'expired' => (time() - $ts) > $ttl,
+        ];
+    }
+
+    /*
+     * Write (or refresh) one entry. $negative=true records a negative cache
+     * (no translation found) with a shorter TTL, so a slug translated later in
+     * the dashboard becomes discoverable within negative TTL on next crawl.
+     */
+    public function set_fwd_slug($source_path, $source_language, $target_language, $translated_path, $negative = false) {
+        $shard = self::fwdShardPath($source_language, $target_language);
+        if ($shard === null) {
+            return;
+        }
+        $key = self::fwdEntryKey($source_path);
+        self::fwdWithShardLock($shard, function ($data) use ($key, $source_path, $translated_path, $negative) {
+            $data['entries'][$key] = [
+                'p'   => (string) $source_path,
+                't'   => $negative ? null : (is_string($translated_path) ? $translated_path : null),
+                'ts'  => time(),
+                'neg' => (bool) $negative,
+            ];
+            return $data;
+        });
+    }
+
+    public function delete_fwd_slug($source_path, $source_language, $target_language) {
+        $shard = self::fwdShardPath($source_language, $target_language);
+        if ($shard === null || !file_exists($shard)) {
+            return;
+        }
+        $key = self::fwdEntryKey($source_path);
+        self::fwdWithShardLock($shard, function ($data) use ($key) {
+            if (!isset($data['entries'][$key])) {
+                return null; // skip write; nothing to remove
+            }
+            unset($data['entries'][$key]);
+            return $data;
+        });
+    }
+
+    /*
+     * Convenience for invalidate_on_slug_change / invalidate_on_post_delete:
+     * scrub a single source path across every configured target language.
+     * Bounded surface — no fan-out beyond target_languages.
+     */
+    public function delete_fwd_slug_for_path_all_langs($source_path, $source_language, array $target_languages) {
+        foreach ($target_languages as $tgt) {
+            $this->delete_fwd_slug($source_path, $source_language, $tgt);
+        }
+    }
+
+    /*
+     * Wipe every shard. Hooked into the existing 'Clear all cache' admin path so
+     * users have one button that resets everything. Static so flush_cache_on_activate()
+     * (also static) can call it without bootstrapping an instance.
+     */
+    public static function clear_fwd_slugs() {
+        if (!file_exists(CONVEYTHIS_CACHE_FWD_SLUGS_PATH)) {
+            return;
+        }
+        foreach (glob(CONVEYTHIS_CACHE_FWD_SLUGS_PATH . '*.json') ?: [] as $shard) {
+            @unlink($shard); //phpcs:ignore
+        }
     }
 }

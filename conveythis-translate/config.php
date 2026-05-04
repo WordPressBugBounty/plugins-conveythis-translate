@@ -60,7 +60,7 @@ define('CONVEYTHIS_API_PROXY_URL_FOR_EU', $allowed_api_proxy_servers_EU[$dev_ser
 define('CONVEYTHIS_JAVASCRIPT_PLUGIN_URL', $allowed_cdn_servers[$dev_server]);
 
 define('CONVEYTHIS_LOADER', true);
-define('CONVEYTHIS_PLUGIN_VERSION', '270.1');
+define('CONVEYTHIS_PLUGIN_VERSION', '270.2');
 define('CONVEY_PLUGIN_ROOT_PATH', plugin_dir_path( __FILE__ ));
 define('CONVEY_PLUGIN_PATH', plugin_dir_url(__FILE__));
 define('CONVEY_PLUGIN_DIR', plugins_url('', __FILE__));
@@ -74,5 +74,12 @@ if (!defined('CONVEYTHIS_CACHE_ROOT_PATH')){
 define('CONVEYTHIS_CACHE_PATH', CONVEYTHIS_CACHE_ROOT_PATH . 'conveythis/');
 define('CONVEYTHIS_CACHE_SLUG_PATH', CONVEYTHIS_CACHE_PATH . 'slug.json');
 define('CONVEYTHIS_CACHE_TRANSLATIONS_PATH', CONVEYTHIS_CACHE_PATH . 'translations/');
+// Forward-direction slug cache: shared by ConveyThisSEO::modify_url() (sitemap)
+// and any hreflang/canonical lookup via lookupTranslatedPathForHreflang().
+// Sharded one file per (source_lang, target_lang) pair to bound write contention.
+// See docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+define('CONVEYTHIS_CACHE_FWD_SLUGS_PATH', CONVEYTHIS_CACHE_PATH . 'slugs-fwd/');
+define('CONVEYTHIS_FWD_SLUG_TTL_POSITIVE', 7 * DAY_IN_SECONDS);
+define('CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE', 6 * HOUR_IN_SECONDS);
 define('API_AUTH_TOKEN', '85T8DGNtV88g4wvceVyHym69Yu3v5ZmN');
 
