@@ -1,11 +1,11 @@
-﻿=== Translate WordPress with ConveyThis – AI Multilingual Plugin ===
+=== Translate WordPress with ConveyThis – AI Multilingual Plugin ===
 Contributors: alexburan, conveythis
 Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 270.2
+Stable tag: 270.3
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -246,6 +246,11 @@ The previous CONVEYTHIS_DYNAMIC_TRANSLATE_BETA constant has been removed.
 its default for new installs remains OFF.
 
 == Changelog ==
+= 270.3 =
+* Avoid double JSON-encoding when saving from admin; heal previously corrupted stored values on load
+* Translate telephone links (`tel:`)
+* Patch for getmypid()
+
 = 270.2 =
 * Fix for Links (cache revalidation, case handling)
 

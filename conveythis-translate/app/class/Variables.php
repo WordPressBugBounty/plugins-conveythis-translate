@@ -998,7 +998,12 @@ class Variables {
         $this->style_text_color = get_option('style_text_color', '#000000');
         $this->style_corner_type = get_option('style_corner_type', 'rect');
         $this->style_widget = get_option('style_widget', 'dropdown');
-        $this->custom_css_json = get_option('custom_css_json', '');
+        $customCssRaw = get_option('custom_css_json', '');
+        $customCssHealed = $this->healCustomCssJson($customCssRaw);
+        if ($customCssHealed !== $customCssRaw) {
+            update_option('custom_css_json', $customCssHealed);
+        }
+        $this->custom_css_json = $customCssHealed;
         $this->is_translated = get_option('is_translated', '0');
         $this->is_active = get_option('is_active_domain', array());
         $this->system_links = get_option('conveythis_system_links', array());
@@ -1079,6 +1084,20 @@ class Variables {
         if (!is_string($type) || !isset($this->SEO_TYPE_RULES[$type])) return false;
         $set = $this->SEO_TYPE_RULES[$type]['ai_set'] ?? [];
         return is_string($dotPath) && isset($set[$dotPath]);
+    }
+
+    private function healCustomCssJson($value) {
+        if (!is_string($value) || $value === '') return $value;
+
+        $cur = $value;
+        for ($i = 0; $i < 16 && is_string($cur); $i++) {
+            $nxt = json_decode($cur, true);
+            if (json_last_error() !== JSON_ERROR_NONE) break;
+            if (!is_string($nxt)) break;
+            $cur = $nxt;
+        }
+
+        return $cur;
     }
 
     public function __call($name, $arguments) {

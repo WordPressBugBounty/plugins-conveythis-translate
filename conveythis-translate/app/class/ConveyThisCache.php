@@ -360,6 +360,31 @@ class ConveyThisCache
         }
     }
 
+    // Some managed hosts disable getmypid() via php.ini disable_functions; fall back
+    // through a chain since the value itself is not load-bearing — only uniqueness is.
+    public static function fwdTempSuffix() {
+        if (function_exists('getmypid')) {
+            $pid = getmypid();
+            if ($pid !== false) {
+                return (string) $pid;
+            }
+        }
+        if (function_exists('uniqid')) {
+            return uniqid('', true);
+        }
+        if (function_exists('random_bytes')) {
+            try {
+                $data = random_bytes(16);
+                $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+                $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+                return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+            } catch (\Throwable $e) {
+                // CSPRNG unavailable; drop to the last-resort branch below.
+            }
+        }
+        return sprintf('%d-%d', mt_rand(), mt_rand());
+    }
+
     /*
      * Read-modify-write under flock(LOCK_EX) with atomic rename-into-place.
      * Mutator receives the decoded array and returns the new array (or null to
@@ -388,7 +413,7 @@ class ConveyThisCache
             if ($next === null) {
                 return;
             }
-            $tmp = $shardPath . '.tmp.' . getmypid();
+            $tmp = $shardPath . '.tmp.' . self::fwdTempSuffix();
             $bytes = @file_put_contents($tmp, json_encode($next, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); //phpcs:ignore
             if ($bytes !== false) {
                 @rename($tmp, $shardPath); //phpcs:ignore

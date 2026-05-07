@@ -114,7 +114,7 @@ class ConveyThisCron
                     }
                 }
                 if ($changed) {
-                    $tmp = $shard . '.tmp.' . getmypid();
+                    $tmp = $shard . '.tmp.' . ConveyThisCache::fwdTempSuffix();
                     $bytes = @file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); //phpcs:ignore
                     if ($bytes !== false) {
                         @rename($tmp, $shard); //phpcs:ignore

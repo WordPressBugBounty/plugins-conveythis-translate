@@ -318,7 +318,7 @@
             <div class="subtitle">Custom CSS</div>
             <div class="d-flex align-items-center w-100">
                 <div class="flex-grow-1">
-                    <input type="hidden" name="custom_css_json" id="custom_css_json" value="<?php echo esc_attr( wp_json_encode( $this->variables->custom_css_json ) ); ?>">
+                    <input type="hidden" name="custom_css_json" id="custom_css_json" value="<?php echo esc_attr((string) $this->variables->custom_css_json); ?>">
                     <textarea id="custom_css" class="form-control font-monospace" rows="3"></textarea>
                     <button id="check-css" type="button" class="btn btn-primary btn-sm mt-2">Check CSS</button>
                     <div id="feedback" class="mt-2 font-weight-bold"></div>

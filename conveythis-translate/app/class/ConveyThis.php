@@ -41,7 +41,7 @@ class ConveyThis {
     ];
 
     /** SEO cache version constant — bump to invalidate the plugin file cache for forward-compat milestones. */
-    const CONVEYTHIS_SEO_CACHE_VERSION = 1;
+    const CONVEYTHIS_SEO_CACHE_VERSION = 2;
 
     function __construct() {
         if (!isset($_SERVER['HTTP_HOST'])) {
@@ -3396,6 +3396,17 @@ class ConveyThis {
                     $shouldReadChild = true;
 
                     if ($child->nodeName == 'a') {
+                        $href = trim($child->getAttribute("href"));
+                        if ($this->isTelHrefSegment($href)) {
+                            // Keep full tel: href in segments so users can create custom translations
+                            // for the whole value (scheme + number) in the dashboard.
+                            $this->variables->segments[$href] = $href;
+                            $this->variables->segment_meta[$href] = [
+                                'content_type' => 'tel_href',
+                            ];
+                            $this->collectNode($child, 'href', $href);
+                        }
+
                         if ($this->variables->translate_document) {
                             $href = $child->getAttribute("href");
                             $ext = strtolower(pathinfo($href, PATHINFO_EXTENSION));
@@ -3410,21 +3421,31 @@ class ConveyThis {
 
                         if ($this->variables->translate_links) {
                             $href = $child->getAttribute("href");
-                            $pageHost = $this->getPageHost($href);
-                            $link = parse_url($href);
+                            $hrefTrimmed = trim((string) $href);
+                            $isSpecialScheme = (
+                                strpos($hrefTrimmed, '#') === 0 ||
+                                strpos($hrefTrimmed, 'mailto:') === 0 ||
+                                strpos($hrefTrimmed, 'tel:') === 0 ||
+                                strpos($hrefTrimmed, 'javascript:') === 0
+                            );
 
-                            if ((!$pageHost || $pageHost == $this->variables->site_host) && isset($link['path']) && $link['path'] && $link['path'] != '/') {
-                                // File/media URLs (PDFs, images, etc.) must not enter the slug-translation
-                                // pipeline — it would split /wp-content/uploads/ on slashes and translate the
-                                // path components as text, producing /contenuto-wp/caricamenti/... in Italian.
-                                $pathExt = strtolower(pathinfo($link['path'], PATHINFO_EXTENSION));
-                                $isFileUrl = $pathExt !== '' && in_array($pathExt, $this->variables->avoidUrlExt, true);
+                            if (!$isSpecialScheme) {
+                                $pageHost = $this->getPageHost($href);
+                                $link = parse_url($href);
 
-                                if (!$isFileUrl && $this->shouldTranslateLink($link['path'], $this->getLinkContext($child))) {
-                                    $canonicalPath = $this->canonicalizeLinkPath($link['path']);
-                                    $this->variables->segments[$canonicalPath] = $canonicalPath;
-                                    $this->variables->links[$canonicalPath] = $canonicalPath;
-                                    $this->collectNode($child, 'href', $canonicalPath);
+                                if ((!$pageHost || $pageHost == $this->variables->site_host) && isset($link['path']) && $link['path'] && $link['path'] != '/') {
+                                    // File/media URLs (PDFs, images, etc.) must not enter the slug-translation
+                                    // pipeline — it would split /wp-content/uploads/ on slashes and translate the
+                                    // path components as text, producing /contenuto-wp/caricamenti/... in Italian.
+                                    $pathExt = strtolower(pathinfo($link['path'], PATHINFO_EXTENSION));
+                                    $isFileUrl = $pathExt !== '' && in_array($pathExt, $this->variables->avoidUrlExt, true);
+
+                                    if (!$isFileUrl && $this->shouldTranslateLink($link['path'], $this->getLinkContext($child))) {
+                                        $canonicalPath = $this->canonicalizeLinkPath($link['path']);
+                                        $this->variables->segments[$canonicalPath] = $canonicalPath;
+                                        $this->variables->links[$canonicalPath] = $canonicalPath;
+                                        $this->collectNode($child, 'href', $canonicalPath);
+                                    }
                                 }
                             }
                         }
@@ -4186,7 +4207,39 @@ class ConveyThis {
                 }
             }
         }
+        if ($this->isTelHrefSegment($source_text)) {
+            return $this->resolveTelHrefTranslation($source_text, $item);
+        }
         return $this->restoreTemplateVars(str_replace($source_text, $item['translate_text'], $source_text));
+    }
+
+    private function isTelHrefSegment($value) {
+        $value = trim((string) $value);
+        return $value !== '' && preg_match('/^tel:/i', $value) === 1;
+    }
+
+    /**
+     * Tel href policy:
+     * - collect/send full tel: href so users can create custom translations
+     * - ignore machine translation output by default (source value wins)
+     * - apply translate_text when API returns current_translate === custom|pro
+     *   or legacy is_custom / is_manual-style flags on the row
+     */
+    private function resolveTelHrefTranslation($sourceText, $item) {
+        $sourceText = trim((string) $sourceText);
+        $translatedRaw = isset($item['translate_text']) ? (string) $item['translate_text'] : '';
+        $translatedText = trim(html_entity_decode($translatedRaw));
+
+        $current = isset($item['current_translate']) ? (string) $item['current_translate'] : '';
+        $isManualRow = ($current === 'custom' || $current === 'pro');
+
+        $isCustom = !empty($item['is_custom']) || !empty($item['custom']) || !empty($item['is_manual']) || !empty($item['manual']) || !empty($item['is_edited']) || !empty($item['edited'])
+            || $isManualRow;
+        if ($isCustom && $translatedText !== '') {
+            return $this->restoreTemplateVars($translatedText);
+        }
+
+        return $this->restoreTemplateVars($sourceText);
     }
 
     /**
@@ -6485,7 +6538,6 @@ class ConveyThis {
         }
         return $css;
     }
-
 
 }
 

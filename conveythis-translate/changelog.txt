@@ -1,4 +1,9 @@
 == Changelog ==
+= 270.3 =
+* Avoid double JSON-encoding when saving from admin; heal previously corrupted stored values on load
+* Translate telephone links (`tel:`)
+* Patch for getmypid()
+
 = 270.2 =
 * Fix for Links (cache revalidation, case handling)
 
