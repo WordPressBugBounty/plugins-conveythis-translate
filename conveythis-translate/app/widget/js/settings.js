@@ -806,7 +806,7 @@ jQuery(document).ready(function ($) {
             '                            <option value="equal">Equal</option>\n' +
             '                        </select>\n' +
             '                    </div>\n' +
-            '                     <div class="ui input w-100"><input type="text" class="page_url w-100" placeholder="https://example.com" value=""></div>\n' +
+            '                     <div class="ui input w-100"><input type="text" class="page_url w-100" placeholder="Enter URL" value=""></div>\n' +
             '                </div>');
 
         $("#exclusion_wrapper").append($exclusion);
@@ -1360,7 +1360,9 @@ jQuery(document).ready(function ($) {
         var apiKeyVal = $('#conveythis_api_key').val()
         var data = {
             'api_key': apiKeyVal,
-            'conveythis_clear_all_cache': true
+            'conveythis_clear_all_cache': true,
+            'action': 'conveythis_clear_all_cache',
+            'nonce': (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.nonce) ? conveythis_plugin_ajax.nonce : ''
         };
 
         $.ajax({
@@ -1381,7 +1383,9 @@ jQuery(document).ready(function ($) {
         e.preventDefault()
         var ajax_url = $(this).data('href');
         var data = {
-            'dismiss': true
+            'dismiss': true,
+            'action': 'conveythis_dismiss_all_cache',
+            'nonce': (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.nonce) ? conveythis_plugin_ajax.nonce : ''
         };
 
         $.ajax({

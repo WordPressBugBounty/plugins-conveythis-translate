@@ -4,11 +4,11 @@
 
     <div class="glossary-description">
         <p>Here you can exclude pages from being translated. Please use the following rules:</p>
-        <p><strong>Start</strong> - Excludes any page whose URL begins with the value you enter. For example, entering <i>/blog</i> would exclude <i>/blog/hello-world</i>, <i>/blog/about</i>, and any other page under <i>/blog</i>.</p>
+        <p><strong>Start</strong> - Excludes any page whose URL begins with the value you enter. For example, entering <i>blog</i> would exclude <i>/blog/hello-world</i>, <i>/blog/about</i>, and any other page under <i>blog</i>.</p>
         <p><strong>End</strong> - Excludes any page whose URL ends with the value you enter. For example, entering <i>world</i> would exclude <i>/blog/hello-world</i>.</p>
         <p><strong>Contain</strong> - Excludes any page whose URL contains the value you enter anywhere in it. For example, entering <i>hello</i> would exclude <i>/blog/hello-world</i>.</p>
-        <p><strong>Equal</strong> - Excludes only the one exact page that matches the value you enter. For example, entering <i>/blog/hello-world</i> would exclude that page only.</p>
-        <p><strong>Important:</strong> Always enter a relative URL, meaning leave out the domain. Instead of <i>https://example.com/blog</i>, just enter <i>/blog</i>.</p>
+        <p><strong>Equal</strong> - Excludes only the one exact page that matches the value you enter. For example, entering <i>blog/hello-world</i> would exclude that page only.</p>
+        <p><strong>Important:</strong> Always enter a relative URL, meaning leave out the domain. Instead of <i>https://example.com/blog</i>, just enter <i>blog</i>.</p>
     </div>
 
 
@@ -32,7 +32,7 @@
                             </div>
                             <input type="hidden" class="exclusion_id" value="<?php echo (isset($exclusion['id']) ? esc_attr($exclusion['id']) : '') ?>"/>
                             <div class="ui input w-100">
-                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? $exclusion['page_url'] : '') ?>" class="page_url w-100" placeholder="https://example.com" value="">
+                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? $exclusion['page_url'] : '') ?>" class="page_url w-100" placeholder="Enter URL" value="">
                             </div>
                         </div>
                     <?php endif; ?>

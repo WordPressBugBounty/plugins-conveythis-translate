@@ -342,6 +342,21 @@ class ConveyThisSEO
             if (is_string($sourcePath) && $sourcePath !== '' && $sourcePath !== '/' && class_exists('ConveyThis')) {
                 $convey = ConveyThis::Instance();
                 if ($convey && method_exists($convey, 'lookupTranslatedPathForHreflang')) {
+                    // Batch the cache fill once per source path. Without this, the
+                    // per-language sitemap loop would issue N synchronous API calls —
+                    // lookupTranslatedPathForHreflang became cache-only in the
+                    // 2026-05-12 refactor, so the disk cache must be filled
+                    // explicitly here via the batched prefetch.
+                    // Spec: docs/superpowers/specs/2026-05-12-hreflang-batching-and-plan-caching-design.md §3.6.
+                    static $prefetched = [];
+                    if (!isset($prefetched[$sourcePath]) && method_exists($convey, 'prefetchHreflangCache')) {
+                        $targets = isset($convey->variables) && isset($convey->variables->target_languages)
+                            ? (array) $convey->variables->target_languages : [];
+                        if (!empty($targets)) {
+                            $convey->prefetchHreflangCache($sourcePath, $targets);
+                        }
+                        $prefetched[$sourcePath] = true;
+                    }
                     $translated = $convey->lookupTranslatedPathForHreflang($sourcePath, $language);
                     if (is_string($translated) && $translated !== '' && $translated !== $sourcePath) {
                         // Replace only the path portion, preserve scheme/host/query.

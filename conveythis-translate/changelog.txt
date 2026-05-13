@@ -1,4 +1,8 @@
 == Changelog ==
+= 270.4 =
+* Fix broken access control reported for admin-side requests and setup sync.
+* Improve hreflang generation, batching behavior, and cache handling.
+
 = 270.3 =
 * Avoid double JSON-encoding when saving from admin; heal previously corrupted stored values on load
 * Translate telephone links (`tel:`)

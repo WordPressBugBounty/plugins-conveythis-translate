@@ -72,14 +72,6 @@ class ConveyThisCache
         }
     }
 
-    public function clearAllCache()
-    {
-        if ($_POST['conveythis_clear_all_cache'] == true && $_POST['api_key'] == $this->variables->api_key) { //phpcs:ignore
-            self::flush_cache_on_activate();
-        }
-        die( json_encode (['clear' => true]));
-    }
-
     public static function flush_cache_on_activate(){
         if (function_exists('w3tc_flush_all')) {
             w3tc_flush_all();
@@ -196,13 +188,6 @@ class ConveyThisCache
 
         }
 
-    }
-
-    public function dismissAllCacheMessages()
-    {
-        if ($_POST['dismiss']) { //phpcs:ignore
-            $this->dismissNotice('all_cache_notice');
-        }
     }
 
     public function save_cached_slug( $slug, $source_language, $target_language, $value ) {
@@ -436,19 +421,48 @@ class ConveyThisCache
      * Read uses LOCK_SH so concurrent readers don't serialize, while still
      * waiting out an in-flight writer.
      */
-    public function get_fwd_slug($source_path, $source_language, $target_language) {
-        $miss = ['hit' => false, 'value' => null, 'neg' => false, 'expired' => false];
-        $shard = self::fwdShardPath($source_language, $target_language);
-        if ($shard === null || !file_exists($shard)) {
-            return $miss;
+    /**
+     * Bounded per-process LRU cache of parsed shard data, keyed by shard path.
+     *
+     * `get_fwd_slug()` is invoked once per hreflang `<link rel="alternate">` during
+     * `wp_head` rendering. On a site with ~100 configured target languages this
+     * means ~100 calls per page render. Re-reading and json-decoding a multi-
+     * hundred-KB shard on every call dominates worker CPU time.
+     *
+     * We cap at FWD_SHARD_CACHE_MAX entries so total memory growth stays bounded
+     * even on workers that touch many language pairs; LRU eviction targets the
+     * genuinely oldest cached shard. Validity is confirmed via filemtime() so
+     * writes from other workers propagate within one stat() call.
+     *
+     * @var array<string,array{mtime:int,data:?array}>
+     */
+    private static $fwdShardDataCache = [];
+    const FWD_SHARD_CACHE_MAX = 16;
+
+    /**
+     * Return the parsed shard data for $shard, using the in-process LRU cache
+     * validated against the file's mtime. Returns null if the file is missing
+     * or its contents do not parse as a JSON object.
+     */
+    private static function loadShardCached($shard) {
+        $mtime = @filemtime($shard);
+        if ($mtime !== false
+            && isset(self::$fwdShardDataCache[$shard])
+            && self::$fwdShardDataCache[$shard]['mtime'] === $mtime) {
+            // LRU touch: move this entry to the end so the eviction below targets
+            // the genuinely oldest cached shard.
+            $entry = self::$fwdShardDataCache[$shard];
+            unset(self::$fwdShardDataCache[$shard]);
+            self::$fwdShardDataCache[$shard] = $entry;
+            return $entry['data'];
         }
         $fp = @fopen($shard, 'r'); //phpcs:ignore
         if (!$fp) {
-            return $miss;
+            return null;
         }
         try {
             if (!flock($fp, LOCK_SH)) {
-                return $miss;
+                return null;
             }
             $raw = stream_get_contents($fp);
         } finally {
@@ -456,6 +470,26 @@ class ConveyThisCache
             @fclose($fp); //phpcs:ignore
         }
         $data = ($raw === '' || $raw === false) ? null : json_decode($raw, true);
+        if (!is_array($data)) {
+            $data = null;
+        }
+        self::$fwdShardDataCache[$shard] = ['mtime' => $mtime !== false ? $mtime : 0, 'data' => $data];
+        while (count(self::$fwdShardDataCache) > self::FWD_SHARD_CACHE_MAX) {
+            array_shift(self::$fwdShardDataCache);
+        }
+        return $data;
+    }
+
+    public function get_fwd_slug($source_path, $source_language, $target_language) {
+        $miss = ['hit' => false, 'value' => null, 'neg' => false, 'expired' => false];
+        $shard = self::fwdShardPath($source_language, $target_language);
+        if ($shard === null || !file_exists($shard)) {
+            return $miss;
+        }
+        // Use the in-process LRU shard cache to avoid re-reading and re-parsing
+        // the file on every call. Saves N reads + N json_decodes per page when
+        // wp_head iterates language alternates.
+        $data = self::loadShardCached($shard);
         if (!is_array($data) || empty($data['entries'])) {
             return $miss;
         }

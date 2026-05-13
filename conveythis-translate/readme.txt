@@ -5,7 +5,7 @@ Requires at least: 4.0
 Requires PHP: 5.6
 Tested up to: 6.9.1
 
-Stable tag: 270.3
+Stable tag: 270.4
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -223,29 +223,11 @@ Learn how your data and content are securely handled by ConveyThis.
 
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
-== Beta Features ==
-
-Some features in this plugin are gated behind the CONVEYTHIS_BETA_FEATURES constant.
-To enable them, add the following to wp-config.php BEFORE the "stop editing" line:
-
-    define('CONVEYTHIS_BETA_FEATURES', true);
-
-Currently gated:
-- SEO Translation Quality:
-  * JSON-LD post-translation validation (validates translated structured data
-    and falls back to the original block on failure)
-  * Recent SEO Quality events panel (admin-only review of validation fallbacks
-    and meta-tag truncations)
-  * Structured-data discovery admin notice
-
-These features are functional but undergoing UX refinement; we recommend testing
-on staging before enabling in production.
-
-The previous CONVEYTHIS_DYNAMIC_TRANSLATE_BETA constant has been removed.
-"Translate dynamic content (AJAX)" is now always visible in General Settings;
-its default for new installs remains OFF.
-
 == Changelog ==
+= 270.4 =
+* Fix broken access control reported for admin-side requests and setup sync
+* Improve hreflang generation, batching behavior, and cache handling
+
 = 270.3 =
 * Avoid double JSON-encoding when saving from admin; heal previously corrupted stored values on load
 * Translate telephone links (`tel:`)

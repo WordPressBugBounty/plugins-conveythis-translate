@@ -207,8 +207,8 @@ class ConveyThis {
             add_action('seopress_social_og_url', array($this, 'seopress_opengraph_url'), 10, 2);
         }
 
-        add_action('wp_ajax_conveythis_clear_all_cache', array('ConveyThisCache', 'clearAllCache'));
-        add_action('wp_ajax_conveythis_dismiss_all_cache', array('ConveyThisCache', 'dismissAllCacheMessages'));
+        add_action('wp_ajax_conveythis_clear_all_cache', array($this, 'ajax_conveythis_clear_all_cache'));
+        add_action('wp_ajax_conveythis_dismiss_all_cache', array($this, 'ajax_conveythis_dismiss_all_cache'));
         add_action('pre_post_update', array($this, 'clear_post'), 10, 2);
         // Spec 5: when a post slug changes, clear cache for BOTH old and new
         // translated URLs. pre_post_update only has access to the pre-save
@@ -217,7 +217,14 @@ class ConveyThis {
         add_action('post_updated', array($this, 'invalidate_on_slug_change'), 10, 3);
         add_action('before_delete_post', array($this, 'invalidate_on_post_delete'), 10, 1);
 
-        if (strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false) {
+        // CVE-2025-68021: never process these POST side effects on a mere "/wp-admin/"
+        // substring match without an authenticated administrator. Otherwise a
+        // POST to admin-ajax.php (or any wp-admin URI) could mutate remote rules
+        // or purge caches without authorization.
+        if (strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false
+            && is_user_logged_in()
+            && current_user_can('manage_options')
+        ) {
             if (isset($_POST['exclusions'])) { //phpcs:ignore
                 $this->updateRules($_POST['exclusions'], 'exclusion'); //phpcs:ignore
             }
@@ -712,6 +719,50 @@ class ConveyThis {
             'verdict'           => $verdict,
             'details'           => $details,
         ]);
+    }
+
+    /**
+     * AJAX: flush third-party page caches and ConveyThis slug caches.
+     * Requires manage_options + conveythis_ajax_save nonce (same as settings UI).
+     */
+    public function ajax_conveythis_clear_all_cache() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Access denied'], 403);
+        }
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        $posted_key = isset($_POST['api_key']) ? sanitize_text_field(wp_unslash($_POST['api_key'])) : '';
+        $stored_key = (string) get_option('api_key', '');
+        $do_clear   = !empty($_POST['conveythis_clear_all_cache'])
+            && $stored_key !== ''
+            && $posted_key !== ''
+            && hash_equals($stored_key, $posted_key);
+
+        if ($do_clear) {
+            ConveyThisCache::flush_cache_on_activate();
+        }
+
+        die(wp_json_encode(['clear' => true]));
+    }
+
+    /**
+     * AJAX: dismiss the "clear all cache" admin notice for the current user.
+     */
+    public function ajax_conveythis_dismiss_all_cache() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Access denied'], 403);
+        }
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        if (!empty($_POST['dismiss'])) { //phpcs:ignore
+            $this->dismissNotice('all_cache_notice');
+        }
+
+        die(wp_json_encode(['clear' => true]));
     }
 
     /**
@@ -2490,6 +2541,22 @@ class ConveyThis {
         $this->print_log("* getCurrentPlan()");
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
 
+        // 60-second WP-transient cache keyed by (api_key, domain). Plan changes
+        // (upgrade/downgrade/trial-expire) propagate within the TTL. Including
+        // api_key in the key means a key rotation auto-invalidates the cache
+        // and multi-site installs don't collide.
+        // Spec: docs/superpowers/specs/2026-05-12-hreflang-batching-and-plan-caching-design.md §3.7.
+        $cache_key = 'ct_current_plan_' . md5(((string) $this->variables->api_key) . '|' . $domain_name);
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) {
+            if (array_key_exists('plan', $cached))                     $this->variables->plan = $cached['plan'];
+            if (array_key_exists('exclusion_block_ids', $cached))      $this->variables->exclusion_block_ids = $cached['exclusion_block_ids'];
+            if (array_key_exists('exclusion_block_classes', $cached))  $this->variables->exclusion_block_classes = $cached['exclusion_block_classes'];
+            if (array_key_exists('exceeded', $cached))                 $this->variables->exceeded = $cached['exceeded'];
+            if (array_key_exists('show_widget', $cached))              $this->variables->show_widget = $cached['show_widget'];
+            return;
+        }
+
         $protocol = 'http://';
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             $protocol = 'https://';
@@ -2502,6 +2569,7 @@ class ConveyThis {
 
         $responseBody = wp_remote_retrieve_body($response);
 
+        $cache_payload = null;
         if (!empty($responseBody)) {
             $json = json_decode($responseBody);
             if (!empty($json->code)) {
@@ -2519,9 +2587,30 @@ class ConveyThis {
                 if (preg_match('/is_exceeded:/U', $json->code, $matches)) {
                     $this->variables->exceeded = true;
                 }
+                $cache_payload = [
+                    'plan'                    => $this->variables->plan,
+                    'exclusion_block_ids'     => $this->variables->exclusion_block_ids,
+                    'exclusion_block_classes' => $this->variables->exclusion_block_classes,
+                    'exceeded'                => $this->variables->exceeded,
+                    'show_widget'             => $this->variables->show_widget,
+                ];
             } else {
                 $this->variables->show_widget = false;
+                $cache_payload = [
+                    'plan'                    => $this->variables->plan,
+                    'exclusion_block_ids'     => $this->variables->exclusion_block_ids,
+                    'exclusion_block_classes' => $this->variables->exclusion_block_classes,
+                    'exceeded'                => $this->variables->exceeded,
+                    'show_widget'             => false,
+                ];
             }
+        }
+
+        // Cache ONLY when we actually parsed a meaningful body. Empty body /
+        // transient outage skips caching so the next request retries — keeps
+        // an API outage from masking a real plan change for 60s.
+        if ($cache_payload !== null) {
+            set_transient($cache_key, $cache_payload, MINUTE_IN_SECONDS);
         }
     }
 
@@ -2533,6 +2622,16 @@ class ConveyThis {
 
         $prefix = $this->getPageUrl($site_url);
 
+        // Hreflang link generation uses the same translated-slug resolution as the
+        // canonical URL builder (`buildTranslatedCanonicalFromHref` →
+        // `lookupTranslatedPathForHreflang`). Both call a CACHE-ONLY path: if the
+        // disk cache has a translated slug for ($sourcePath, $targetLang), the link
+        // uses it; otherwise the helper falls back to language-prefix + original
+        // slug. This keeps hreflang and canonical in lockstep — never a state
+        // where canonical says `/de/satz-umformer/` while hreflang says
+        // `/de/sentence-rephraser/`. Cache fill is handled out-of-band (sitemap,
+        // dashboard translation events, background SEO warmup) so the page render
+        // itself never blocks on a CT API roundtrip.
         if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
             $sourcePath = $this->getSourcePathForHreflang();
             $location = $this->getSubDomainLocationUsingSyntheticRequest($this->variables->source_language, $sourcePath, false);
@@ -2562,6 +2661,11 @@ class ConveyThis {
             }
         }
 
+        // NOTE: prefetchHreflangCache() is deliberately NOT called here. It used
+        // to fire one batched POST /website/find-translation-multi-target/ per
+        // cold page render, which under parallel crawl saturated workers and
+        // caused 502/504. The cache is filled by other mechanisms (sitemap,
+        // dashboard translation events) so this loop is purely cache-read.
         foreach ($data as $value) {
             $language = $this->searchLanguage($value);
             if (!empty($language)) {
@@ -2610,6 +2714,9 @@ class ConveyThis {
             $language = $this->searchLanguage($value);
             if (!empty($language)) {
                 $language_code = $language['code2'];
+                // Use the same cache-only translated-slug resolver as alternate()
+                // and canonical: shows translated slugs when disk cache has them,
+                // falls back to language-prefix + original slug otherwise.
                 $location = (!empty($this->variables->url_structure) && $this->variables->url_structure === "subdomain")
                     ? $this->getSubDomainLocationForPublicUrl($language_code, true)
                     : $this->getLocationForPublicUrl($prefix, $language_code, true);
@@ -2902,25 +3009,24 @@ class ConveyThis {
     }
 
     /**
-     * Look up the translated slug for a given source path + target language.
-     * Public so ConveyThisSEO::modify_url() can keep sitemap URLs aligned with hreflang/canonical.
+     * Cache-only lookup. Returns the disk- or transient-cached translated path
+     * for ($sourcePath, $targetLanguageCode), or null if not cached.
      *
-     * Three-tier caching, in order:
-     *   L1: static $reqCache  — request-scoped dedup. Free, microsecond reads,
-     *                            covers the "render 93 hreflang tags on one page" case.
-     *   L2: ConveyThisCache::get_fwd_slug — on-disk shard, survives FPM workers.
-     *                            Covers sitemap crawls (the hot path that exhausted
-     *                            php-fpm pools before this fix).
-     *   L3: find_translation()   — cold path, hits the ConveyThis API. Result is
-     *                            written to L2 (positive or negative) so the next
-     *                            caller short-circuits.
+     * Never calls the CT API. Cache population is the responsibility of
+     * prefetchHreflangCache() (called by alternate() and sitemap modify_url())
+     * and the background SEO warmup queue. Keeping reads cache-only means
+     * page render never blocks on a CT API roundtrip — the canonical resolver
+     * inherits this for free since it uses the same function.
      *
-     * Negative cache is required: paths with no translation are extremely common
-     * (post not yet translated to obscure language) and re-asking the API every
-     * time would defeat the cache. Short TTL (CONVEYTHIS_FWD_SLUG_TTL_NEGATIVE)
-     * lets a newly-translated post become discoverable within hours.
+     * Cache layers (lookup order):
+     *   L1: static $reqCache — request-scoped dedup, microsecond reads.
+     *   L2: ConveyThisCache::get_fwd_slug — sharded disk cache
+     *                                       (7d positive / 6h negative).
      *
-     * Spec: docs/superpowers/specs/2026-05-02-sitemap-slug-cache-design.md.
+     * Returns null on any miss. Callers must treat null as "no translation
+     * known yet, fall back to source-prefix URL".
+     *
+     * Spec: docs/superpowers/specs/2026-05-12-hreflang-batching-and-plan-caching-design.md §3.2.
      */
     public function lookupTranslatedPathForHreflang(string $sourcePath, string $targetLanguageCode): ?string
     {
@@ -2939,19 +3045,115 @@ class ConveyThis {
             }
         }
 
-        $result = $this->find_translation($sourcePath, $sourceLang, $targetLanguageCode, $this->variables->referrer);
+        return $reqCache[$key] = null;
+    }
 
-        if (!is_string($result) || $result === '') {
-            if ($sourcePath !== '' && $sourceLang !== '' && $targetLanguageCode !== '' && $this->ConveyThisCache instanceof ConveyThisCache) {
-                $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $targetLanguageCode, null, true);
-            }
-            return $reqCache[$key] = null;
+    /**
+     * Parse a /website/find-translation-multi-target/ response.
+     *
+     * Distinguishes "API errored" (send() error envelope or non-array) from
+     * "valid empty array" — only the former returns aborted=true. Critical
+     * for cache correctness: with a 6h negative TTL, writing negative
+     * entries on a transient API outage would suppress hreflang for 6h
+     * after recovery.
+     *
+     * Returns:
+     *   - aborted=true → caller must NOT write any cache entries.
+     *   - aborted=false → positives = [[lang, translated], ...];
+     *                     negatives = requested langs absent from response.
+     */
+    private static function parsePrefetchResponse($response, array $requestedLanguages, string $sourcePath): array
+    {
+        if (is_array($response) && isset($response['error'])) {
+            return ['positives' => [], 'negatives' => [], 'aborted' => true];
+        }
+        if (!is_array($response)) {
+            return ['positives' => [], 'negatives' => [], 'aborted' => true];
+        }
+        $positives = [];
+        $seen = [];
+        foreach ($response as $row) {
+            if (!is_array($row)) continue;
+            $lang = isset($row['target_language']) ? (string) $row['target_language'] : '';
+            $src  = isset($row['source_text']) ? (string) $row['source_text'] : '';
+            $trn  = isset($row['translate_text']) ? (string) $row['translate_text'] : '';
+            if ($lang === '' || $src !== $sourcePath || $trn === '') continue;
+            $positives[] = [$lang, $trn];
+            $seen[$lang] = true;
+        }
+        $negatives = [];
+        foreach ($requestedLanguages as $lang) {
+            if (!isset($seen[$lang])) $negatives[] = $lang;
+        }
+        return ['positives' => $positives, 'negatives' => $negatives, 'aborted' => false];
+    }
+
+    /**
+     * Batch cache-fill for hreflang/canonical/sitemap.
+     *
+     * Calls /website/find-translation-multi-target/ ONCE with all uncached
+     * target languages for this source path, then writes positive cache
+     * entries for returned rows and negative entries for the rest.
+     * Filters out languages already cached to avoid redundant API load
+     * when the page is mostly warm.
+     *
+     * No-op (and no API call) when no language needs filling. Silent on API
+     * error — keeps the cache empty for those (path, lang) pairs so the next
+     * caller can retry; never writes a 6h negative on a transient outage.
+     *
+     * Spec: docs/superpowers/specs/2026-05-12-hreflang-batching-and-plan-caching-design.md §3.3.
+     */
+    public function prefetchHreflangCache(string $sourcePath, array $targetLanguages): void
+    {
+        if ($sourcePath === '' || empty($targetLanguages)) {
+            return;
+        }
+        $sourceLang = (string) ($this->variables->source_language ?? '');
+        if ($sourceLang === '') {
+            return;
+        }
+        if (!($this->ConveyThisCache instanceof ConveyThisCache)) {
+            return;
         }
 
-        if ($sourcePath !== '' && $sourceLang !== '' && $targetLanguageCode !== '' && $this->ConveyThisCache instanceof ConveyThisCache) {
-            $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $targetLanguageCode, $result, false);
+        // Drop the source language itself and any duplicates; only target
+        // languages distinct from source need API resolution.
+        $uniq = [];
+        foreach ($targetLanguages as $lang) {
+            if (!is_string($lang) || $lang === '' || $lang === $sourceLang) continue;
+            if (!isset($uniq[$lang])) $uniq[$lang] = true;
         }
-        return $reqCache[$key] = $result;
+        if (empty($uniq)) return;
+
+        // Filter to languages not currently cached. Positive AND non-expired
+        // entry OR valid negative entry means we don't need the API.
+        $needed = [];
+        foreach (array_keys($uniq) as $lang) {
+            $hit = $this->ConveyThisCache->get_fwd_slug($sourcePath, $sourceLang, $lang);
+            if (!empty($hit['hit']) && empty($hit['expired'])) continue;
+            $needed[] = $lang;
+        }
+        if (empty($needed)) return;
+
+        $response = $this->send('POST', '/website/find-translation-multi-target/', array(
+            'referrer'         => $this->variables->referrer,
+            'source_language'  => $sourceLang,
+            'target_languages' => $needed,
+            'segments'         => [$sourcePath],
+        ), true /* return_error */);
+
+        $parsed = self::parsePrefetchResponse($response, $needed, $sourcePath);
+        if (!empty($parsed['aborted'])) {
+            return;
+        }
+
+        foreach ($parsed['positives'] as $row) {
+            list($lang, $translated) = $row;
+            $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $lang, $translated, false);
+        }
+        foreach ($parsed['negatives'] as $lang) {
+            $this->ConveyThisCache->set_fwd_slug($sourcePath, $sourceLang, $lang, null, true);
+        }
     }
 
     /**
@@ -3440,7 +3642,17 @@ class ConveyThis {
                                     $pathExt = strtolower(pathinfo($link['path'], PATHINFO_EXTENSION));
                                     $isFileUrl = $pathExt !== '' && in_array($pathExt, $this->variables->avoidUrlExt, true);
 
-                                    if (!$isFileUrl && $this->shouldTranslateLink($link['path'], $this->getLinkContext($child))) {
+                                    // Page exclusions (tbl_pages_excluded) must apply to link targets
+                                    // too, not just to the current page. Without this guard, a link
+                                    // pointing at /privacy/ from a non-excluded page (e.g. the homepage)
+                                    // gets queued for translation; the AI produces /privasi/ etc., the row
+                                    // lands in tbl_translate, and visitors arriving at /jv/privasi/ get
+                                    // resolved back to /privacy/ — a page the customer explicitly opted out
+                                    // of translating. replaceLink() at render time correctly preserves the
+                                    // source href, but by then the bad row already exists in the DB.
+                                    if (!$isFileUrl
+                                        && $this->shouldTranslateLink($link['path'], $this->getLinkContext($child))
+                                        && !$this->isPageExcluded($href, $this->variables->exclusions)) {
                                         $canonicalPath = $this->canonicalizeLinkPath($link['path']);
                                         $this->variables->segments[$canonicalPath] = $canonicalPath;
                                         $this->variables->links[$canonicalPath] = $canonicalPath;
@@ -5796,14 +6008,27 @@ class ConveyThis {
     private static function httpRequest($url, $args = [], $proxy = true, $region = 'US') {
         // Glossary POST: use longer timeout on first attempt so body is not lost and we avoid double-send
         $is_glossary_post = ( strpos($url, 'glossary') !== false && ! empty($args['method']) && $args['method'] === 'POST' );
-        $args['timeout'] = $is_glossary_post ? 30 : 1;
+        // Primary timeout for api-proxy.conveythis.com. Set wide enough to cover
+        // the proxy's tail latency (p50 ~0.8s, p90 ~2s, occasional >2s) so the
+        // primary attempt actually succeeds instead of always burning the budget
+        // and falling through to the direct host. Falling through still works,
+        // but doubles the total time-to-first-byte on hot paths like
+        // find_original_slug and the hreflang prefetch.
+        $args['timeout'] = $is_glossary_post ? 30 : 5;
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
         if ($proxy) {
             $response = wp_remote_request($proxyApiURL . $url, $args);
         }
         if (is_wp_error($response) || empty($response) || empty($response['body'])) {
-            $args['timeout'] = 30;
+            // Drop the fallback timeout from 30 s to 3 s for non-glossary requests
+            // so PHP-FPM workers do not park for 30 s on a slow upstream API. Glossary
+            // POSTs keep the longer timeout because they write data and should not be
+            // truncated mid-request. The shorter timeout means a transiently slow API
+            // surfaces as a fast `false` from `find_original_slug()` which is then
+            // negatively cached; the next request returns instantly instead of stacking
+            // another 30 s wait.
+            $args['timeout'] = $is_glossary_post ? 30 : 3;
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
         }
         return $response;
@@ -5864,7 +6089,16 @@ class ConveyThis {
             return;
         }
 
-        $req = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '/';
+        // Read the pre-strip REQUEST_URI snapshot, not the one init() has since
+        // rewritten. After init() strips the /lang/ prefix the current REQUEST_URI
+        // no longer has a language segment to detect, so stripLeadingLanguageSegmentFromPath
+        // returns the same path and this handler bails before doing any recovery.
+        // The snapshot is captured at the top of init() (search this file for
+        // original_request_uri_for_slash_canonical), and the slash-canonical
+        // sibling already uses it for the same reason.
+        $req = isset($this->original_request_uri_for_slash_canonical) && is_string($this->original_request_uri_for_slash_canonical) && $this->original_request_uri_for_slash_canonical !== ''
+            ? $this->original_request_uri_for_slash_canonical
+            : (isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '/');
         $path = parse_url($req, PHP_URL_PATH);
         if (!is_string($path) || $path === '' || $path === '/') {
             return;
@@ -6116,8 +6350,25 @@ class ConveyThis {
         return $out;
     }
 
+    /**
+     * Resolve a translated URL slug back to its original-language slug.
+     *
+     * Lookup order:
+     *   1. Local ConveyThisCache for any candidate variation of the slug.
+     *   2. Remote API call (POST /website/find-translation-source/) — batched
+     *      across all candidate variants in a single request.
+     *   3. WordPress permalink fallback (handles slugs WP already routes natively).
+     *
+     * No wp_options-backed negative cache: an earlier `_transient_` layer was
+     * removed because it ballooned the table to 1M+ rows and made every
+     * autoload-touching query slow. Cross-request negative caching (when the
+     * caller wants it) is the responsibility of higher layers like
+     * lookupTranslatedPathForHreflang/prefetchHreflangCache, which write to the
+     * sharded on-disk slug cache instead.
+     */
     private function find_original_slug($slug, $source_language, $target_language, $referer) {
         $this->print_log("* find_original_slug()");
+
         $candidates = $this->getOriginalSlugLookupCandidates($slug);
         foreach ($candidates as $candidate) {
             $original_slug = $this->ConveyThisCache->get_cached_slug($candidate, $target_language, $source_language);
@@ -6125,23 +6376,38 @@ class ConveyThis {
                 return $original_slug;
             }
         }
-        foreach ($candidates as $candidate) {
+        // Batch every candidate variant into a single API request instead of one
+        // request per candidate. The `/website/find-translation-source/` endpoint
+        // accepts an array in `segments` and returns matches positionally, so this
+        // is correctness-preserving: any candidate that the API can resolve will
+        // still be found. The worst-case worker block drops from
+        // N_candidates × per-call timeout to a single per-call timeout, which is
+        // the difference between a hot bot crawl saturating PHP-FPM and not.
+        if (!empty($candidates)) {
+            $batched = array_values($candidates);
             $response = $this->send('POST', '/website/find-translation-source/', array(
                 'referrer' => $referer,
                 'source_language' => $source_language,
                 'target_language' => $target_language,
-                'segments' => [$candidate]
+                'segments' => $batched,
             ));
-            if (count($response) && !empty($response[0]['source_text'])) {
-                $original_slug = $response[0]['source_text'];
-                $this->ConveyThisCache->save_cached_slug($candidate, $target_language, $source_language, $original_slug);
-                return $original_slug;
+            if (is_array($response)) {
+                foreach ($response as $idx => $row) {
+                    if (is_array($row)
+                        && !empty($row['source_text'])
+                        && isset($batched[$idx])) {
+                        $original_slug = $row['source_text'];
+                        $this->ConveyThisCache->save_cached_slug($batched[$idx], $target_language, $source_language, $original_slug);
+                        return $original_slug;
+                    }
+                }
             }
         }
         $wpPath = $this->findOriginalSlugViaWordPressPermalinkCandidates($candidates);
         if (is_string($wpPath) && $wpPath !== '') {
             return $wpPath;
         }
+
         return false;
     }
 
@@ -6498,6 +6764,15 @@ class ConveyThis {
     }
 
     function print_log($message, $clear = false) {
+        // Cheap kill switch. This function is invoked on essentially every plugin
+        // codepath; the body below stat()s the log file, builds a DateTime with a
+        // timezone, walks debug_backtrace(), and writes to disk. In aggregate that
+        // adds measurable per-request overhead and produces a log file that grows
+        // ~25 KB/sec under normal traffic. Only run the work when explicitly
+        // enabled via a constant in wp-config.php (`define('CONVEYTHIS_DEBUG_LOG', true);`).
+        if (!defined('CONVEYTHIS_DEBUG_LOG') || !CONVEYTHIS_DEBUG_LOG) {
+            return;
+        }
         $logFile = dirname(__DIR__) . '/print.log';
         $maxSize = 25 * 1024 * 1024; // 25 MB
         if (file_exists($logFile) && filesize($logFile) > $maxSize) {
