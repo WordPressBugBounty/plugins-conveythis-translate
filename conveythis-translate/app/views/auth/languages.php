@@ -233,17 +233,26 @@
 
     const updateSettings = (form, dropdownElements, target_languages) => {
         const apiKeyValue = form.elements['api_key'].value; // get API key value
+        const ajaxUrl = (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.ajax_url)
+            ? conveythis_plugin_ajax.ajax_url
+            : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
+        const setupNonce = (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.nonce)
+            ? conveythis_plugin_ajax.nonce
+            : '<?php echo esc_js(wp_create_nonce('conveythis_ajax_save')); ?>';
 
         $.ajax({
-            url: 'options.php', // WP options endpoint
+            url: ajaxUrl,
             method: 'POST',
+            dataType: 'json',
             data: {
-                'api_key': apiKeyValue, // send API key
-                'from_js': true // flag request from JS
+                action: 'conveythis_setup_sync',
+                api_key: apiKeyValue,
+                from_js: true,
+                nonce: setupNonce
             },
             success: (response) => {
-                if (response !== "null") { // if response exists
-                    const data = JSON.parse(response); // parse JSON
+                if (response && response !== null) {
+                    const data = (typeof response === 'string') ? JSON.parse(response) : response;
                     if (data.source_language && target_languages) {
                         $('.dropdown-current-language').removeClass('validation-failed'); // clear source validation
                         $('.dropdown-target-languages').removeClass('validation-failed'); // clear target validation

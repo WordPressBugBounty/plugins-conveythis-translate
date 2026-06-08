@@ -1,4 +1,8 @@
 == Changelog ==
+= 270.5 =
+* Add nonce verification to legacy admin POST handlers (CSRF hardening for CVE-2025-68021 follow-up).
+* Migrate onboarding, cache-clear, and API-key setup flows to nonce-protected admin-ajax handlers.
+
 = 270.4 =
 * Fix broken access control reported for admin-side requests and setup sync.
 * Improve hreflang generation, batching behavior, and cache handling.

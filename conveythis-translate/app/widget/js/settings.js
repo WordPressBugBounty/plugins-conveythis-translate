@@ -2,6 +2,24 @@ jQuery(document).ready(function ($) {
     var bootstrapDropdown = $.fn.dropdown.noConflict();
     $.fn.bootstrapDropdown = bootstrapDropdown;
 
+    function conveythisGetAjaxUrl() {
+        if (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.ajax_url) {
+            return conveythis_plugin_ajax.ajax_url;
+        }
+        if (typeof ajaxurl !== 'undefined') {
+            return ajaxurl;
+        }
+        return '/wp-admin/admin-ajax.php';
+    }
+
+    function conveythisGetNonce() {
+        if (typeof conveythis_plugin_ajax !== 'undefined' && conveythis_plugin_ajax.nonce) {
+            return conveythis_plugin_ajax.nonce;
+        }
+        var $field = $('#conveythis_nonce');
+        return $field.length ? $field.val() : '';
+    }
+
     function checkTools() {
         if (conveythisSettings.effect && conveythisSettings.view) {
             conveythisSettings.effect(function () {
@@ -68,9 +86,12 @@ jQuery(document).ready(function ($) {
 
     $('.conveythis_new_user').on('click', function () {
         jQuery.ajax({
-            url: 'options.php',
+            url: conveythisGetAjaxUrl(),
             method: 'POST',
-            data: {'ready_user': 1},
+            data: {
+                action: 'conveythis_ready_user',
+                nonce: conveythisGetNonce()
+            },
             success: function () {
                 window.location.reload()
             },
@@ -287,9 +308,15 @@ jQuery(document).ready(function ($) {
                                 setTimeout(() => {
 
                                     jQuery.ajax({
-                                        url: 'options.php',
+                                        url: conveythisGetAjaxUrl(),
                                         method: 'POST',
-                                        data: {'set_api_key': 1, 'api_key': res.data.pub_key, 'csrf': values.csrf},
+                                        data: {
+                                            action: 'conveythis_set_api_key',
+                                            set_api_key: 1,
+                                            api_key: res.data.pub_key,
+                                            nonce: conveythisGetNonce(),
+                                            csrf: values.csrf
+                                        },
                                         success: function () {
                                             window.location.reload()
                                         },
@@ -1403,9 +1430,13 @@ jQuery(document).ready(function ($) {
 
     $('#clear_translate_cache').on('click', function (e) {
         jQuery.ajax({
-            url: 'options.php',
+            url: conveythisGetAjaxUrl(),
             method: 'POST',
-            data: {'clear_translate_cache': true},
+            dataType: 'json',
+            data: {
+                action: 'conveythis_clear_translate_cache',
+                nonce: conveythisGetNonce()
+            },
             beforeSend: function () {
                 $('.spinner-cache').removeClass('d-none')
                 $('.clear-success').addClass('d-none')

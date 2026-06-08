@@ -209,6 +209,10 @@ class ConveyThis {
 
         add_action('wp_ajax_conveythis_clear_all_cache', array($this, 'ajax_conveythis_clear_all_cache'));
         add_action('wp_ajax_conveythis_dismiss_all_cache', array($this, 'ajax_conveythis_dismiss_all_cache'));
+        add_action('wp_ajax_conveythis_clear_translate_cache', array($this, 'ajax_conveythis_clear_translate_cache'));
+        add_action('wp_ajax_conveythis_setup_sync', array($this, 'ajax_conveythis_setup_sync'));
+        add_action('wp_ajax_conveythis_ready_user', array($this, 'ajax_conveythis_ready_user'));
+        add_action('wp_ajax_conveythis_set_api_key', array($this, 'ajax_conveythis_set_api_key'));
         add_action('pre_post_update', array($this, 'clear_post'), 10, 2);
         // Spec 5: when a post slug changes, clear cache for BOTH old and new
         // translated URLs. pre_post_update only has access to the pre-save
@@ -216,42 +220,6 @@ class ConveyThis {
         // with both $post_before and $post_after and can compare names.
         add_action('post_updated', array($this, 'invalidate_on_slug_change'), 10, 3);
         add_action('before_delete_post', array($this, 'invalidate_on_post_delete'), 10, 1);
-
-        // CVE-2025-68021: never process these POST side effects on a mere "/wp-admin/"
-        // substring match without an authenticated administrator. Otherwise a
-        // POST to admin-ajax.php (or any wp-admin URI) could mutate remote rules
-        // or purge caches without authorization.
-        if (strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false
-            && is_user_logged_in()
-            && current_user_can('manage_options')
-        ) {
-            if (isset($_POST['exclusions'])) { //phpcs:ignore
-                $this->updateRules($_POST['exclusions'], 'exclusion'); //phpcs:ignore
-            }
-            if (isset($_POST['glossary'])) { //phpcs:ignore
-                $this->updateRules($_POST['glossary'], 'glossary'); //phpcs:ignore
-            }
-            if (isset($_POST['exclusion_blocks'])) { //phpcs:ignore
-                $this->updateRules($_POST['exclusion_blocks'], 'exclusion_blocks'); //phpcs:ignore
-            }
-            if (isset($_POST['clear_translate_cache']) && $_POST['clear_translate_cache']) { //phpcs:ignore
-                // 1) Clear WP-side file cache at CONVEYTHIS_CACHE_TRANSLATIONS_PATH.
-                $result = $this->ConveyThisCache->clear_cached_translations(true);
-
-                // 2) Ask the API to purge this domain's rows from tbl_cache and
-                //    invalidate the matching CDN proxy cache. Without this, the
-                //    shared tbl_cache keeps serving stale translations for
-                //    segments/links edited from the dashboard.
-                $api_result = $this->clearTranslateCacheOnApi();
-
-                header('Content-Type: application/json', 1);
-                echo json_encode(array(
-                    'clear_cache_translate' => $result,
-                    'api_cache'             => $api_result,
-                ));
-                exit();
-            }
-        }
 
         $flag_replaces = ['NV2' => 'af', '5iM' => 'al', '5W5' => 'dz', '0Iu' => 'ad', 'R3d' => 'ao', '16M' => 'ag', 'V1f' => 'ar', 'q9U' => 'am', '2Os' => 'au', '8Dv' => 'at', 'Wg1' => 'az', '' => 'xk', '0qL' => 'bs', 'D9A' => 'bh', '63A' => 'bd', 'u7L' => 'bb', 'O8S' => 'by', '0AT' => 'be', 'lH4' => 'bz', 'I2x' => 'bj', 'D9z' => 'bt', '8Vs' => 'bo', 'Z1t' => 'ba', 'Vf3' => 'bw', '1oU' => 'br', '3rE' => 'bn', 'x8P' => 'bf', '5qZ' => 'bi', 'o8B' => 'kh', '3cO' => 'cm', 'P4g' => 'ca', 'R5O' => 'cv', 'kN9' => 'cf', 'V5u' => 'td', 'wY3' => 'cl', 'Z1v' => 'cn', 'a4S' => 'co', 'N6k' => 'km', 'WK0' => 'cg', 'PP7' => 'cr', '6PX' => 'ci', '7KQ' => 'hr', 'vU2' => 'cu', '1ZY' => 'cz', 'Kv5' => 'cd', 'Ro2' => 'dk', 'MS7' => 'dj', 'E7U' => 'dm', 'Eu2' => 'do', 'D90' => 'ec', '7LL' => 'eg', '0zL' => 'sv', 'b8T' => 'gq', '8Gl' => 'er', 'VJ8' => 'ee', 'ZH1' => 'et', 'E1f' => 'fj', 'nM4' => 'fi', 'E77' => 'fr', 'R1u' => 'ga', 'TZ6' => 'gm', '8Ou' => 'ge', '6Mr' => 'gh', 'kY8' => 'gr', 'yG1' => 'gd', 'aE8' => 'gt', '6Lm' => 'gn', 'I39' => 'gw', 'Mh5' => 'gy', 'Qx7' => 'ht', 'm5Q' => 'hn', 'OU2' => 'hu', 'Ho8' => 'is', 'My6' => 'in', 'G0m' => 'id', 'Vo7' => 'ir', 'z7I' => 'iq', '5Tr' => 'ie', '5KS' => 'il', 'BW7' => 'it', 'u6W' => 'jm', '4YX' => 'jp', 's2B' => 'jo', 'QA5' => 'kz', 'X3y' => 'ke', 'l2H' => 'ki', 'P5F' => 'kw', 'uP6' => 'kg', 'Qy5' => 'la', 'j1D' => 'lv', 'Rl2' => 'lb', 'lB1' => 'ls', '9Qw' => 'lr', 'v6I' => 'ly', '2GH' => 'li', 'uI6' => 'lt', 'EV8' => 'lu', '6GV' => 'mk', '4tE' => 'mg', 'O9C' => 'mw', 'C9k' => 'my', '1Q3' => 'mv', 'Yi5' => 'ml', 'N11' => 'mt', 'Z3x' => 'mh', 'F18' => 'mr', 'mH4' => 'mu', '8Qb' => 'mx', 'H6t' => 'fm', 'FD8' => 'md', 't0X' => 'mc', 'X8h' => 'mn', '61A' => 'me', 'M2e' => 'ma', 'J7N' => 'mz', 'YB9' => 'mm', 'r0H' => 'na', 'M09' => 'nr', 'E0c' => 'np', '8jV' => 'nl', '0Mi' => 'nz', '5dN' => 'ni', 'Rj0' => 'ne', '8oM' => 'ng', '3Yz' => 'kp', '4KE' => 'no', '8NL' => 'om', 'n4T' => 'pk', '8G2' => 'pw', '93O' => 'pa', 'FD4' => 'pg', 'y5O' => 'py', '4MJ' => 'pe', '2qL' => 'ph', 'j0R' => 'pl', '0Rq' => 'pt', 'a8S' => 'qa', 'nC7' => 'ro', 'D1H' => 'ru', '8UD' => 'rw', 'X2d' => 'kn', 'I5e' => 'lc', '3Kf' => 'vc', '54E' => 'ws', 'K4F' => 'sm', 'cZ9' => 'st', 'J06' => 'sa', 'x2O' => 'sn', 'GC6' => 'rs', 'JE6' => 'sc', 'mS4' => 'sl', 'O6e' => 'sg', 'Y2i' => 'sk', 'ZR1' => 'si', '0U1' => 'sb', '3fH' => 'so', '7xS' => 'za', '0W3' => 'kr', 'H4u' => 'ss', 'A5d' => 'es', '9JL' => 'lk', 'Wh1' => 'sd', '7Rb' => 'sr', 'f6L' => 'sz', 'oZ3' => 'se', '8aW' => 'ch', 'UZ9' => 'sy', '00T' => 'tw', '7Qa' => 'tj', 'VU7' => 'tz', 'V6r' => 'th', '52C' => 'tl', 'HH3' => 'tg', '8Ox' => 'to', 'oZ8' => 'tt', 'pD6' => 'tn', 'YZ9' => 'tr', 'Tm5' => 'tm', 'u0Y' => 'tv', 'eJ2' => 'ug', '2Mg' => 'ua', 'DT3' => 'ae', 'Dw0' => 'gb', 'R04' => 'us', 'aL9' => 'uy', 'zJ3' => 'uz', 'D0Y' => 'vu', 'FG2' => 'va', 'Eg6' => 've', 'l2A' => 'vn', 'YZ0' => 'ye', '9Be' => 'zm', '80Y' => 'zw', '00H' => 'hk', '00P' => 'ha'];
 
@@ -766,6 +734,82 @@ class ConveyThis {
     }
 
     /**
+     * Gate admin-ajax side effects: manage_options + conveythis_ajax_save nonce.
+     */
+    private function requireAdminAjaxNonce() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Access denied'], 403);
+        }
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+    }
+
+    /**
+     * AJAX: clear WP translation file cache and API/CDN cache (Cache tab button).
+     */
+    public function ajax_conveythis_clear_translate_cache() {
+        $this->requireAdminAjaxNonce();
+
+        $result = $this->ConveyThisCache->clear_cached_translations(true);
+        $api_result = $this->clearTranslateCacheOnApi();
+
+        wp_send_json(array(
+            'clear_cache_translate' => $result,
+            'api_cache'             => $api_result,
+        ));
+    }
+
+    /**
+     * AJAX: sync languages from remote API during onboarding (replaces index.php POST).
+     */
+    public function ajax_conveythis_setup_sync() {
+        $this->requireAdminAjaxNonce();
+
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field(wp_unslash($_POST['api_key'])) : ''; //phpcs:ignore
+        $from_js = !empty($_POST['from_js']); //phpcs:ignore
+
+        $res = $this->getSettingsOnStart($api_key, $from_js);
+        wp_send_json($res);
+    }
+
+    /**
+     * AJAX: dismiss new-user onboarding flag.
+     */
+    public function ajax_conveythis_ready_user() {
+        $this->requireAdminAjaxNonce();
+
+        update_option('conveythis_new_user', 0);
+        wp_send_json_success();
+    }
+
+    /**
+     * AJAX: persist API key after signup/login flow.
+     * Accepts conveythis_ajax_save nonce or legacy submit_action csrf from signup modal.
+     */
+    public function ajax_conveythis_set_api_key() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Access denied', 403);
+        }
+
+        $nonce_ok = check_ajax_referer('conveythis_ajax_save', 'nonce', false);
+        if (!$nonce_ok && isset($_POST['csrf'])) { //phpcs:ignore
+            $nonce_ok = wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['csrf'])), 'submit_action'); //phpcs:ignore
+        }
+        if (!$nonce_ok) {
+            wp_send_json_error('Invalid nonce', 403);
+        }
+
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field(wp_unslash($_POST['api_key'])) : ''; //phpcs:ignore
+        if ($api_key === '') {
+            wp_send_json_error('Missing api_key', 400);
+        }
+
+        update_option('api_key', $api_key);
+        wp_send_json_success();
+    }
+
+    /**
      * Check if a link's slug should be translated based on configured rules.
      * Language prefix is always added regardless — this only controls slug translation.
      */
@@ -994,11 +1038,6 @@ class ConveyThis {
             // Mirror the "Clear translation cache" button: also purge the API
             // tbl_cache rows for this domain and the CDN proxy cache.
             $this->clearTranslateCacheOnApi();
-        }
-
-        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
-            wp_send_json_error('Invalid nonce');
-            return;
         }
 
         $old_trailing_slash = get_option('use_trailing_slash', '0');
