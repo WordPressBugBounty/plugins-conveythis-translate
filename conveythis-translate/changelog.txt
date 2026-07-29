@@ -1,4 +1,9 @@
 == Changelog ==
+= 270.6 =
+* Keep translated URLs on API errors (no bounce to English); longer timeout for page translate only.
+* Fix glossary full delete sync; homepage language links use /{lang}/.
+* Tested up to WordPress 7.0.
+
 = 270.5 =
 * Add nonce verification to legacy admin POST handlers (CSRF hardening for CVE-2025-68021 follow-up).
 * Migrate onboarding, cache-clear, and API-key setup flows to nonce-protected admin-ajax handlers.

@@ -70,13 +70,39 @@
                 // For Some reason it was not working with style.css file... It would load old styles at all times
                 ?>
                 <style>
+                    /* Keep modal from creating a page/modal scrollbar while confetti animates */
+                    #congrats-modal.modal {
+                        overflow: hidden !important;
+                    }
+
+                    #congrats-modal .modal-dialog {
+                        margin: 1.75rem auto;
+                        max-width: 500px;
+                    }
 
                     #congrats-modal .modal-content {
                         border: none;
                         border-radius: 12px;
                         overflow: hidden;
+                        position: relative;
                         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
                         background: white;
+                    }
+
+                    #congrats-modal .congrats-confetti {
+                        position: absolute;
+                        inset: 0;
+                        width: auto;
+                        height: auto;
+                        display: block;
+                        overflow: hidden;
+                        pointer-events: none;
+                        z-index: 1;
+                    }
+
+                    #congrats-modal .congrats-confetti .confetti-piece {
+                        /* Override global .confetti flex layout; keep pieces clipped inside overlay */
+                        position: absolute;
                     }
 
                     #congrats-modal .modal-header {
@@ -103,6 +129,8 @@
                         font-weight: 700;
                         font-size: 1.75rem;
                         text-align: center;
+                        position: relative;
+                        z-index: 2;
                     }
 
                     #congrats-modal .modal-body p {
@@ -117,7 +145,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        background: rgba(255, 255, 255, 0.2);
+                        background: rgba(20, 76, 173, 0.08);
                         border-radius: 50%;
                     }
 
@@ -125,29 +153,18 @@
                         width: 50px;
                         height: 50px;
                         fill: #144CAD;
-
-                    }
-
-                    @keyframes congrats-pulse {
-                        0%, 100% {
-                            transform: scale(1);
-                            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
-                        }
-                        50% {
-                            transform: scale(1.05);
-                            box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
-                        }
                     }
 
                     #congrats-modal .btn-primary {
                         padding: 8px 24px;
                     }
 
-
                     #congrats-modal .decorative-circle {
                         position: absolute;
                         border-radius: 50%;
-                        background: rgba(255, 255, 255, 0.1);
+                        background: rgba(20, 76, 173, 0.06);
+                        pointer-events: none;
+                        /* Static — animated translate was expanding overflow and flickering scrollbars */
                     }
 
                     #congrats-modal .circle-1 {
@@ -155,7 +172,6 @@
                         height: 200px;
                         top: -50px;
                         right: -50px;
-                        animation: congrats-float 6s ease-in-out infinite;
                     }
 
                     #congrats-modal .btn-close {
@@ -168,22 +184,12 @@
                         height: 150px;
                         bottom: -30px;
                         left: -30px;
-                        animation: congrats-float 8s ease-in-out infinite reverse;
-                    }
-
-                    @keyframes congrats-float {
-                        0%, 100% {
-                            transform: translate(0, 0);
-                        }
-                        50% {
-                            transform: translate(20px, 20px);
-                        }
                     }
 
                     #congrats-modal.fade .modal-dialog {
-                        transform: scale(0.7);
+                        transform: scale(0.95);
                         opacity: 0;
-                        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+                        transition: transform 0.25s ease-out, opacity 0.25s ease-out;
                     }
 
                     #congrats-modal.show .modal-dialog {
@@ -192,22 +198,24 @@
                     }
                 </style>
 
-                <div class="modal fade confetti" tabindex="-1" id="congrats-modal" role="dialog" aria-hidden="true" data-backdrop="static">
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="confetti-piece"></div>
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+                <div class="modal fade" tabindex="-1" id="congrats-modal" role="dialog" aria-hidden="true" data-backdrop="static">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
                         <div class="modal-content bg-light py-3">
+                            <div class="congrats-confetti confetti" aria-hidden="true">
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                                <div class="confetti-piece"></div>
+                            </div>
                             <div class="decorative-circle circle-1"></div>
                             <div class="decorative-circle circle-2"></div>
 
@@ -264,6 +272,7 @@
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -277,6 +286,15 @@
             modal.classList.add('fade');
 
             setTimeout(function () {
+                // Lock page scroll before show — prevents scrollbar flicker from confetti/layout
+                const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                document.body.classList.add('modal-open');
+                document.body.style.overflow = 'hidden';
+                document.documentElement.style.overflow = 'hidden';
+                if (scrollbarWidth > 0) {
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                }
+
                 // Show modal
                 modal.style.display = 'block';
                 modal.classList.add('show');
@@ -286,9 +304,6 @@
                 const backdrop = document.createElement('div');
                 backdrop.className = 'modal-backdrop fade show';
                 document.body.appendChild(backdrop);
-
-                // Add modal-open class to body
-                document.body.classList.add('modal-open');
             }, 2000);
         }
 

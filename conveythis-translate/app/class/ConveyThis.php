@@ -1024,7 +1024,9 @@ class ConveyThis {
         }
         $glossary_rules_sent = is_array($glossary) ? count($glossary) : 0;
         $glossary_debug = null;
-        if ($glossary) {
+        // Must use is_array(): empty [] is falsy in PHP, but deleting the last
+        // rule(s) still needs a sync POST so the API removes them.
+        if (is_array($glossary)) {
             $this->print_log('[Glossary Save] Calling updateRules(glossary) with ' . $glossary_rules_sent . ' rules');
             $glossary_debug = $this->updateRules($glossary, 'glossary');
         } else {
@@ -2528,7 +2530,11 @@ class ConveyThis {
                 }
                 $local_lang = get_locale();
                 $this->print_log("##### local_lang: " . $local_lang);
-                if (substr($local_lang, 0, 2) != $this->variables->source_language) {
+                // Buffer on translated URLs only. Comparing locale to source_language
+                // failed when locale was rewritten to the target (or source was
+                // misconfigured): server-side translatePage never ran and the page
+                // stayed English while the widget still showed the /ru|/uk URL.
+                if (!empty($this->variables->language_code)) {
                     ob_start(array($this, 'translatePage'));
                 }
             } else { // subdomain
@@ -2865,8 +2871,9 @@ class ConveyThis {
                 return $url;
             } else {
                 if ($url === '/') {
-                    $result = substr_replace($url, $prefix . '' . $language_code, 0, strlen($prefix));
-                    //  $this->print_log("case #1: $result");
+                    // Always expose /{lang}/ for the homepage so the widget does not
+                    // send users to /ru (no slash) which then 302s into /ru/ru.
+                    $result = $prefix . $language_code . '/';
                     return $result;
                 }
                 $result = substr_replace($url, $prefix . '' . $language_code . '/', 0, strlen($prefix));
@@ -4750,7 +4757,22 @@ class ConveyThis {
                     if (!empty($this->variables->items) && !$this->allowCache($this->variables->items)) {
                         $this->print_log('!empty($this->variables->items) && !$this->allowCache($this->variables->items)');
                         $this->ConveyThisCache->clear_cached_translations(false, $this->variables->referrer, $this->variables->source_language, $this->variables->language_code);
+                        // Count-matched + rejected = identity English payload: drop from
+                        // memory so this request refetches. Count-mismatched = true partial:
+                        // keep and paint (progressive fill-over-time; do not block forever).
+                        if (is_array($this->variables->items)
+                            && count($this->variables->items) === count($this->variables->segments)
+                        ) {
+                            $this->variables->items = [];
+                        }
                     }
+                    // Progressive rendering (long-standing behavior): serve whatever partial
+                    // translation we already have immediately and let the API DB fill in the
+                    // rest across subsequent views. Only hit the API when we have nothing
+                    // cached to show — do NOT drop a partial and block the request waiting for
+                    // a 100% response (that regressed pages to English and killed the
+                    // fill-over-time UX; pages with a permanently-untranslatable segment would
+                    // never satisfy allowCache and re-fetched on every load).
                     if (empty($this->variables->items)) {
                         for ($i = 1; $i <= 3; $i++) {
                             // $this->print_log("$i".' json_encode(for$this->variables->segments)');
@@ -4792,9 +4814,36 @@ class ConveyThis {
                             $this->print_log('response:');
                             $this->print_log($response);
                             if (isset($response['error'])) {
-                                if (!$update_cache) {
-                                    header('Location: ' . $this->variables->referrer, true, 302);
-                                    exit();
+                                // Do not 302 away from /uk|/ru etc. to the source URL on API
+                                // errors — keep the language URL, render source HTML (allowCache
+                                // will not persist empty/partial items), and let the footer
+                                // widget JS finish translation.
+                                //
+                                // KEEP RETRYING here. Although the error MESSAGES describe
+                                // permanent-sounding rules ("Domain is not active", "Target
+                                // language not found"), the underlying CONDITION can be
+                                // transiently true — e.g. searchDomain() intermittently returns
+                                // empty under replica lag / a race, so an already-translated page
+                                // gets an error on attempt 1 and the real translations on attempt
+                                // 2-3. Breaking immediately here regressed such pages to English.
+                                //
+                                // referrer/lang are request-controlled — sanitize before logging
+                                // to prevent newline log injection.
+                                $errMsg = is_string($response['error'])
+                                    ? $response['error']
+                                    : wp_json_encode($response['error']);
+                                error_log(
+                                    '[ConveyThis] /website/translate error (no 302): '
+                                    . $errMsg
+                                    . ' | lang=' . sanitize_text_field($this->variables->language_code)
+                                    . ' | referrer=' . esc_url_raw($this->variables->referrer)
+                                    . ' | update_cache=' . ($update_cache ? '1' : '0')
+                                    . ' | attempt=' . $i
+                                );
+                                $this->print_log('[ConveyThis] translate error, stay on language URL: ' . $errMsg);
+                                if ($i < 3) {
+                                    usleep(800000);
+                                    continue;
                                 }
                                 break;
                             }
@@ -4812,7 +4861,17 @@ class ConveyThis {
                                 }
                                 if (!empty($new_response)) $response = $new_response;
                                 $this->variables->items = $response;
+                                // Accept the first non-empty response and render it, even if
+                                // partial. allowCache() below still gates what gets persisted, so
+                                // an incomplete/identity result is shown but not cached, and the
+                                // next view picks up more from the API DB.
                                 break;
+                            }
+
+                            // Empty body/timeout: do not spin three instant empties — wait.
+                            $this->print_log('[ConveyThis] empty translate response, retry ' . $i);
+                            if ($i < 3) {
+                                usleep(800000);
                             }
                         }
 
@@ -4991,7 +5050,36 @@ class ConveyThis {
 
     public function allowCache($items) {
         $this->print_log("* allowCache()");
-        return count($items) == count($this->variables->segments) ? true : false;
+        if (!is_array($items) || count($items) !== count($this->variables->segments)) {
+            return false;
+        }
+        // Count-only checks treat "source == translate" rows as complete. On a cold
+        // first hit the API can return a full-count identity payload; we used to
+        // cache/paint that English and only get real MT after F5.
+        $comparable = 0;
+        $changed = 0;
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $src = isset($item['source_text']) ? trim((string) $item['source_text']) : '';
+            $dst = isset($item['translate_text']) ? trim((string) $item['translate_text']) : '';
+            if ($src === '' || $dst === '') {
+                continue;
+            }
+            if (!preg_match('/\p{L}/u', $src)) {
+                continue;
+            }
+            $comparable++;
+            if ($src !== $dst) {
+                $changed++;
+            }
+        }
+        if ($comparable >= 3 && $changed === 0) {
+            $this->print_log('[ConveyThis] allowCache reject: identity translations');
+            return false;
+        }
+        return true;
     }
 
     public function comparisonSegments($response_value, $segments_value) {
@@ -6045,29 +6133,24 @@ class ConveyThis {
     }
 
     private static function httpRequest($url, $args = [], $proxy = true, $region = 'US') {
-        // Glossary POST: use longer timeout on first attempt so body is not lost and we avoid double-send
+        // Long timeout for write/heavy POSTs only: glossary sync + full page translate.
+        // Light GETs (find_original_slug, code/get, etc.) stay at 5s/3s so PHP-FPM and
+        // api-proxy workers are not parked (see May 2026 timeout hardening).
         $is_glossary_post = ( strpos($url, 'glossary') !== false && ! empty($args['method']) && $args['method'] === 'POST' );
-        // Primary timeout for api-proxy.conveythis.com. Set wide enough to cover
-        // the proxy's tail latency (p50 ~0.8s, p90 ~2s, occasional >2s) so the
-        // primary attempt actually succeeds instead of always burning the budget
-        // and falling through to the direct host. Falling through still works,
-        // but doubles the total time-to-first-byte on hot paths like
-        // find_original_slug and the hreflang prefetch.
-        $args['timeout'] = $is_glossary_post ? 30 : 5;
+        $is_page_translate = ( strpos($url, '/website/translate/') !== false && ! empty($args['method']) && $args['method'] === 'POST' );
+        $long_timeout = $is_glossary_post || $is_page_translate;
+        // Primary: 30s matches API async wall (~25s under ~30s FPM kill) for page translate;
+        // 5s covers api-proxy p50~0.8s / p90~2s for light calls.
+        $args['timeout'] = $long_timeout ? 30 : 5;
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
         if ($proxy) {
             $response = wp_remote_request($proxyApiURL . $url, $args);
         }
         if (is_wp_error($response) || empty($response) || empty($response['body'])) {
-            // Drop the fallback timeout from 30 s to 3 s for non-glossary requests
-            // so PHP-FPM workers do not park for 30 s on a slow upstream API. Glossary
-            // POSTs keep the longer timeout because they write data and should not be
-            // truncated mid-request. The shorter timeout means a transiently slow API
-            // surfaces as a fast `false` from `find_original_slug()` which is then
-            // negatively cached; the next request returns instantly instead of stacking
-            // another 30 s wait.
-            $args['timeout'] = $is_glossary_post ? 30 : 3;
+            // Fallback direct-to-API: keep long timeout for glossary/page-translate POSTs;
+            // light calls stay at 3s so a slow upstream fails fast and can be negatively cached.
+            $args['timeout'] = $long_timeout ? 30 : 3;
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
         }
         return $response;

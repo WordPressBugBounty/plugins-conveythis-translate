@@ -3,9 +3,9 @@ Contributors: alexburan, conveythis
 Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 4.0
 Requires PHP: 5.6
-Tested up to: 6.9.1
+Tested up to: 7.0
 
-Stable tag: 270.5
+Stable tag: 270.6
 
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -218,12 +218,21 @@ Learn how your data and content are securely handled by ConveyThis.
 8.	Customize language switcher as you want (you have the convenient "preview" mode)
 9.	Save changes
 10.	The language button now appeared on your website.
-11.	You can switched to another language and see translated page
+11.	You can switch to another language and see translated page
 12.	If you want to edit your translation go ["My Translation"](https://app.conveythis.com/domains) in your account
 
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 270.6 =
+* Keep translated URLs on API errors (no bounce to English); longer timeout for page translate only.
+* Fix glossary full delete sync; homepage language links use /{lang}/.
+* Tested up to WordPress 7.0.
+
+= 270.5 =
+* Add nonce verification to legacy admin POST handlers (CSRF hardening for CVE-2025-68021 follow-up).
+* Migrate onboarding, cache-clear, and API-key setup flows to nonce-protected admin-ajax handlers.
+
 = 270.4 =
 * Fix broken access control reported for admin-side requests and setup sync
 * Improve hreflang generation, batching behavior, and cache handling

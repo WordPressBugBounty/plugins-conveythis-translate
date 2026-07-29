@@ -135,6 +135,14 @@ jQuery(document).ready(function ($) {
         var glossaryJson = JSON.stringify(glossaryRules);
         $('#glossary_data').val(glossaryJson);
 
+        // Guard: if DOM has 0 rules but the page originally had glossary data and the
+        // user never touched glossary, do NOT send [] — that would wipe API rules
+        // (e.g. GET glossary failed / rows not rendered). Empty sync only when
+        // intentional (touched) or there was nothing to begin with.
+        var shouldSyncGlossary = glossaryRules.length > 0
+            || conveythisGlossaryState.touched
+            || conveythisGlossaryState.initialCount === 0;
+
         // Properly handle array inputs from FormData
         const formData = new FormData(form[0]);
         const data = {};
@@ -196,12 +204,16 @@ jQuery(document).ready(function ($) {
         var settingsToSend = Object.assign({}, data);
         delete settingsToSend.glossary;
 
-        $.post(ajaxUrl, {
+        var postPayload = {
             action: 'conveythis_save_all_settings',
             nonce: data['conveythis_nonce'],
-            settings: settingsToSend,
-            glossary: glossaryJson
-        }, function (response) {
+            settings: settingsToSend
+        };
+        if (shouldSyncGlossary) {
+            postPayload.glossary = glossaryJson;
+        }
+
+        $.post(ajaxUrl, postPayload, function (response) {
             $('.conveythis-overlay').remove();
             $btn.prop('disabled', false).val('Save Settings');
             if (response.success) {
@@ -209,6 +221,10 @@ jQuery(document).ready(function ($) {
                 if (typeof syncGlossaryLanguageDropdowns === 'function') {
                     syncGlossaryLanguageDropdowns();
                     applyGlossaryFilters();
+                }
+                if (shouldSyncGlossary) {
+                    conveythisGlossaryState.initialCount = glossaryRules.length;
+                    conveythisGlossaryState.touched = false;
                 }
             } else {
                 console.error('[ConveyThis Glossary Save] Server returned success: false', response.data);
@@ -814,6 +830,7 @@ jQuery(document).ready(function ($) {
         $("#blockpages_wrapper").append(blockpage);
 
         $(document).find('.conveythis-delete-page').on('click', function (e) {
+            if ($(this).closest('#glossary_wrapper').length) return;
             e.preventDefault();
             $(this).parent().remove();
         });
@@ -839,6 +856,7 @@ jQuery(document).ready(function ($) {
         $("#exclusion_wrapper").append($exclusion);
 
         $(document).find('.conveythis-delete-page').on('click', function (e) {
+            if ($(this).closest('#glossary_wrapper').length) return;
             e.preventDefault();
             $(this).parent().remove();
         });
@@ -862,6 +880,7 @@ jQuery(document).ready(function ($) {
         $("#flag-style_wrapper").append($rule_style);
 
         $(document).find('.conveythis-delete-page').on('click', function (e) {
+            if ($(this).closest('#glossary_wrapper').length) return;
             e.preventDefault();
             let $rowToDelete = $(this).closest('.style-language');
             $rowToDelete.remove();
@@ -884,6 +903,28 @@ jQuery(document).ready(function ($) {
     var GLOSSARY_PER_PAGE = 20;
     var glossaryCurrentPage = 1;
     var glossaryTotalPages = 1;
+    var conveythisGlossaryState = {
+        initialCount: 0,
+        touched: false
+    };
+
+    function markGlossaryTouched() {
+        conveythisGlossaryState.touched = true;
+    }
+
+    function initGlossaryState() {
+        var domCount = $('#glossary_wrapper').children('.glossary').length;
+        var dataCount = 0;
+        try {
+            var raw = $('#glossary_data').val() || '[]';
+            var parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                dataCount = parsed.length;
+            }
+        } catch (e) {}
+        conveythisGlossaryState.initialCount = Math.max(domCount, dataCount);
+        conveythisGlossaryState.touched = false;
+    }
 
     function applyGlossaryFilters() {
         var $panel = $('#v-pills-glossary');
@@ -969,6 +1010,10 @@ jQuery(document).ready(function ($) {
         applyGlossaryFilters();
     });
 
+    $(document).on('change input', '#glossary_wrapper input, #glossary_wrapper select', function () {
+        markGlossaryTouched();
+    });
+
     $(document).on('change', '#glossary_wrapper select.target_language', function () {
         var val = $(this).val() || '';
         $(this).closest('.glossary').data('target-language', val);
@@ -980,6 +1025,7 @@ jQuery(document).ready(function ($) {
         e.stopImmediatePropagation();
         var $row = $(this).closest('.glossary');
         if ($row.length) {
+            markGlossaryTouched();
             $row.remove();
             applyGlossaryFilters();
         }
@@ -1043,6 +1089,7 @@ jQuery(document).ready(function ($) {
 
     $('#add_glossary').on('click', function (e) {
         e.preventDefault();
+        markGlossaryTouched();
         appendGlossaryRow({});
     });
 
@@ -1090,6 +1137,7 @@ jQuery(document).ready(function ($) {
 
     syncGlossaryLanguageDropdowns();
     applyGlossaryFilters();
+    initGlossaryState();
 
     function getGlossaryRuleFromRow($row) {
         var $ruleEl = $row.find('select.rule');
@@ -1246,6 +1294,7 @@ jQuery(document).ready(function ($) {
         var input = this;
         var file = input.files && input.files[0];
         if (!file) return;
+        markGlossaryTouched();
         var reader = new FileReader();
         reader.onload = function () {
             var text = reader.result;
@@ -2549,11 +2598,9 @@ jQuery(document).ready(function ($) {
         if (this.value === '1' && translateLinksInitial !== '1') {
             var ok = confirm(
                 'Enable Translate URLs (beta)?\n\n' +
-                'Known edge cases:\n' +
-                '  - Non-ASCII slugs (Cyrillic, Arabic, CJK)\n' +
-                '  - Custom post types not registered with publicly_queryable\n' +
-                '  - Translation API timeouts -> silent fallback to source slug\n\n' +
-                'Test on staging first. OK to enable?'
+                'URL translation may not work correctly in some cases, such as pages with non-Latin URLs (Cyrillic, Arabic, Chinese, Japanese, etc.), custom post types, or temporary translation service issues.\n\n' +
+                'After enabling, verify your hreflang and canonical tags, then request a re-crawl in Google Search Console.\n\n' +
+                'OK to enable?'
             );
             if (!ok) {
                 jQuery('input[name="translate_links"][value="' + translateLinksInitial + '"]').prop('checked', true);

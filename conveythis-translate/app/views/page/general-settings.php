@@ -81,11 +81,7 @@
                 <label for="translate_links_no">No</label></div>
         </div>
         <p class="text-warning" style="margin-top: 8px; font-size: 0.9em; max-width: 720px;">
-            <strong>Beta feature.</strong> URL translation may produce broken links on:
-            non-ASCII slugs (Cyrillic, Arabic, CJK), custom post types not registered with
-            <code>publicly_queryable</code>, or when the translation API times out
-            (silent fallback to source slug). Verify hreflang &amp; canonical tags after
-            enabling, and re-crawl in Search Console.
+            <strong>Beta feature.</strong> URL translation may not work correctly in some cases, such as pages with non-Latin URLs (Cyrillic, Arabic, Chinese, Japanese, etc.), custom post types, or temporary translation service issues. After enabling this feature, verify your hreflang and canonical tags, then request a re-crawl in Google Search Console.
         </p>
     </div>
 
