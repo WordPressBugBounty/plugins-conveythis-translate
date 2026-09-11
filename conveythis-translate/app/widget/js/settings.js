@@ -803,6 +803,28 @@ jQuery(document).ready(function ($) {
         conveythisSettings.view();
     });
 
+    /* Each colour swatch carries a hex readout beside it. Two of the four
+       defaults on this screen are #f6f6f6 and #f7f7f7 — as chips they are
+       indistinguishable, so the value has to be written out.
+
+       Additive: the <output> elements are new markup that nothing else reads,
+       and these handlers only write text into them. The value is already
+       rendered server-side, so the readout is correct before this runs. The
+       click handler is bound after the reset handler above, which means the
+       input already holds its default by the time this reads it. */
+    function conveythisSyncColorHex(input) {
+        var $input = $(input);
+        $input.siblings('output.ct-wp-color-hex').text(String($input.val() || '').toUpperCase());
+    }
+
+    $('.conveythis-widget-option-form input[type=color]').on('input change', function () {
+        conveythisSyncColorHex(this);
+    });
+
+    $('button.btn-default-color').on('click', function () {
+        conveythisSyncColorHex($(this).parent().find('input[type=color]'));
+    });
+
     $('.conveythis-reset').on('click', function (e) {
         e.preventDefault();
         $(this).parent().parent().find('.ui.dropdown').dropdown('clear');
@@ -2220,6 +2242,27 @@ jQuery(document).ready(function ($) {
                             }
                             //console.log("### plan name:" + plan_name)
                             const maxLanguages = result.data.languages;
+
+                            // ConveyThis admin UI — fill the header status strip.
+                            // Writes only to ids introduced by that strip in
+                            // app/views/main.php. Nothing else reads them and the
+                            // strip renders fine without this block.
+                            (function fillStatusStrip(d) {
+                                var put = function (id, value) {
+                                    var node = document.getElementById(id);
+                                    if (node && value !== undefined && value !== null && value !== '') {
+                                        node.textContent = value;
+                                    }
+                                };
+                                var num = function (v) {
+                                    var n = parseInt(v, 10);
+                                    return isNaN(n) ? null : n.toLocaleString();
+                                };
+                                put('ct_wp_lang_max', maxLanguages);
+                                put('ct_wp_words', num(d.words));
+                                put('ct_wp_views', num(d.views));
+                            })(result.data);
+
                             $('.dropdown-target-languages').dropdown({
                                 maxSelections: maxLanguages,
                                 message: {

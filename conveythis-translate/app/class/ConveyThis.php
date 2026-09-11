@@ -121,6 +121,19 @@ class ConveyThis {
         $domain_name = $this->getPageHost($url);
         $account = $this->getAccountByApiKey($this->variables->api_key);
         if (!empty($account)) {
+            // The account row is already fetched here for domain_id, so keeping
+            // languages_count costs nothing extra. It is the number of DISTINCT
+            // languages across every active domain on this account — computed by
+            // the API's Recount::recountLanguages() as
+            // count(array_unique(target_languages)) over is_active domains — and
+            // it is the figure Controller/Website.php:330 enforces the plan
+            // allowance against. The admin header shows it so the allowance
+            // reads as the shared pool it actually is.
+            $this->variables->account = $account;
+            if (isset($account['languages_count'])) {
+                $this->variables->account_languages_count = (int) $account['languages_count'];
+            }
+
             $domain = $this->getDomainDetails($account['account_id'], $domain_name);
             $this->print_log("@@@ domain: " . json_encode($domain));
             $domain_id = "";
@@ -163,7 +176,11 @@ class ConveyThis {
 
         // SEO Translation Quality hooks
         add_action('init',                                  array($this, 'maybe_run_seo_v1_upgrade'), 5);
-        add_action('admin_notices',                         array($this, 'show_seo_v1_upgrade_notice'));
+        // The one-time "SEO update v1 deployed" banner was removed in 270.7.
+        // Its × was WordPress's own is-dismissible, i.e. session-only, so it
+        // returned on every page load until someone pressed Warm or Skip. The
+        // upgrade it announced shipped in 270.1. maybe_run_seo_v1_upgrade()
+        // above still runs the actual migration; only the announcement is gone.
         if ($this->variables->beta_features) {
             add_action('admin_notices',                         array($this, 'show_seo_quality_notice'));
             add_action('admin_notices',                         array($this, 'show_structured_data_discovery_notice'));
@@ -3534,13 +3551,16 @@ class ConveyThis {
                             $value = preg_replace("/\<!--(.*?)\-->/", "", $value);
                             $this->variables->segments[$value] = $value;
                             $this->collectNode($child->parentNode, 'innerHTML', $value, $originalValue);
+                            $this->addSegmentType($value, 'text');
                         } else {
                             $this->variables->segments[$value] = $value;
                             $this->collectNode($child, 'textContent', $value, $originalValue);
+                            $this->addSegmentType($value, 'text');
                         }
                     } else {
                         $this->variables->segments[$value] = $value;
                         $this->collectNode($child, 'textContent', $value, $originalValue);
+                        $this->addSegmentType($value, 'text');
                     }
                 }
 
@@ -3550,6 +3570,7 @@ class ConveyThis {
                         $attrValue = trim($child->getAttribute('title'));
                         if (!empty($attrValue)) {
                             $this->collectNode($child, 'title', $attrValue);
+                            $this->addSegmentType($attrValue, 'attr_title');
                         }
                     }
 
@@ -3557,6 +3578,7 @@ class ConveyThis {
                         $attrValue = trim($child->getAttribute('alt'));
                         if (!empty($attrValue)) {
                             $this->collectNode($child, 'alt', $attrValue);
+                            $this->addSegmentType($attrValue, 'attr_alt');
                         }
                     }
 
@@ -3564,6 +3586,7 @@ class ConveyThis {
                         $attrValue = trim($child->getAttribute('placeholder'));
                         if (!empty($attrValue)) {
                             $this->collectNode($child, 'placeholder', $attrValue);
+                            $this->addSegmentType($attrValue, 'attr_placeholder');
                         }
                     }
 
@@ -3575,6 +3598,7 @@ class ConveyThis {
                                 $attrValue = trim($child->getAttribute('value'));
                                 if (!empty($attrValue)) {
                                     $this->collectNode($child, 'value', $attrValue);
+                                    $this->addSegmentType($attrValue, 'attr_value');
                                 }
                             }
                         }
@@ -3604,6 +3628,7 @@ class ConveyThis {
                                         'meta_field'   => self::$META_FIELD_TO_TYPE[$metaAttributeName],
                                     ];
                                     $this->collectNode($child, 'content', $metaAttrValue);
+                                    $this->addSegmentType($metaAttrValue, 'meta');
                                 }
                             }
                         }
@@ -3621,6 +3646,7 @@ class ConveyThis {
                             if (in_array($ext, $this->variables->imageExt)) {
                                 $this->variables->segments[$src] = $src;
                                 $this->collectNode($child, 'src', $src);
+                                $this->addSegmentType($src, 'image');
                             }
                         }
 
@@ -3629,6 +3655,7 @@ class ConveyThis {
                             if (!empty($title)) {
                                 $this->variables->segments[$title] = $title;
                                 $this->collectNode($child, 'title', $title);
+                                $this->addSegmentType($title, 'attr_title');
                             }
                         }
 
@@ -3637,6 +3664,7 @@ class ConveyThis {
                             if (!empty($alt)) {
                                 $this->variables->segments[$alt] = $alt;
                                 $this->collectNode($child, 'alt', $alt);
+                                $this->addSegmentType($alt, 'attr_alt');
                             }
                         }
                     }
@@ -3653,6 +3681,7 @@ class ConveyThis {
                                 'content_type' => 'tel_href',
                             ];
                             $this->collectNode($child, 'href', $href);
+                            $this->addSegmentType($href, 'tel');
                         }
 
                         if ($this->variables->translate_document) {
@@ -3664,6 +3693,7 @@ class ConveyThis {
                             if (in_array($ext, $this->variables->documentExt)) {
                                 $this->variables->segments[$href] = $href;
                                 $this->collectNode($child, 'href', $href);
+                                $this->addSegmentType($href, 'document');
                             }
                         }
 
@@ -3764,6 +3794,27 @@ class ConveyThis {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Segment-type bookkeeping (segment-type spec §7.3): value => list of wire
+     * type NAMES, recorded by the capture branches. segment_meta covers only
+     * seo_meta/tel_href/seo_structured_data; nodePathList is DOM-path-keyed and
+     * its 'href' entries are ambiguous — hence this dedicated map.
+     */
+    private function addSegmentType($value, $type) {
+        if (!is_string($value) || $value === '') {
+            return;
+        }
+        if (!isset($this->variables->segment_types)) {
+            $this->variables->segment_types = [];
+        }
+        if (!isset($this->variables->segment_types[$value])) {
+            $this->variables->segment_types[$value] = [];
+        }
+        if (!in_array($type, $this->variables->segment_types[$value], true)) {
+            $this->variables->segment_types[$value][] = $type;
         }
     }
 
@@ -4782,12 +4833,29 @@ class ConveyThis {
                             // The SEO-specific arrays are ADDITIVE metadata for quality routing —
                             // they hint to the API which segments deserve the quality provider chain
                             // but do NOT partition segments away from the DB-persistent path.
+
+                            // segment-type spec §4: entries only for values that are more than
+                            // plain text; a listed entry REPLACES the server's text default, so
+                            // multi-type values keep 'text'. Key always present: this plugin is
+                            // type-aware — including on free plans (segment_meta-adjacent capture
+                            // is unconditional, unlike the seo_* arrays gated at plan != 'free').
+                            $segmentTypesPayload = [];
+                            if (isset($this->variables->segment_types)) {
+                                foreach ($this->variables->segment_types as $value => $types) {
+                                    if ($types === ['text']) {
+                                        continue;
+                                    }
+                                    $segmentTypesPayload[] = ['text' => $value, 'types' => array_values($types)];
+                                }
+                            }
+
                             $payload = [
                                 'referrer'           => $this->variables->referrer,
                                 'source_language'    => $this->variables->source_language,
                                 'target_language'    => $this->variables->language_code,
                                 'segments'           => $this->variables->segments,
                                 'links'              => $this->variables->links,
+                                'segment_types'      => $segmentTypesPayload,
                                 'use_trailing_slash' => $this->variables->use_trailing_slash,
                             ];
 
@@ -5522,29 +5590,6 @@ class ConveyThis {
 
         update_option('conveythis_seo_v1_purged', time());
         update_option('conveythis_seo_v1_pinged', time());
-        update_option('conveythis_seo_v1_show_notice', 1);
-    }
-
-    /**
-     * Admin notice shown once after the SEO v1 upgrade with a warm-up CTA.
-     */
-    public function show_seo_v1_upgrade_notice() {
-        if (!get_option('conveythis_seo_v1_show_notice')) return;
-        if (!current_user_can('manage_options')) return;
-        if (get_option('conveythis_seo_v1_warmed')) return;
-
-        $maxUrls = (int) apply_filters('conveythis_seo_warmup_max_urls', 50);
-
-        echo '<div class="notice notice-info is-dismissible" data-conveythis-seo-v1>';
-        echo '<p><strong>' . esc_html__('ConveyThis SEO update v1 deployed.', 'conveythis-translate') . '</strong> ';
-        echo esc_html__('Translation cache has been refreshed; the next visit to each translated page will retranslate it using the new SEO-aware pipeline.', 'conveythis-translate');
-        echo '</p><p>';
-        echo '<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=conveythis_seo_warmup'), 'conveythis_seo_warmup')) . '" class="button button-primary">';
-        echo esc_html(sprintf(__('Warm top %d URLs in background', 'conveythis-translate'), (int) $maxUrls));
-        echo '</a> &nbsp; ';
-        echo '<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=conveythis_seo_warmup_skip'), 'conveythis_seo_warmup_skip')) . '" class="button">';
-        echo esc_html__('Skip', 'conveythis-translate');
-        echo '</a></p></div>';
     }
 
     /**
@@ -5902,6 +5947,7 @@ class ConveyThis {
                     'jsonld_path'  => $childPath,
                     'ai_hint'      => $aiHint,
                 ];
+                $this->addSegmentType($valTrimmed, 'structured_data');
                 $seen[$valTrimmed] = true;
             } else {
                 $this->variables->jsonld_flags[$valTrimmed] = true;

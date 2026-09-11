@@ -93,7 +93,7 @@
                             <div class="default text"><?php echo  esc_html(__( 'Select Flag', 'conveythis-translate' )); ?></div>
                             <div class="menu">
 
-                                <?php foreach( $this->variables->matchingFlags as $flag ): ?>
+                                <?php foreach( $this->variables->flags as $flag ): ?>
 
                                     <div class="item" data-value="<?php echo  esc_attr( $flag['code'] ); ?>">
                                         <div class="ui image" style="height: 28px; width: 30px; background-position: 50% 50%; background-size: contain; background-repeat: no-repeat; background-image: url('//cdn.conveythis.com/images/flags/svg/<?php echo  esc_attr($flag['code']); ?>.svg')"></div>
@@ -164,11 +164,12 @@
 
     <div class="form-group">
         <div class="subtitle">Color Style</div>
-        <div class="row w-100">
+        <div class="row w-100 ct-wp-color-grid">
             <div class="col-md-6">
                 <label>Background color of widget</label>
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_background_color" name="style_background_color" value="<?php echo  esc_attr($this->variables->style_background_color) ?>" data-default="#ffffff">
+                    <output class="ct-wp-color-hex" for="style_background_color"><?php echo esc_html(strtoupper((string) $this->variables->style_background_color)) ?></output>
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>
@@ -177,15 +178,17 @@
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_hover_color" name="style_hover_color" value="<?php echo  esc_attr($this->variables->style_hover_color) ?>"
                             data-default="#f6f6f6">
+                    <output class="ct-wp-color-hex" for="style_hover_color"><?php echo esc_html(strtoupper((string) $this->variables->style_hover_color)) ?></output>
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>
         </div>
-        <div class="row w-100">
+        <div class="row w-100 ct-wp-color-grid">
             <div class="col-md-6">
                 <label>Border color of widget</label>
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_border_color" name="style_border_color" value="<?php echo  esc_attr($this->variables->style_border_color) ?>"  data-default="#e0e0e0">
+                    <output class="ct-wp-color-hex" for="style_border_color"><?php echo esc_html(strtoupper((string) $this->variables->style_border_color)) ?></output>
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>
@@ -193,6 +196,7 @@
                 <label>Text color of widget</label>
                 <div class="d-flex">
                     <input type="color" class="form-control form-control-color me-2" id="style_text_color" name="style_text_color" value="<?php echo  esc_attr($this->variables->style_text_color) ?>" data-default="#000000">
+                    <output class="ct-wp-color-hex" for="style_text_color"><?php echo esc_html(strtoupper((string) $this->variables->style_text_color)) ?></output>
                     <button class="btn-default-color" type="button">Set default</button>
                 </div>
             </div>

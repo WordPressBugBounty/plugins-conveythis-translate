@@ -23,16 +23,21 @@
                             <div class="dropdown me-3">
                                 <i class="dropdown icon"></i>
                                 <select class="dropdown fluid ui form-control rule" >
+                                    <?php
+                                    // The four options always render. The guard used to sit INSIDE
+                                    // this loop, so an exclusion stored without a rule produced a
+                                    // <select> holding no options at all — an empty box with
+                                    // nothing to pick. Whether a rule is set decides which option
+                                    // is selected, not whether any are offered.
+                                    ?>
                                     <?php foreach (['start', 'end', 'contain', 'equal'] as $rule) :?>
-                                        <?php if (isset($exclusion['rule']) && !empty($exclusion['rule'])) : ?>
-                                            <option value="<?php echo esc_html($rule) ?>"<?php echo ($exclusion['rule'] == $rule ? 'selected': '')?>><?php echo esc_html(ucfirst($rule)); ?></option>
-                                        <?php endif ; ?>
+                                        <option value="<?php echo esc_attr($rule) ?>"<?php echo (isset($exclusion['rule']) && $exclusion['rule'] === $rule ? ' selected' : '') ?>><?php echo esc_html(ucfirst($rule)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <input type="hidden" class="exclusion_id" value="<?php echo (isset($exclusion['id']) ? esc_attr($exclusion['id']) : '') ?>"/>
                             <div class="ui input w-100">
-                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? $exclusion['page_url'] : '') ?>" class="page_url w-100" placeholder="Enter URL" value="">
+                                <input type="text" value="<?php echo (isset($exclusion['page_url']) ? esc_attr($exclusion['page_url']) : '') ?>" class="page_url w-100" placeholder="Enter URL">
                             </div>
                         </div>
                     <?php endif; ?>

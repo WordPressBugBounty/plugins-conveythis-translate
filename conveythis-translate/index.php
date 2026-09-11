@@ -3,14 +3,35 @@
 Plugin Name: ConveyThis Translate
 Plugin URI: https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress
 Description: Translate your WordPress site into over 100 languages using professional and instant machine translation technology. ConveyThis will help provide you with an SEO-friendy, multilingual website in minutes with no coding required.
-Version: 270.6
-
+Version: 270.7
+Requires at least: 5.3
+Requires PHP: 7.4
 Author: ConveyThis Translate Team
 Author URI: https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress
 Text Domain: conveythis-translate
-License: GPL2
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
 
+/**
+ * PHP 7.4 compatibility.
+ *
+ * ConveyThisSEO::sitemap_add_translated_urls() calls str_contains(), which is
+ * PHP 8.0+. That method is hooked to Yoast / Rank Math / SEOPress sitemap
+ * generation, so on PHP 7.x the site itself keeps working but building a
+ * sitemap fatals. Per wordpress.org/about/stats, 23% of WordPress installs
+ * still run PHP below 8.0 and 17% are on 7.4 alone, so this is polyfilled
+ * rather than locking those sites out of updates entirely.
+ *
+ * With this in place the real floor is PHP 7.4, set by the arrow function in
+ * ConveyThis.php:5363 — which is what the Requires PHP header now declares.
+ */
+if (!function_exists('str_contains')) {
+    function str_contains($haystack, $needle)
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
 /**
  * Config
  */

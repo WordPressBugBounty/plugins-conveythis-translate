@@ -67,7 +67,7 @@
                 $edit_translations_url = "https://app.conveythis.com/dashboard/translation/domain/" . $this->variables->domain_id . "/";
             }
             ?>
-            You can find your translations in your ConveyThis dashboard: <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary btn-sm">Edit translations</a>
+            <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary btn-sm ct-wp-cta">Edit translations</a>
         </div>
     </div>
 

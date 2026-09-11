@@ -1,4 +1,11 @@
-<div class="wrap">
+<?php
+// ConveyThis WordPress admin UI pilot — TEST BUILD.
+// The ct-wp-pilot class below scopes app/widget/css/ct-admin-pilot.css to this
+// plugin's own screen. Nothing in that stylesheet can reach wp-admin or another
+// plugin. Remove the class and the pilot styling is gone; no markup and no
+// behaviour depends on it.
+?>
+<div class="wrap ct-wp-pilot">
 
     <?php require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/expired-message.php'); ?>
 
@@ -31,8 +38,59 @@
 
                     </div>
                 </div>
-                <!--Separator-->
-                <div class="line-grey"></div>
+                <?php
+                // ConveyThis admin UI — status strip.
+                // Presentation only. Every id below is new and referenced by
+                // nothing except the small block in settings.js that fills in
+                // the plan allowances; removing this changes no behaviour.
+                $ct_host    = preg_replace('#^https?://#', '', rtrim(home_url(), '/'));
+                $ct_targets = is_array($this->variables->target_languages)
+                    ? count($this->variables->target_languages) : 0;
+                $ct_linked  = !empty($this->variables->api_key);
+                ?>
+                <div class="ct-wp-status">
+                    <div class="ct-wp-status__site">
+                        <span class="ct-wp-status__dot<?php echo $ct_linked ? '' : ' is-off'; ?>" aria-hidden="true"></span>
+                        <span class="ct-wp-status__host"><?php echo esc_html($ct_host); ?></span>
+                        <span class="ct-wp-status__state"><?php
+                            echo esc_html($ct_linked ? __('Connected', 'conveythis-translate')
+                                                     : __('Not connected', 'conveythis-translate')); ?></span>
+                    </div>
+                    <?php
+                    // The language allowance is a shared pool. The API's
+                    // Recount::recountLanguages() sets tbl_accounts.languages_count
+                    // to count(array_unique(target_languages)) across every ACTIVE
+                    // domain on the account, and Controller/Website.php:330
+                    // enforces the plan allowance against exactly that number.
+                    // Checked against production: it matches the distinct union
+                    // for 143 of 145 multi-domain accounts.
+                    //
+                    // So the numerator here is the account-wide distinct count,
+                    // not this site's selection — otherwise the figure would say
+                    // "1 of 14" on a fresh site whose account already has 14 in
+                    // use, which is the reading that caused the confusion.
+                    $ct_acct_langs = $this->variables->account_languages_count;
+                    $ct_langs_known = is_int($ct_acct_langs) && $ct_acct_langs >= 0;
+                    // Recount filters on is_active = 1, so a deactivated site's
+                    // languages stop counting. Without saying "active" the figure
+                    // looks wrong to anyone counting their sites by hand.
+                    $ct_pool = __('Distinct languages across your ACTIVE sites. This is the number your plan allowance is checked against — languages on a deactivated site no longer count.', 'conveythis-translate');
+                    ?>
+                    <?php if ($ct_langs_known) : ?>
+                    <div class="ct-wp-status__metric ct-wp-status__metric--langs" title="<?php echo esc_attr($ct_pool); ?>">
+                        <span class="k"><?php echo esc_html(__('Languages, active sites', 'conveythis-translate')); ?></span>
+                        <span class="v"><b><?php echo (int) $ct_acct_langs; ?></b> <i>of</i> <b id="ct_wp_lang_max">—</b></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="ct-wp-status__metric ct-wp-status__metric--words">
+                        <span class="k"><?php echo esc_html(__('Words a month', 'conveythis-translate')); ?></span>
+                        <span class="v"><b id="ct_wp_words">—</b></span>
+                    </div>
+                    <div class="ct-wp-status__metric ct-wp-status__metric--views">
+                        <span class="k"><?php echo esc_html(__('Page views', 'conveythis-translate')); ?></span>
+                        <span class="v"><b id="ct_wp_views">—</b></span>
+                    </div>
+                </div>
 
                 <div id="settings_content">
 

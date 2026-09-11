@@ -1,25 +1,23 @@
 === Translate WordPress with ConveyThis – AI Multilingual Plugin ===
 Contributors: alexburan, conveythis
 Tags: translate, translation, multilingual, language-switcher, localization
-Requires at least: 4.0
-Requires PHP: 5.6
-Tested up to: 7.0
-
-Stable tag: 270.6
-
-License: GPLv2
+Requires at least: 5.3
+Tested up to: 7.1
+Requires PHP: 7.4
+Stable tag: 270.7
+License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 Translate WordPress into 200+ languages. AI translation plugin for multilingual websites — WooCommerce, SEO, hreflang, Google Translate.
 == Description ==
 
-**ConveyThis is a WordPress translation plugin** that helps you **translate WordPress** into **200+ languages**. Build a fast, **multilingual** site with **automatic translation** and **AI translation** backed by Google Translate and ConveyThis — ideal for **multilingual** WooCommerce stores, blogs, and business sites that need hreflang-ready URLs and SEO-friendly translated pages.
+**ConveyThis is a WordPress translation plugin** that helps you **translate WordPress** into **200+ languages**. Build a fast, **multilingual** site with **automatic translation** and **AI translation** backed by ConveyThis AI and leading machine translation engines including Google Translate — ideal for **multilingual** WooCommerce stores, blogs, and business sites that need hreflang-ready URLs and SEO-friendly translated pages.
 
-⚡ **Fast, Accurate AI Translations** – Powered by **Google Translate** and **ConveyThis’** own AI engine, your website gets high-quality translations instantly. Need perfect wording? Refine them manually or order professional translations directly from your dashboard.
+⚡ **Fast, Accurate AI Translations** – Powered by **ConveyThis’** own AI engine, together with leading machine translation engines including **Google Translate**, your website gets high-quality translations instantly. Need perfect wording? Refine them manually or order professional translations directly from your dashboard.
 
 🎯 **Maintain Your Brand Voice** – Build your own **AI Language Model** with ConveyThis. Customize translations using your **glossary, past edits, and style preferences** to ensure consistent messaging across all languages.
 
-💡 **Flexible Plans for Every Website** – Start with a **free trial**, or pick a plan that fits your needs. Learn more at [ConveyThis Pricing](https://www.conveythis.com/pricing).
+💡 **Flexible Plans for Every Website** – Start with the **free plan** — 5,000 words and one language, no card required — or pick a plan that fits your needs. Learn more at [ConveyThis Pricing](https://www.conveythis.com/pricing).
 
 === What you can do with this WordPress translation plugin ===
 
@@ -40,7 +38,7 @@ Translate WordPress into 200+ languages. AI translation plugin for multilingual 
 
 **AI-Powered Translation & Quality Control**
 
-* Machine translation powered by **Google Translate** and **ConveyThis AI**
+* Machine translation from leading engines including **Google Translate**, plus **ConveyThis AI**
 * Custom AI Language Model ensures translations match your **brand tone and terminology**
 * Manual edits, glossary, and translation memory maintain a consistent high quality
 * Professional translators available directly in your dashboard
@@ -67,7 +65,6 @@ Translate WordPress into 200+ languages. AI translation plugin for multilingual 
 **Collaboration & Workflow**
 
 * Multi-user support with roles and permissions
-* Approval workflows for translation reviews
 * Collaborate with your team in real time
 
 **Scalability**
@@ -201,9 +198,9 @@ Learn how your data and content are securely handled by ConveyThis.
 == Screenshots ==
 
 1. **Automatic website translation** – The plugin automatically scans your website and prepares it for translation.
-2. **Multilingual SEO optimization** – ConveyThis translates metadata, hreflang tags, and localizes media for better international SEO performance.
-3. **Manage translations** – Review, edit, and manage automatic and manual translations directly from your dashboard.
-4. **Visual Editor** – Edit translations live on your website using the visual editor interface.
+2. **Everything on the page is detected** – Menus, widgets, media, dynamic content, theme elements and forms are picked up and translated, not just post content.
+3. **Excluded URLs** – Keep chosen pages out of translation using start, end, contains or exact rules, for one language or for all of them.
+4. **200+ languages** – Pick any target language, from the major world languages to regional ones, and your content is detected and translated automatically.
 5. **Subdomains & Subdirectories** – Organize translated versions of your website by subdomains or subdirectories.
 
 == Installation ==
@@ -224,6 +221,14 @@ Learn how your data and content are securely handled by ConveyThis.
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
 == Changelog ==
+= 270.7 =
+* Redesigned the settings screen: one consistent field and button style across every tab, clearer section headings, and a header strip showing your plan and language usage.
+* Fixed unreadable buttons, missing dropdown arrows, an empty flag list on Widget Style, and two settings rows rendered far narrower than the space given to them.
+* Colour pickers on Widget Style now show the selected value as a hex code.
+* Fixed an empty rule selector on Excluded Pages, and a saved page URL is now escaped when redisplayed.
+* Fixed two fatal errors: a setting stored as an empty string on PHP 8, and sitemap generation with Yoast, Rank Math or SEOPress on PHP 7.x. The plugin now runs on PHP 7.4 and above.
+* Removed the recurring "SEO update deployed" notice, and assets are versioned by file so updates are no longer served from cache.
+
 = 270.6 =
 * Keep translated URLs on API errors (no bounce to English); longer timeout for page translate only.
 * Fix glossary full delete sync; homepage language links use /{lang}/.
@@ -560,6 +565,9 @@ For more information and troubleshooting, visit the official [ConveyThis Documen
 
 == Upgrade Notice ==
 
+= 270.7 =
+Redesigned settings screen with one consistent field and button style. Fixes unreadable buttons, missing dropdown arrows, an empty rule selector on Excluded Pages, and two fatal errors. Requires PHP 7.4 or higher.
+
 = 126 =
 * default language redirect option
 
@@ -583,8 +591,8 @@ For more information and troubleshooting, visit the official [ConveyThis Documen
 
 = What are the minimum installation requirements for ConveyThis? =
 
-* WordPress 4.0 or higher
-* PHP version 5.3 or higher
+* WordPress 5.3 or higher
+* PHP version 7.4 or higher
 
 = Can I edit my site's translations? =
 

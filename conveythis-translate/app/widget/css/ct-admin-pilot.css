@@ -1,0 +1,1646 @@
+/* =============================================================================
+ * ConveyThis — WordPress admin UI.
+ *
+ * TEST BUILD. Presentation only.
+ *
+ * WHY THIS IS CSS AND NOT NEW MARKUP
+ * app/widget/js/settings.js binds to #conveythis_api_key, #apiKey,
+ * #sourceLanguage, #targetLanguages, .validation-label, .widget-trigger,
+ * .dropdown-current-language and .dropdown-target-languages. menu.php's own
+ * script toggles .router-widget and swaps col-md-8 / col-md-12 on
+ * .tab-content. Rebuilding the markup would break validation, the live
+ * preview, the tab router and the save flow. So this restyles what is there
+ * and changes no structure.
+ *
+ * SCOPING
+ * Every selector is prefixed .ct-wp-pilot, a class on this plugin's own .wrap.
+ * Nothing here can reach another plugin's screen or wp-admin's chrome.
+ *
+ * BOOTSTRAP TRAP — read before editing a button
+ * Bootstrap 5 paints buttons through custom properties: it sets
+ * `background-color: var(--bs-btn-bg)` and defines --bs-btn-bg on the element.
+ * Overriding `background` alone loses — the variable re-resolves and the
+ * Bootstrap colour wins. That shipped once as an unreadable dark-blue
+ * "Edit translations" block. Always set the --bs-btn-* variables too.
+ * ========================================================================== */
+
+.ct-wp-pilot {
+    /* ── Brand, from conveythis.com/press ─────────────────────────────────── */
+    --ct-wp-brand:        #00A3EB;   /* Primary Blue — fills and accents only,
+                                        2.82:1 on white, never text or a
+                                        labelled button background */
+    --ct-wp-brand-deep:   #144CAD;   /* Dark Blue — 7.87:1, does text work    */
+    --ct-wp-brand-light:  #A8DDF9;   /* Light Blue — tints                    */
+    --ct-wp-brand-tint:   #f0f9fe;
+    --ct-wp-brand-tint-2: #e2f3fd;
+
+    --ct-wp-source:       #144CAD;
+    --ct-wp-source-tint:  #eef3fc;
+    --ct-wp-target:       #6D4AC4;   /* provisional target accent             */
+    --ct-wp-target-tint:  #f5f1fc;
+
+    /* ── WordPress admin conventions, kept where WP has an opinion ────────── */
+    --ct-wp-action:       #2271b1;
+    --ct-wp-action-hover: #135e96;
+    --ct-wp-text:         #1d2327;
+    --ct-wp-text-muted:   #50575e;
+    --ct-wp-border:       #dcdcde;
+    --ct-wp-border-soft:  #f0f0f1;
+    --ct-wp-field-border: #8c8f94;
+    --ct-wp-surface:      #fff;
+    --ct-wp-ground:       #f6f7f7;
+
+    --ct-wp-error:   #d63638;
+    --ct-wp-warning: #dba617;
+    --ct-wp-success: #00a32d;
+
+    --ct-wp-radius:   8px;
+    --ct-wp-radius-s: 5px;
+
+    /* Horizontal inset of #settings_content, and Bootstrap's column padding
+       inside it. The save bar bleeds to the panel edge by the first and pads
+       back by both, so its button lands on the same line as the section
+       titles. These were hard-coded in three places and drifted apart — the
+       bar ended up 8px outside the panel with its button 20px left of every
+       heading. One value now, so they cannot disagree again. */
+    --ct-wp-inset:  20px;
+    --ct-wp-gutter: 12px;
+
+    max-width: 1240px;
+    margin-inline-end: 20px;
+}
+
+/* ── The plugin screen as one document ─────────────────────────────────────
+   NOT `overflow: hidden`. That was here so the header band's gradient would
+   be clipped by the rounded corners, and it cost far more than it bought:
+   Semantic's dropdown menus are `position: absolute`, so ANY clipping
+   ancestor cuts them. Measured on a live install with the target-languages
+   list open — a 256px menu was cut to 116px, losing more than half the
+   languages, with no scrollbar to say anything was missing.
+
+   The corners are kept by rounding the header itself instead (below), which
+   is the only child that touches the top edge. */
+.ct-wp-pilot .settings-block {
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-border);
+    border-radius: var(--ct-wp-radius);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.ct-wp-pilot .main-block { padding: 0; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HEADER
+   Logo left, plan right, brand rule under. The band was previously an empty
+   white strip carrying nothing but a logo; it is the widest element on the
+   page and should establish the product.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .main-block > .d-flex:first-child {
+    align-items: center;
+    gap: 16px;
+    padding: 22px 28px;
+    /* .settings-block deliberately does not clip (it would cut every dropdown
+       menu), so the one child that meets the top edge rounds itself.
+       8px panel radius minus its 1px border. */
+    border-start-start-radius: 7px;
+    border-start-end-radius: 7px;
+    background:
+        linear-gradient(180deg, var(--ct-wp-brand-tint) 0%, var(--ct-wp-surface) 100%);
+    border-block-end: 1px solid var(--ct-wp-border);
+    box-shadow: inset 0 3px 0 0 var(--ct-wp-brand);
+}
+
+.ct-wp-pilot .main-block > .d-flex:first-child img {
+    display: block;
+    max-height: 34px;
+    width: auto;
+}
+
+/* Plan chip. */
+.ct-wp-pilot #plan_info {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ct-wp-text-muted);
+}
+
+.ct-wp-pilot #plan_info > div:first-child {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-brand-light);
+    border-radius: 999px;
+}
+
+.ct-wp-pilot #plan_name {
+    color: var(--ct-wp-brand-deep);
+    font-weight: 600;
+}
+
+.ct-wp-pilot #plan_info a { text-decoration: none; }
+
+/* The header already carries a rule; the template's own separator under it
+   would double it. */
+.ct-wp-pilot .main-block > .d-flex:first-child + .line-grey { display: none; }
+
+.ct-wp-pilot #settings_content { padding: 0 28px 4px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TABS
+   Bootstrap pills rendered as a proper tab strip: quiet by default, an active
+   tab marked by weight, colour AND a 2px underline, so the current position
+   survives greyscale.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot #pills-tab {
+    gap: 2px;
+    margin: 0 -28px 24px;
+    padding: 0 28px;
+    border-block-end: 1px solid var(--ct-wp-border);
+    flex-wrap: wrap;
+}
+
+.ct-wp-pilot #pills-tab .nav-item { margin: 0; }
+
+.ct-wp-pilot .custom-pill.nav-link {
+    --bs-nav-link-color: var(--ct-wp-text-muted);
+    --bs-nav-link-hover-color: var(--ct-wp-brand-deep);
+
+    position: relative;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--ct-wp-text-muted);
+    background: none;
+    border: 0;
+    border-radius: var(--ct-wp-radius-s) var(--ct-wp-radius-s) 0 0;
+    cursor: pointer;
+    transition: color .12s ease, background-color .12s ease;
+}
+
+.ct-wp-pilot .custom-pill.nav-link:hover {
+    color: var(--ct-wp-brand-deep);
+    background: var(--ct-wp-brand-tint);
+}
+
+.ct-wp-pilot .custom-pill.nav-link.active {
+    color: var(--ct-wp-brand-deep);
+    background: none;
+    font-weight: 600;
+}
+
+.ct-wp-pilot .custom-pill.nav-link.active::after {
+    content: "";
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-end: -1px;
+    height: 2px;
+    background: var(--ct-wp-brand);
+    border-radius: 2px 2px 0 0;
+}
+
+.ct-wp-pilot .custom-pill.nav-link:focus-visible {
+    outline: 2px solid var(--ct-wp-action);
+    outline-offset: -2px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .title {
+    /* With the per-setting cards gone, the heading carries the grouping the
+       boxes used to imply: small, tracked, brand-coloured, ruled under. */
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    line-height: 1.4;
+    margin: 26px 0 2px;
+    padding: 0 0 8px;
+    color: var(--ct-wp-brand-deep);
+    border: 0;
+    border-block-end: 1px solid var(--ct-wp-border);
+}
+
+.ct-wp-pilot .subtitle {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0 0 2px;
+    color: var(--ct-wp-text);
+}
+
+/* The sentence-questions are help text; .subtitle above is the label. */
+.ct-wp-pilot .form-group > label:not(.validation-label) {
+    display: block;
+    font-size: 13px;
+    font-style: normal;
+    line-height: 1.5;
+    margin: 0 0 10px;
+    color: var(--ct-wp-text-muted);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ROWS, NOT CARDS
+   This block used to give every .form-group a border, a background and a
+   radius. On a live install that meant "Region" rendered as a ~1200px panel
+   containing two radio buttons, "Redirect visitors…" as another below it, and
+   so on down eight tabs — a stack of rectangles each holding one control.
+
+   That is both the "too many borders" problem and the reason the screen reads
+   as empty: a 200px control centred in 1200px of card.
+
+   A card is worth spending on a group of related settings, not on one setting.
+   So the default is a row with a hairline under it; the card treatment is
+   re-applied deliberately below, only where it earns its place.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .form-group {
+    margin: 0;
+    padding: 13px 0;
+    background: none;
+    border: 0;
+    border-block-end: 1px solid var(--ct-wp-border-soft);
+    border-radius: 0;
+}
+
+.ct-wp-pilot .form-group:last-child { border-block-end: 0; }
+
+/* A settings column stops being readable much past 90 characters — but the
+   measure belongs to the TEXT, not to the pane. Capping .tab-pane itself made
+   Glossary's and Excluded Pages' multi-column rows overflow their container:
+   16 elements, caught by measuring, not by eye. */
+.ct-wp-pilot .form-group > label:not(.validation-label),
+.ct-wp-pilot .subtitle,
+.ct-wp-pilot .form-text,
+.ct-wp-pilot .description,
+.ct-wp-pilot .alert p,
+.ct-wp-pilot .form-check > label { max-inline-size: 78ch; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SOURCE -> TARGET
+   The product's central relation, previously two unrelated fields with thin
+   coloured lines. Now one continuous unit: the two panels are joined into a
+   single bordered block with the direction stated between them.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* These two DO earn a card: they are the product's central relation, and the
+   card is what joins them into one unit rather than two stray fields. Since
+   .form-group is now a plain row, the panel treatment is restated here. */
+.ct-wp-pilot #sourceLanguage,
+.ct-wp-pilot #targetLanguages {
+    padding: 18px 20px;
+    border: 1px solid var(--ct-wp-border);
+    border-radius: var(--ct-wp-radius);
+    background: var(--ct-wp-surface);
+}
+
+.ct-wp-pilot #sourceLanguage {
+    position: relative;
+    margin-bottom: 0;
+    border-block-end: 0;
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    border-inline-start: 3px solid var(--ct-wp-source);
+    background:
+        linear-gradient(90deg, var(--ct-wp-source-tint) 0%, var(--ct-wp-surface) 45%);
+}
+
+.ct-wp-pilot #targetLanguages {
+    border-block-start: 0;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+    border-inline-start: 3px solid var(--ct-wp-target);
+    background:
+        linear-gradient(90deg, var(--ct-wp-target-tint) 0%, var(--ct-wp-surface) 45%);
+}
+
+/* The connector: a rule across the join with the direction note on it. */
+/* Target-language chips carry the target accent — the one place the
+   Source -> Target pattern shows as colour on a control. */
+.ct-wp-pilot .dropdown-target-languages .label {
+    background: var(--ct-wp-target-tint);
+    color: var(--ct-wp-target);
+    border: 1px solid #e0d6f2;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NOTICES
+   WordPress notice geometry, not a filled Bootstrap band. The .alert classes
+   stay because JS toggles them; only the appearance changes.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .alert {
+    position: relative;
+    box-sizing: border-box;
+    margin: 0 0 14px;
+    padding: 12px 16px;
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-border);
+    border-inline-start-width: 4px;
+    border-radius: var(--ct-wp-radius-s);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ct-wp-text);
+}
+
+.ct-wp-pilot .alert-danger  { border-inline-start-color: var(--ct-wp-error); }
+.ct-wp-pilot .alert-warning { border-inline-start-color: var(--ct-wp-warning); }
+.ct-wp-pilot .alert-success { border-inline-start-color: var(--ct-wp-success); }
+
+.ct-wp-pilot .alert a { color: var(--ct-wp-action); }
+.ct-wp-pilot .alert a:hover { color: var(--ct-wp-action-hover); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FIELDS
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .conveythis-input-text,
+.ct-wp-pilot input[type="text"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 14px;
+    line-height: 2.4;
+    color: var(--ct-wp-text);
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-field-border);
+    border-radius: var(--ct-wp-radius-s);
+    box-shadow: none;
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.ct-wp-pilot .conveythis-input-text:focus,
+.ct-wp-pilot input[type="text"]:focus {
+    border-color: var(--ct-wp-action);
+    box-shadow: 0 0 0 1px var(--ct-wp-action);
+    outline: 2px solid transparent;   /* visible in forced-colors mode */
+}
+
+/* The API key is a credential: a monospace face makes a mistyped character
+   findable. */
+.ct-wp-pilot #conveythis_api_key {
+    font-family: Consolas, Monaco, "Andale Mono", monospace;
+    font-size: 13px;
+    letter-spacing: .02em;
+    background: var(--ct-wp-ground);
+}
+
+.ct-wp-pilot #conveythis_api_key:focus { background: var(--ct-wp-surface); }
+
+/* Semantic UI dropdowns, made to read as WordPress selects. */
+.ct-wp-pilot .ui.dropdown.selection {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ct-wp-text);
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-field-border);
+    border-radius: var(--ct-wp-radius-s);
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.ct-wp-pilot .ui.dropdown.selection:focus,
+.ct-wp-pilot .ui.dropdown.selection.active {
+    border-color: var(--ct-wp-action);
+    box-shadow: 0 0 0 1px var(--ct-wp-action);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VALIDATION — never colour alone
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .validation-label {
+    display: none;
+    margin: 8px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--ct-wp-error);
+}
+
+.ct-wp-pilot .validation-label::before {
+    content: "\26A0";           /* warning sign — meaning survives greyscale */
+    margin-inline-end: .4em;
+    font-weight: 400;
+}
+
+/* JS toggles display; this only styles the shown state. */
+.ct-wp-pilot .form-group.error .validation-label,
+.ct-wp-pilot .validation-label[style*="block"] { display: block; }
+
+.ct-wp-pilot .form-group.error {
+    border-color: var(--ct-wp-error);
+    background: #fcf0f1;
+}
+
+.ct-wp-pilot .form-group.error .conveythis-input-text,
+.ct-wp-pilot .form-group.error .ui.dropdown.selection {
+    border-color: var(--ct-wp-error);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUTTONS
+   See the Bootstrap trap note in the file header before editing.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .btn-custom,
+.ct-wp-pilot #ajax-save-settings {
+    --bs-btn-bg: var(--ct-wp-brand-deep);
+    --bs-btn-color: #fff;
+    --bs-btn-border-color: var(--ct-wp-brand-deep);
+    --bs-btn-hover-bg: #103e8d;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-border-color: #103e8d;
+    --bs-btn-active-bg: #0c306e;
+    --bs-btn-active-border-color: #0c306e;
+
+    display: inline-block;
+    min-height: 40px;
+    padding: 0 22px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 2.75;
+    color: #fff;
+    background-color: var(--ct-wp-brand-deep);
+    background-image: none;
+    border: 1px solid var(--ct-wp-brand-deep);
+    border-radius: var(--ct-wp-radius-s);
+    box-shadow: none;
+    text-shadow: none;
+    cursor: pointer;
+    transition: background-color .12s ease;
+}
+
+.ct-wp-pilot .btn-custom:hover,
+.ct-wp-pilot #ajax-save-settings:hover {
+    background-color: #103e8d;
+    border-color: #103e8d;
+    color: #fff;
+}
+
+.ct-wp-pilot .btn-custom:focus,
+.ct-wp-pilot #ajax-save-settings:focus {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ct-wp-brand-deep);
+    outline: 2px solid transparent;
+}
+
+/* ── .btn-primary: background and colour are set together, always ──────────
+   app/widget/css/style.css:696 does this:
+
+       .btn-primary { background: #1a4caf !important; border-color: … }
+
+   It sets a background with !important and never sets a colour. Any rule that
+   changes only one of the pair produces a mismatch that no amount of care
+   elsewhere can fix:
+
+   · Shipping today, without this stylesheet: <a class="btn btn-primary">
+     "Edit translations" takes wp-admin's link blue (#2271b1) on #1a4caf —
+     measured 1.51:1. Bootstrap's --bs-btn-color never reaches an <a> here.
+   · Introduced by this stylesheet, before the fix below: the .btn-sm rule set
+     a white background and a blue colour. The !important above blocked the
+     background, the colour landed, and six more buttons went to 1.51:1.
+
+   So both halves are stated on every variant, at the weight needed to beat
+   that !important. Removing the !important from style.css is the better
+   long-term fix and would let all of this drop back to normal weight.
+   ────────────────────────────────────────────────────────────────────────── */
+.ct-wp-pilot .btn-primary,
+.ct-wp-pilot a.btn-primary,
+.ct-wp-pilot button.btn-primary {
+    --bs-btn-bg: var(--ct-wp-brand-deep);
+    --bs-btn-color: #fff;
+    --bs-btn-border-color: var(--ct-wp-brand-deep);
+    --bs-btn-hover-bg: #103e8d;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-border-color: #103e8d;
+
+    background: var(--ct-wp-brand-deep) !important;
+    border-color: var(--ct-wp-brand-deep) !important;
+    color: #fff !important;
+    text-decoration: none;
+    text-shadow: none;
+}
+
+.ct-wp-pilot .btn-primary:hover,
+.ct-wp-pilot a.btn-primary:hover,
+.ct-wp-pilot button.btn-primary:hover {
+    background: #103e8d !important;
+    border-color: #103e8d !important;
+    color: #fff !important;
+}
+
+/* Secondary links styled as buttons stay clearly secondary, and sit on their
+   own line: "…in your ConveyThis dashboard: [button]" read as a block dropped
+   into the middle of a sentence. */
+.ct-wp-pilot .btn-primary.btn-sm,
+.ct-wp-pilot a.btn-primary.btn-sm,
+.ct-wp-pilot button.btn-primary.btn-sm {
+    --bs-btn-bg: var(--ct-wp-surface);
+    --bs-btn-color: var(--ct-wp-action);
+    --bs-btn-border-color: var(--ct-wp-field-border);
+    --bs-btn-hover-bg: var(--ct-wp-ground);
+    --bs-btn-hover-color: var(--ct-wp-action-hover);
+    --bs-btn-hover-border-color: var(--ct-wp-action);
+    --bs-btn-active-bg: var(--ct-wp-ground);
+    --bs-btn-active-color: var(--ct-wp-action-hover);
+    --bs-btn-active-border-color: var(--ct-wp-action);
+
+    display: block;
+    width: fit-content;
+    margin-block-start: 10px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 2.4;
+    background: var(--ct-wp-surface) !important;
+    background-image: none;
+    border: 1px solid var(--ct-wp-field-border) !important;
+    color: var(--ct-wp-action) !important;
+    border-radius: var(--ct-wp-radius-s);
+    text-decoration: none;
+    text-shadow: none;
+}
+
+.ct-wp-pilot .btn-primary.btn-sm:hover,
+.ct-wp-pilot a.btn-primary.btn-sm:hover,
+.ct-wp-pilot button.btn-primary.btn-sm:hover {
+    background: var(--ct-wp-ground) !important;
+    color: var(--ct-wp-action-hover) !important;
+    border-color: var(--ct-wp-action) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SAVE BAR
+   Pinned to the bottom of the viewport. On a long settings tab the save
+   button previously scrolled out of reach.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .btn-box {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 5;
+    /* style.css:181 sets width:100%, which resolves against the parent's
+       CONTENT box — so with the negative inline margins the bar started at the
+       panel edge but stopped 40px short of the right one, and its top rule
+       (the line above the button) ended in mid-air. `auto` lets the margins
+       decide both edges. */
+    inline-size: auto;
+    margin-block: 20px 0;
+    margin-inline: calc(-1 * var(--ct-wp-inset));
+    padding-block: 14px;
+    padding-inline: calc(var(--ct-wp-inset) + var(--ct-wp-gutter));
+    background: rgba(255, 255, 255, .92);
+    backdrop-filter: blur(6px);
+    border-block-start: 1px solid var(--ct-wp-border);
+}
+
+/* The separator immediately above the save bar duplicates the bar's own top
+   rule — two hairlines 17px apart.
+
+   This was `:last-of-type`, which never matched: that pseudo-class keys on the
+   element TYPE, and .btn-box is another <div> after it, so the separator was
+   never the last div. `:has(+ .btn-box)` says what was actually meant — the
+   separator that sits directly before the save bar. Where :has() is
+   unsupported the old duplicate line simply comes back, which is cosmetic.
+
+   The bar keeps its own border rather than the separator, because the bar is
+   sticky: the separator scrolls away, the border has to stay. */
+.ct-wp-pilot #settings_content > .line-grey:has(+ .btn-box) { display: none; }
+
+.ct-wp-pilot .line-grey {
+    height: 1px;
+    margin: 24px 0;
+    background: var(--ct-wp-border);
+    border: 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WIDGET PREVIEW
+   The only place on the screen where the consequence of these settings is
+   visible, and it was the smallest element on it. Enlarged, given a real
+   header, and made sticky so it stays in view while the form is scrolled.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .router-widget { padding-inline-start: 20px; }
+
+.ct-wp-pilot .widget-preview {
+    position: sticky;
+    inset-block-start: 46px;          /* clears the wp-admin bar */
+    background: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-border);
+    border-radius: var(--ct-wp-radius);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    overflow: hidden;
+}
+
+.ct-wp-pilot .widget-preview > span {
+    display: block;
+    padding: 11px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ct-wp-text-muted);
+    background: var(--ct-wp-ground);
+    border-block-end: 1px solid var(--ct-wp-border);
+}
+
+/* The template sets this wrapper's padding and border inline, so those two
+   properties cannot be moved here without !important. Everything else can.
+   The chequerboard that used to sit here read as "image missing" rather than
+   "transparent"; a plain surface says the same thing without the noise.
+
+   Sizing lives in the WIDGET PREVIEW block near the end of this file — the
+   panel has to grow when the switcher's language list opens. */
+.ct-wp-pilot .customize-view-button-wrapper {
+    background: var(--ct-wp-ground);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   wp-admin collapses its own chrome; this keeps the plugin's two-column split
+   from squeezing the form and guarantees no page-level horizontal scroll at
+   320px.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .row { margin-inline: 0; }
+.ct-wp-pilot [class*="col-md-"] { min-width: 0; }
+
+@media (max-width: 1100px) {
+    .ct-wp-pilot .col-md-8,
+    .ct-wp-pilot .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding-inline: 0;
+    }
+    /* Preview above the form when stacked, so the consequence stays visible. */
+    .ct-wp-pilot .router-widget {
+        order: -1;
+        margin-bottom: 20px;
+        padding-inline-start: 0;
+    }
+    .ct-wp-pilot .row { display: flex; flex-direction: column; }
+    .ct-wp-pilot .widget-preview { position: static; }
+}
+
+@media (max-width: 782px) {
+    /* WordPress raises its own touch targets at this width; match it. */
+    /* One value; #settings_content, #pills-tab and the save bar all follow. */
+    .ct-wp-pilot { margin-inline-end: 0; --ct-wp-inset: 16px; }
+    .ct-wp-pilot .main-block > .d-flex:first-child { padding: 18px 16px; }
+
+    .ct-wp-pilot .conveythis-input-text,
+    .ct-wp-pilot input[type="text"],
+    .ct-wp-pilot .ui.dropdown.selection { min-height: 44px; font-size: 16px; }
+
+    .ct-wp-pilot .btn-custom,
+    .ct-wp-pilot #ajax-save-settings { min-height: 44px; width: 100%; }
+    .ct-wp-pilot .btn-primary.btn-sm { min-height: 44px; line-height: 3.2; }
+}
+
+@media (max-width: 480px) {
+    .ct-wp-pilot .main-block > .d-flex:first-child {
+        flex-direction: column;
+        align-items: flex-start !important;   /* Bootstrap utility sets center */
+        gap: 12px;
+    }
+    .ct-wp-pilot .form-group { padding: 11px 0; }
+    .ct-wp-pilot #conveythis_api_key { font-size: 12px; }
+    }
+
+/* Long translated labels must wrap, never overflow. */
+.ct-wp-pilot .title,
+.ct-wp-pilot .subtitle,
+.ct-wp-pilot .form-group > label,
+.ct-wp-pilot .alert { overflow-wrap: break-word; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ct-wp-pilot *,
+    .ct-wp-pilot *::before,
+    .ct-wp-pilot *::after { transition: none; animation: none; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   READABILITY — measured on a live install, not estimated
+   Audited every tab on a real WordPress site: 42 text/background pairs failed
+   WCAG AA. They came from only 8 distinct colours, and one caused 33 of them.
+
+   THE BIG ONE
+   app/widget/css/style.css:81 sets `.wrap { color: #8a8a8a }`, so the whole
+   plugin screen inherits it — 295 elements. #8a8a8a on white is 3.05:1, and it
+   is the exact grey WordPress uses for DISABLED controls
+   (.wp-core-ui .button-disabled). The plugin's body text has been rendering in
+   the platform's disabled colour. That is most of the "washed out" feeling,
+   and fixing it needs one rule, not 33.
+
+   Neither style.css rule is !important, so normal specificity wins. Bootstrap's
+   .text-* utilities ARE !important, so those are matched in kind.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Body text and labels: WordPress's own #1d2327 (15.8:1) and #50575e (7.4:1) */
+.ct-wp-pilot,
+.ct-wp-pilot .wrap { color: var(--ct-wp-text); }
+
+.ct-wp-pilot label,
+.ct-wp-pilot a.grey { color: var(--ct-wp-text-muted); }
+
+/* Field help text stays secondary but legible, never the disabled grey */
+.ct-wp-pilot .form-text,
+.ct-wp-pilot .description,
+.ct-wp-pilot small { color: var(--ct-wp-text-muted); }
+
+/* Bootstrap's utility colours are tuned for white cards, not for wp-admin's
+   grey ground, and .text-warning at #ffc107 is 1.63:1 — effectively invisible.
+   Darkened to the design system's text-safe steps. */
+.ct-wp-pilot .text-muted   { color: var(--ct-wp-text-muted) !important; }
+.ct-wp-pilot .text-warning { color: #8a5a0b !important; }   /* 5.92:1 on white */
+.ct-wp-pilot .text-success { color: #207347 !important; }   /* 5.83:1 on white */
+.ct-wp-pilot .text-primary { color: var(--ct-wp-action) !important; }
+.ct-wp-pilot .text-danger  { color: #b42318 !important; }   /* 6.57:1 on white */
+
+/* Inline code was #d63384 on #eeeeee — 3.9:1. */
+.ct-wp-pilot code,
+.ct-wp-pilot :not(pre) > code {
+    color: #9d174d;
+    background: var(--ct-wp-border-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   OVERFLOW AND WRAPPING
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Widget Style: the custom-CSS editor and its textarea were 1000px and 771px
+   wide inside a narrower column, pushing the pane sideways. */
+.ct-wp-pilot .CodeMirror,
+.ct-wp-pilot .CodeMirror-scroll,
+.ct-wp-pilot .CodeMirror-sizer,
+.ct-wp-pilot textarea {
+    max-inline-size: 100%;
+    box-sizing: border-box;
+}
+.ct-wp-pilot .CodeMirror { inline-size: 100%; }
+
+/* "Scan Sitemap" and "Set default" wrapped onto two lines because their column
+   is narrower than the label. A button label is one line.
+   Note .btn-default-color does NOT carry the .btn class — matching on `button`
+   as well is what catches it. */
+.ct-wp-pilot .btn,
+.ct-wp-pilot button,
+.ct-wp-pilot input[type="button"],
+.ct-wp-pilot input[type="submit"] { white-space: nowrap; }
+
+/* Bootstrap's link blue (#0d6efd) is 4.27:1 on the light panels this screen
+   uses — under AA. WordPress's own link colour clears it and belongs here. */
+.ct-wp-pilot a:not(.btn):not(.button):not(.custom-pill) { color: var(--ct-wp-action); }
+.ct-wp-pilot a:not(.btn):not(.button):not(.custom-pill):hover { color: var(--ct-wp-action-hover); }
+
+/* Same blue, same problem, on Bootstrap's outline button ("Run live test"). */
+.ct-wp-pilot .btn-outline-primary {
+    --bs-btn-color: var(--ct-wp-action);
+    --bs-btn-border-color: var(--ct-wp-action);
+    --bs-btn-hover-bg: var(--ct-wp-action);
+    --bs-btn-hover-border-color: var(--ct-wp-action);
+    color: var(--ct-wp-action);
+    border-color: var(--ct-wp-action);
+}
+
+/* ── Fewer borders ────────────────────────────────────────────────────────
+   Extended settings and Widget Style nested bordered boxes three deep: the
+   page card, a section card, and a field card inside it. Depth 3 is where a
+   layout stops reading as grouped and starts reading as cluttered. The
+   innermost box keeps its padding and loses its outline; grouping is carried
+   by spacing instead. */
+.ct-wp-pilot .card .card,
+.ct-wp-pilot .settings-block .border .border,
+.ct-wp-pilot fieldset fieldset {
+    border: 0;
+    padding-inline: 0;
+}
+
+
+.ct-wp-pilot .subtitle { font-size: 13.5px; margin-block-end: 6px; }
+
+
+/* Semantic UI paints its dropdown placeholder at rgba(191,191,191,.87) —
+   1.84:1, the lowest contrast anywhere on the screen. A placeholder may be
+   quieter than the value, but it still has to be readable. */
+.ct-wp-pilot .ui.dropdown > .default.text,
+.ct-wp-pilot .ui.dropdown:not(.button) > .default.text,
+.ct-wp-pilot .ui.selection.dropdown > .default.text {
+    color: var(--ct-wp-text-muted);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HEADER STATUS STRIP
+   The header carried a logo and a plan chip and nothing else, on the widest
+   band of the page. This puts the four facts that answer "is this working?"
+   where they are seen first: which site, whether it is connected, and the
+   three allowances the plan actually grants.
+
+   Hues follow the design system's accent-as-quantity rule — teal is languages,
+   cyan is words, violet is page views — the same meanings these colours carry
+   everywhere else, so the colour is information rather than decoration.
+
+   Usage figures are deliberately absent: the plan endpoint returns allowances
+   but not consumption, and it is reachable with a public key. See
+   ct-wp/direction-approved.md.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .ct-wp-status {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    background: var(--ct-wp-surface);
+    border-block-end: 1px solid var(--ct-wp-border);
+    font-size: 12.5px;
+}
+
+.ct-wp-pilot .ct-wp-status__site {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-inline-end: auto;
+    min-inline-size: 0;
+}
+
+.ct-wp-pilot .ct-wp-status__dot {
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--ct-wp-success);
+    box-shadow: 0 0 0 3px rgb(0 163 45 / .14);
+}
+
+.ct-wp-pilot .ct-wp-status__dot.is-off {
+    background: var(--ct-wp-field-border);
+    box-shadow: 0 0 0 3px rgb(140 143 148 / .16);
+}
+
+.ct-wp-pilot .ct-wp-status__host {
+    font-weight: 600;
+    color: var(--ct-wp-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ct-wp-pilot .ct-wp-status__state { color: var(--ct-wp-text-muted); }
+
+.ct-wp-pilot .ct-wp-status__metric {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.25;
+}
+
+.ct-wp-pilot .ct-wp-status__metric .k {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ct-wp-text-muted);
+}
+
+.ct-wp-pilot .ct-wp-status__metric .v {
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ct-wp-text);
+}
+
+.ct-wp-pilot .ct-wp-status__metric .v b { font-weight: 600; }
+.ct-wp-pilot .ct-wp-status__metric .v i {
+    font-style: normal;
+    color: var(--ct-wp-text-muted);
+    font-size: 12px;
+}
+
+.ct-wp-pilot .ct-wp-status__metric--langs .v b:first-child { color: #0D7168; }
+.ct-wp-pilot .ct-wp-status__metric--words .v b { color: #0A6E9C; }
+.ct-wp-pilot .ct-wp-status__metric--views .v b { color: #6D4AC4; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRIMARY ACTION
+   "Edit translations" is the one place on this screen that sends you out to
+   the product, so it is the only blue button here. The secondary .btn-sm
+   treatment further up applies to the "add another row" buttons, which should
+   stay quiet — this opts one link out of it.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .btn-primary.btn-sm.ct-wp-cta,
+.ct-wp-pilot a.btn-primary.btn-sm.ct-wp-cta {
+    --bs-btn-bg: var(--ct-wp-brand-deep);
+    --bs-btn-color: #fff;
+    --bs-btn-border-color: var(--ct-wp-brand-deep);
+    background: var(--ct-wp-brand-deep) !important;
+    border-color: var(--ct-wp-brand-deep) !important;
+    color: #fff !important;
+    margin-block-start: 0;
+    padding: 0 16px;
+    line-height: 2.5;
+}
+
+.ct-wp-pilot .btn-primary.btn-sm.ct-wp-cta:hover,
+.ct-wp-pilot a.btn-primary.btn-sm.ct-wp-cta:hover {
+    background: var(--ct-wp-action-hover) !important;
+    border-color: var(--ct-wp-action-hover) !important;
+    color: #fff !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPACT
+   The screen asked for a lot of scrolling for very little content. Every
+   value below is a reduction, nothing is restructured.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .main-block > .d-flex:first-child { padding: 14px 20px; }
+.ct-wp-pilot .main-block > .d-flex:first-child img { max-height: 26px; }
+.ct-wp-pilot #settings_content { padding: 0 var(--ct-wp-inset) 4px; }
+.ct-wp-pilot #pills-tab {
+    margin: 0 calc(-1 * var(--ct-wp-inset)) 16px;
+    padding: 0 var(--ct-wp-inset);
+}
+.ct-wp-pilot .custom-pill.nav-link { padding: 9px 12px; }
+.ct-wp-pilot .title { margin: 18px 0 2px; padding-block-end: 6px; }
+.ct-wp-pilot .form-group { padding: 10px 0; }
+.ct-wp-pilot .form-group > label:not(.validation-label) { margin-block-end: 7px; }
+.ct-wp-pilot #sourceLanguage,
+.ct-wp-pilot #targetLanguages { padding: 14px 16px; }
+/* Only the block axis here — the inline inset is derived from --ct-wp-inset
+   in the SAVE BAR block above. Overriding `padding` with the shorthand is
+   what broke the alignment: it reset the inline padding while leaving the
+   negative inline margin in place. */
+.ct-wp-pilot .btn-box { margin-block-start: 14px; padding-block: 11px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EXCLUDED PAGES — the rule select was 17px wide
+   Measured, not guessed: in each .exclusion row the <select> rendered at 17px
+   — the width of its arrow — so "Start" clipped to "Star" and the option list
+   came out unreadable.
+
+   Cause: the URL field's wrapper carries Bootstrap's .w-100 (width:100%). In a
+   flex row that lets it claim the whole line, and every sibling shrinks to its
+   min-content — which for a <select> with min-width:0 is nothing. The select
+   needs ~110px for "Contain".
+
+   The delete button is also positioned at right:-8px, i.e. deliberately outside
+   its own row, which is what pushed 4 elements past the container edge.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .exclusion {
+    align-items: center;
+    gap: 10px;
+    padding-inline-end: 32px;   /* room for the delete button, now inside */
+}
+
+/* Bootstrap's .me-3 is an !important utility, so the gap above needs it gone. */
+.ct-wp-pilot .exclusion > .dropdown {
+    flex: 0 0 128px;
+    margin-inline-end: 0 !important;
+}
+
+.ct-wp-pilot .exclusion select.rule {
+    inline-size: 100%;
+    min-inline-size: 0;
+    block-size: 38px;
+}
+
+/* Let the URL field take what is left instead of all of it. min-inline-size:0
+   is what actually allows a flex item to give space back. */
+.ct-wp-pilot .exclusion > .ui.input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: auto;
+}
+
+/* A native <select> draws its own arrow; Semantic's decorative one sat on top
+   of the text in a narrow control. */
+.ct-wp-pilot .exclusion > .dropdown > i.dropdown.icon { display: none; }
+
+.ct-wp-pilot .conveythis-delete-page { right: 2px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DELETE CONTROLS ARE QUIET UNTIL YOU REACH FOR THEM
+   trash.svg is red in the file, and it is applied as a background-image, so
+   `color` cannot touch it — every row on Excluded Pages and Glossary shouted
+   in destructive red at rest. Masking the same file instead lets the icon take
+   a colour: grey by default, red on hover and focus, where the warning is
+   actually useful. No new asset, no markup change.
+   ══════════════════════════════════════════════════════════════════════════ */
+@supports ((mask-image: url("../images/trash.svg")) or (-webkit-mask-image: url("../images/trash.svg"))) {
+    .ct-wp-pilot .conveythis-delete-page {
+        background-image: none;
+        background-color: var(--ct-wp-field-border);
+        -webkit-mask: url("../images/trash.svg") no-repeat center / 15px 15px;
+        mask: url("../images/trash.svg") no-repeat center / 15px 15px;
+        transition: background-color .12s ease;
+        cursor: pointer;
+    }
+
+    .ct-wp-pilot .conveythis-delete-page:hover,
+    .ct-wp-pilot .conveythis-delete-page:focus-visible {
+        background-color: var(--ct-wp-error);
+    }
+}
+
+.ct-wp-pilot .conveythis-delete-page:focus-visible {
+    outline: 2px solid var(--ct-wp-action);
+    outline-offset: 2px;
+}
+
+.ct-wp-pilot .ct-wp-status__metric[title] { cursor: help; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACTION ROWS — one line, one button shape
+   The Glossary row holds three buttons in one container, and they came out on
+   two lines in three different styles:
+
+     · "Add more rules"  .btn.btn-sm.btn-primary   — which my own secondary rule
+       further up gives `display:block; width:fit-content`. That rule exists for
+       the "Edit translations" link sitting inside a sentence; on a button row it
+       forced the first button onto a line of its own.
+     · "Export CSV" / "Import CSV"  .btn-default.glossary-btn — a grey block
+       from style.css with a different height, radius and font size.
+
+   So: the row is a flex line, and every button in it shares the secondary shape.
+   Nothing is renamed; #add_glossary, #glossary_export and #glossary_import keep
+   their ids and their handlers.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .glossary-actions,
+.ct-wp-pilot .glossary-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Undo the block treatment and Bootstrap's .ms-2 for buttons inside a row. */
+.ct-wp-pilot .glossary-actions > .btn,
+.ct-wp-pilot .glossary-actions > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: auto;
+    margin: 0 !important;
+}
+
+/* One shape for all three: the same secondary button used elsewhere. */
+.ct-wp-pilot .glossary-actions > button,
+.ct-wp-pilot .glossary-actions > .btn,
+.ct-wp-pilot .btn-default.glossary-btn {
+    block-size: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    background: var(--ct-wp-surface) !important;
+    color: var(--ct-wp-action) !important;
+    border: 1px solid var(--ct-wp-field-border) !important;
+    border-radius: var(--ct-wp-radius-s);
+    cursor: pointer;
+}
+
+.ct-wp-pilot .glossary-actions > button:hover,
+.ct-wp-pilot .glossary-actions > .btn:hover,
+.ct-wp-pilot .btn-default.glossary-btn:hover {
+    background: var(--ct-wp-ground) !important;
+    border-color: var(--ct-wp-action) !important;
+    color: var(--ct-wp-action-hover) !important;
+}
+
+/* "Add more rules" is the action people actually came for, so it leads. */
+.ct-wp-pilot .glossary-actions > #add_glossary,
+.ct-wp-pilot #add_exlusion,
+.ct-wp-pilot #add_exlusion_block,
+.ct-wp-pilot #add_exlusion_block_class,
+.ct-wp-pilot #add_link_rule,
+.ct-wp-pilot #add_system_link,
+.ct-wp-pilot #add_blockpage,
+.ct-wp-pilot #add_flag_style {
+    display: inline-flex !important;
+    inline-size: auto !important;
+    margin-block-start: 0 !important;
+    background: var(--ct-wp-brand-deep) !important;
+    border-color: var(--ct-wp-brand-deep) !important;
+    color: #fff !important;
+}
+
+.ct-wp-pilot .glossary-actions > #add_glossary:hover,
+.ct-wp-pilot #add_exlusion:hover,
+.ct-wp-pilot #add_exlusion_block:hover,
+.ct-wp-pilot #add_exlusion_block_class:hover,
+.ct-wp-pilot #add_link_rule:hover,
+.ct-wp-pilot #add_system_link:hover,
+.ct-wp-pilot #add_blockpage:hover,
+.ct-wp-pilot #add_flag_style:hover {
+    background: var(--ct-wp-action-hover) !important;
+    border-color: var(--ct-wp-action-hover) !important;
+    color: #fff !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ONE FIELD STYLE
+   Measured across the eight tabs: 27 controls rendering in FIVE different
+   styles — three border colours (#8c8f94, #d5d5d5, rgba(34,36,38,.15)), two
+   radii (4px and 5px), three font sizes (13/14/16px) and two heights (38 and
+   43px). They come from three stylesheets that were never reconciled:
+   Semantic UI's input/dropdown, Bootstrap's .form-control, and style.css.
+
+   In the Glossary that meant a 43px <select> beside a 38px <input> with a 24px
+   delete control on a third baseline — the row genuinely did not line up.
+
+   One declaration set, applied to every control the plugin renders.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot input[type="text"],
+.ct-wp-pilot input[type="url"],
+.ct-wp-pilot input[type="email"],
+.ct-wp-pilot input[type="number"],
+.ct-wp-pilot input[type="search"],
+.ct-wp-pilot input:not([type]),
+.ct-wp-pilot select,
+.ct-wp-pilot .ui.input > input,
+.ct-wp-pilot .ui.selection.dropdown {
+    box-sizing: border-box;
+    block-size: 36px;
+    min-block-size: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ct-wp-text);
+    background-color: var(--ct-wp-surface);
+    border: 1px solid var(--ct-wp-field-border);
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+.ct-wp-pilot select { padding-inline-end: 28px; }
+
+.ct-wp-pilot textarea {
+    box-sizing: border-box;
+    min-block-size: 76px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid var(--ct-wp-field-border);
+    border-radius: 4px;
+}
+
+.ct-wp-pilot input:focus,
+.ct-wp-pilot select:focus,
+.ct-wp-pilot textarea:focus,
+.ct-wp-pilot .ui.input > input:focus {
+    border-color: var(--ct-wp-action);
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 1px var(--ct-wp-action);
+}
+
+.ct-wp-pilot input:disabled,
+.ct-wp-pilot select:disabled {
+    background-color: var(--ct-wp-ground);
+    color: var(--ct-wp-text-muted);
+}
+
+/* Semantic's wrappers must not add a second box around the field. */
+.ct-wp-pilot .ui.input { inline-size: 100%; display: block; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GLOSSARY ROWS
+   The delete control is absolutely positioned and was sitting on top of the
+   fourth column, which is why it looked wedged against "All languages". The
+   row now reserves space for it and centres it on the fields.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot .glossary { padding-inline-end: 30px; }
+
+.ct-wp-pilot .glossary > .row {
+    align-items: center;
+    margin-inline: 0;
+    --bs-gutter-x: 12px;
+}
+
+.ct-wp-pilot .glossary .conveythis-delete-page {
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    right: 0;
+}
+
+/* Column headings, aligned to the same grid as the rows. */
+.ct-wp-pilot .ct-wp-glossary-head {
+    margin: 14px 0 6px;
+    padding-inline-end: 30px;
+    --bs-gutter-x: 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ct-wp-text-muted);
+}
+
+.ct-wp-pilot .ct-wp-glossary-head > div { padding-block-end: 4px; }
+
+/* Semantic UI (.ui.input>input, .ui.selection.dropdown) and Bootstrap
+   (.form-control) both set their own height, padding, font-size and border on
+   these controls, and they disagree with each other. Matching their specificity
+   is not enough because the two sheets also disagree per-control, so the
+   geometry is stated once here with weight. This is the only place in the file
+   that needs it, and it is why: two frameworks styling the same element.
+   Colour and radius are inherited from the rule above, not repeated.
+
+   `input[type="color"]` is excluded: it carries .form-control too, but it is a
+   swatch, not a text field. Zeroing its vertical padding alone left the colour
+   flush against the top and bottom border while still inset 6px at the sides.
+   It gets its own geometry below. */
+.ct-wp-pilot .ui.input input,
+.ct-wp-pilot .ui.selection.dropdown,
+.ct-wp-pilot select.form-control,
+.ct-wp-pilot select.form-select,
+.ct-wp-pilot input.form-control:not(:where([type="color"])),
+.ct-wp-pilot .form-control:not(:where([type="color"])) {
+    block-size: 36px !important;
+    min-block-size: 36px !important;
+    padding-block: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-width: 1px !important;
+    border-color: var(--ct-wp-field-border) !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+}
+
+/* ── Selects had no dropdown arrow at all ─────────────────────────────────
+   Every <select> in the plugin rendered as a plain box, visually identical to
+   a text input, with nothing to say it opens a list. Two causes stacked:
+
+     · Bootstrap 5's `.form-control` sets `appearance: none`, which removes the
+       native arrow the operating system would otherwise draw.
+     · `style.css:157 .conveythis-input-text { background: #fff }` uses the
+       SHORTHAND, so it resets `background-image` to `none` — wiping both
+       WordPress's own select arrow and, on `.form-select`, Bootstrap's. My
+       own field rule further up repeated the same shorthand mistake.
+
+   So the arrow has to be put back. A longhand `background-image` is used here
+   deliberately, so nothing about the background colour is restated and no
+   future shorthand quietly removes it again. Scoped to `select` — Semantic's
+   `.ui.selection.dropdown` is a <div> that draws its own chevron. */
+.ct-wp-pilot select.form-control,
+.ct-wp-pilot select.form-select,
+.ct-wp-pilot select.conveythis-input-text {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2350575e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.75 6 6.25 11 1.75'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px 8px;
+    padding-inline-end: 30px !important;
+}
+
+.ct-wp-pilot textarea.form-control {
+    block-size: auto !important;
+    min-block-size: 76px !important;
+    padding-block: 8px !important;
+    line-height: 1.5 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COLOUR SWATCHES — Widget Style › Color Style
+   Four `input[type="color"]`, each with a "Set default" button. Measured
+   before touching anything:
+
+     · swatch 138 × 36 with padding 0px/6px — the width is `max-width: 138px
+       !important` from style.css:430, the asymmetric padding is mine. A colour
+       chip the size and shape of a text input, holding #ffffff, reads as an
+       empty field. Three of the four defaults are near-white (#ffffff,
+       #f6f6f6, #f7f7f7), so three of the four looked blank.
+     · "Set default" — #f0f0f0 on #cecece, 12px/400, black text, and a #bfbfbf
+       hover (style.css:443,459). Every other secondary button on this screen
+       is white / #8c8f94 / 13px/600 in the action blue. This was the only one
+       left out.
+     · the wrapper is `.d-flex` with no stated alignment and an `.me-2` margin.
+
+   So: a compact chip with an even 3px inset, which turns a white value into a
+   white rectangle inside a grey frame rather than a hole in the page; the
+   button in the shared secondary shape; the row spaced by the flex gap.
+   Presentation only — the ids settings.js binds are untouched.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot input[type="color"],
+.ct-wp-pilot input[type="color"].form-control-color {
+    inline-size: 48px;
+    min-inline-size: 48px;
+    flex: 0 0 auto;
+    block-size: 36px;
+    padding: 3px !important;
+    margin-block: 0 !important;
+    margin-inline: 0 8px !important;
+    border: 1px solid var(--ct-wp-field-border);
+    border-radius: 4px;
+    background: var(--ct-wp-surface);
+    cursor: pointer;
+}
+
+/* Chrome and Firefox each wrap the fill in their own element; both need the
+   inset to come from the padding above rather than from a margin of their own,
+   or the chip shows a white gutter on one side only. */
+.ct-wp-pilot input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.ct-wp-pilot input[type="color"]::-webkit-color-swatch {
+    border: 1px solid rgba(0, 0, 0, .18);
+    border-radius: 2px;
+}
+.ct-wp-pilot input[type="color"]::-moz-color-swatch {
+    border: 1px solid rgba(0, 0, 0, .18);
+    border-radius: 2px;
+}
+
+.ct-wp-pilot input[type="color"]:hover { border-color: var(--ct-wp-action); }
+.ct-wp-pilot input[type="color"]:focus-visible {
+    outline: 2px solid var(--ct-wp-action);
+    outline-offset: 1px;
+}
+
+/* The swatch and its button are one control on one line. Both now carry an
+   explicit 36px, so the flex line needs nothing said about alignment — and the
+   8px that `.me-2` was contributing is restated on the swatch above, so the
+   spacing does not depend on a Bootstrap utility class staying on the element.
+   No `:has()` here on purpose: where it is unsupported the two would touch. */
+
+/* Each control is 48 + 8 + ~90 = ~146px sitting in a 374px Bootstrap half —
+   so the two halves of a row were separated by roughly 230px of nothing, and
+   the pair read as two unrelated things rather than one set of four. The
+   columns are packed to their content instead, with a gutter wide enough to
+   keep them distinct. `.ct-wp-color-grid` is a new class on the two rows;
+   nothing in settings.js selects it. Below the breakpoint Bootstrap drops the
+   columns to full width and this rule's `wrap` puts them back in a stack. */
+.ct-wp-pilot .ct-wp-color-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 48px;
+    margin-inline: 0;
+}
+
+.ct-wp-pilot .ct-wp-color-grid > [class*="col-"] {
+    flex: 0 0 auto;
+    inline-size: auto;
+    max-inline-size: 100%;
+    padding-inline: 0;
+}
+
+/* ── Rows that collapsed to their content ─────────────────────────────────
+   style.css:137 makes every .form-group a column flex container and
+   style.css:199 adds `align-items: flex-start`. In a column flex box that
+   means each child is sized to its CONTENT, not to the container — so a
+   Bootstrap .row, whose whole job is to be full width, comes out as wide as
+   whatever happens to be inside it.
+
+   The original author worked around this by putting .w-100 on rows one at a
+   time. Where that was missed the row silently collapses. Measured across all
+   eight tabs, two had: the "Apply link rules to" select came out 151px of
+   1134, and the Sitemap URL row 298px.
+
+   Fixing it at the source (`align-items: stretch`) is not an option — direct
+   children of .form-group include bare buttons, and stretch would run those
+   to the full width of the pane. A .row is the one child that is always meant
+   to fill, so it is stated for .row alone. Safe to use `inline-size` here
+   because these rows compute to `margin: 0` — Bootstrap's negative gutter is
+   already neutralised, so there is nothing for 100% to overflow. Verified on
+   every .form-group > .row in the plugin. */
+.ct-wp-pilot .form-group > .row { inline-size: 100%; }
+
+/* Same problem, one level down, and the .row fix above made it visible: the
+   list wrappers (#glossary_wrapper, #exclusion_wrapper, #blockpages_wrapper …)
+   are also direct children of .form-group and also carry no .w-100, so they
+   collapsed to their content. On Glossary that put the column headings on a
+   1174px grid and the fields they label on a 690px one — the headings did not
+   sit over their own columns. Measured after: both on 233 / 519 / 805 / 1091. */
+.ct-wp-pilot .form-group > [id$="_wrapper"] { inline-size: 100%; }
+
+/* A field with an action beside it is not an 8/4 grid split. "Sitemap URL"
+   was: the button's column came out 113px, the button needs 133px, and the
+   `white-space: nowrap` further up — which exists so a button label never
+   breaks across two lines — turned that into a 20px overflow of the row
+   instead of a wrap. The pair is a flex line: the field takes what is left,
+   the button takes what it needs. */
+.ct-wp-pilot .ct-wp-field-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-inline: 0;
+}
+
+.ct-wp-pilot .ct-wp-field-action > [class*="col-"] {
+    padding-inline: 0;
+    inline-size: auto;
+}
+
+.ct-wp-pilot .ct-wp-field-action > .col-md-8 {
+    flex: 1 1 240px;
+    min-inline-size: 0;
+    max-inline-size: 520px;   /* a URL field gains nothing past this, and the
+                                 pane is 1134px wide on tabs with no preview */
+}
+.ct-wp-pilot .ct-wp-field-action > .col-md-4 { flex: 0 0 auto; }
+
+/* Bootstrap's own padding makes .btn 38px, two more than the field it now
+   stands beside. On a field row the field sets the height. */
+.ct-wp-pilot .ct-wp-field-action .btn {
+    block-size: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding-block: 0;
+}
+
+/* Same reasoning for the one select that sits alone in a full-width row:
+   three options, none of them long. #link_rules_scope_col is the column the
+   markup already carries — no new hook. */
+.ct-wp-pilot #link_rules_scope_col { max-inline-size: 420px; }
+
+/* The hex value, because #f6f6f6 and #f7f7f7 are two of the four defaults and
+   as chips they are the same rectangle. Tabular figures so the four readouts
+   line up and a changing value does not jitter its neighbours. */
+.ct-wp-pilot .ct-wp-color-hex {
+    align-self: center;   /* stated here, not as align-items on the .d-flex
+                             parent, which has no class of its own to hook */
+    min-inline-size: 8ch;
+    margin-inline-end: 12px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .01em;
+    color: var(--ct-wp-text-muted);
+    white-space: nowrap;
+}
+
+/* The shape already used for Export/Import CSV, at the field's own height
+   because this button sits on a field row rather than in an action row. */
+.ct-wp-pilot .btn-default-color {
+    block-size: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    background: var(--ct-wp-surface) !important;
+    color: var(--ct-wp-action) !important;
+    border: 1px solid var(--ct-wp-field-border) !important;
+    border-radius: var(--ct-wp-radius-s);
+    cursor: pointer;
+}
+
+.ct-wp-pilot .btn-default-color:hover {
+    background: var(--ct-wp-ground) !important;
+    border-color: var(--ct-wp-action) !important;
+    color: var(--ct-wp-action-hover) !important;
+}
+
+/* Semantic's multi-select grows with its chips, so it cannot be pinned. */
+.ct-wp-pilot .ui.multiple.dropdown {
+    block-size: auto !important;
+    min-block-size: 36px !important;
+    padding-block: 3px !important;
+}
+
+/* Semantic's .ui.selection.dropdown is an inline-block <div>, not a <select>:
+   it centred its label using vertical padding alone. The one-field-style rule
+   above pins the height and zeroes that padding, which left "English" sitting
+   against the top of the box. A native <select> self-centres; this one has to
+   be told to. .menu and the chevron are absolutely positioned, so they stay
+   out of the flex flow. */
+.ct-wp-pilot .ui.selection.dropdown {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-inline: 10px 30px !important;
+}
+
+.ct-wp-pilot .ui.selection.dropdown > .text,
+.ct-wp-pilot .ui.selection.dropdown > .default.text {
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* The searchable variant puts a real input over the label; it has to sit on the
+   same centre line, not on the box's top edge. */
+.ct-wp-pilot .ui.search.dropdown > input.search {
+    padding-inline: 10px 30px !important;
+    line-height: 1.4;
+    block-size: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* The multi-select grows with its chips, so centre each chip on the row rather
+   than stretching them. */
+.ct-wp-pilot .ui.multiple.dropdown > .label,
+.ct-wp-pilot .ui.multiple.dropdown > a.ui.label {
+    align-self: center;
+    margin: 2px 4px 2px 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WIDGET PREVIEW — the panel must grow when the switcher opens
+
+   Reported as "the widget previewer doesn't fit the box", with a screenshot
+   showing the bottom language row sliced in half. Reproduced and measured on
+   the live install, and an earlier note in this file guessed the cause wrong,
+   so here is what is actually happening.
+
+   The switcher the CDN script draws is NOT a plain block inside
+   #customize-view-button. The real chain is:
+
+     .customize-view-button-wrapper   grid, place-items:center, min-height:96px
+       #customize-view-button
+         #wrapper_outer               position:relative, FLOAT:RIGHT, height:36px
+           #conveythisSettings-wrapper
+             .conveythis-widget-main  36px closed, 73px with one language open
+
+   `#wrapper_outer` is floated and carries the closed widget's height. A float
+   contributes nothing to its parent's height, so when the language list opens
+   the widget grows to 73px while every ancestor stays at 36px, the wrapper
+   stays pinned at its 96px minimum, and .widget-preview's `overflow: hidden`
+   cuts the overflow off flat against the card border.
+
+   Measured before: widget 73px, wrapper 96px, clipped by 8px — the sliced row.
+
+   Fix: un-float and un-pin the widget's own outer box so the height propagates,
+   then let the wrapper size to it instead of centring inside a fixed 96px.
+   The minimum is kept so the closed widget still sits centred in a panel with
+   presence, and a maximum is added so an account with a dozen languages gets a
+   scrolling panel rather than a preview taller than the form beside it.
+
+   Verified on the live install, list open:
+     closed  widget  38px  card 147px  centred 30/29
+     1 lang  widget  74px  card 147px  0px clipped
+     2 lang  widget 110px  card 181px  0px clipped
+     4 lang  widget 182px  card 253px  0px clipped
+     8 lang  widget 326px  card 371px  capped, scrolls
+    14 lang  widget 542px  card 371px  capped, scrolls
+   ══════════════════════════════════════════════════════════════════════════ */
+.ct-wp-pilot #customize-view-button #wrapper_outer {
+    float: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+.ct-wp-pilot .customize-view-button-wrapper {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+
+    /* Grows with the widget; floors at a panel that reads as deliberate when
+       the switcher is closed; ceilings so a long language list scrolls. */
+    block-size: auto !important;
+    min-block-size: 96px !important;
+    max-block-size: 320px !important;
+
+    /* Width is still contained — the switcher can be wider than a narrow
+       column — but the block axis must never clip, or we are back to the
+       sliced row. */
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    /* The template writes padding: 10px 10px 10px 15px as an INLINE style,
+       so it can only be reclaimed with !important — the same trap this
+       file warns about at the top. The asymmetry put the widget 5px right
+       of centre. */
+    padding: 10px 8px !important;
+}
+
+.ct-wp-pilot #customize-view-button { max-inline-size: 100%; }
+
+.ct-wp-pilot #customize-view-button .conveythis-widget-main,
+.ct-wp-pilot #customize-view-button .conveythis-no-translate,
+.ct-wp-pilot #customize-view-button .conveythis-widget-current-language,
+.ct-wp-pilot #customize-view-button .conveythis-widget-languages,
+.ct-wp-pilot #customize-view-button .conveythis-widget-language {
+    max-inline-size: 100%;
+    box-sizing: border-box;
+}
+
+/* A long language name truncates rather than widening the whole widget. The
+   flag and the chevron keep their space. */
+.ct-wp-pilot #customize-view-button .language_title {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

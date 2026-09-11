@@ -29,6 +29,19 @@
                         </select>
                     </div>
                 </div>
+                <?php
+                // Column headings for the rows below. The four fields carried no
+                // labels at all, and the third — the translation — had neither a
+                // label nor a placeholder, so nothing said what it was for.
+                // Presentation only: settings.js references none of this, and
+                // #glossary_wrapper below is untouched.
+                ?>
+                <div class="ct-wp-glossary-head row w-100">
+                    <div class="col-md-3"><?php echo esc_html(__('Word or phrase', 'conveythis-translate')); ?></div>
+                    <div class="col-md-3"><?php echo esc_html(__('Rule', 'conveythis-translate')); ?></div>
+                    <div class="col-md-3"><?php echo esc_html(__('Translate as', 'conveythis-translate')); ?></div>
+                    <div class="col-md-3"><?php echo esc_html(__('Language', 'conveythis-translate')); ?></div>
+                </div>
                 <div id="glossary_wrapper">
                     <?php $languages = array_combine(array_column($this->variables->languages, 'code2'), array_column($this->variables->languages, 'title_en')); ?>
                     <?php if (
@@ -69,7 +82,7 @@
                                         </div>
                                         <div class="col-md-3">
                                             <div class="ui input">
-                                                <input type="text" class="conveythis-input-text glossary_translate_value w-100" value="<?php echo (isset($glossary['translate_text']) ? esc_attr($glossary['translate_text']): '') ?>" <?php echo (isset($glossary['rule']) &&  $glossary['rule'] == 'prevent' ? ' disabled="disabled"' : '');?>>
+                                                <input type="text" class="conveythis-input-text glossary_translate_value w-100" placeholder="<?php echo esc_attr__('Not needed for “Don’t translate”', 'conveythis-translate'); ?>" value="<?php echo (isset($glossary['translate_text']) ? esc_attr($glossary['translate_text']): '') ?>" <?php echo (isset($glossary['rule']) &&  $glossary['rule'] == 'prevent' ? ' disabled="disabled"' : '');?>>
                                             </div>
                                         </div>
                                         <div class="col-md-3">

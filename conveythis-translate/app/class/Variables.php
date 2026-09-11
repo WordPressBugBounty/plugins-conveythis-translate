@@ -228,6 +228,10 @@ class Variables {
     public $exclusion_block_ids = [];
     public $exclusion_block_classes = [];
     public $account;
+    /** Distinct languages across every active domain on this account.
+     *  Set from the account row in ConveyThis::__construct; this is the
+     *  figure the API enforces the plan allowance against. */
+    public $account_languages_count = null;
     public $api_key = '';
     public $domain_id = '';
     public $source_language = '';
@@ -966,8 +970,19 @@ class Variables {
         $this->target_languages = get_option('target_languages', array());
         $this->default_language = get_option('default_language');
         $this->target_languages_translations = get_option('target_languages_translations', array());
+        // get_option() returns its default only when the option is ABSENT. An
+        // option stored as an empty string comes back as '' — and
+        // widget-style.php calls count() on it, a fatal TypeError in PHP 8.
+        // Guarded at the source so every consumer gets an array. Deliberately
+        // not an (array) cast: (array) '' is array(''), one bogus row.
         $this->style_change_language = get_option('style_change_language', array());
+        if (!is_array($this->style_change_language)) {
+            $this->style_change_language = array();
+        }
         $this->style_change_flag = get_option('style_change_flag', array());
+        if (!is_array($this->style_change_flag)) {
+            $this->style_change_flag = array();
+        }
         $this->style_flag = get_option('style_flag', 'rect');
         $this->style_text = get_option('style_text', 'full-text');
         $this->style_position_vertical = get_option('style_position_vertical', 'top');

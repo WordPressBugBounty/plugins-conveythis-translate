@@ -1,4 +1,12 @@
 == Changelog ==
+= 270.7 =
+* Redesigned the settings screen: one consistent field and button style across every tab, clearer section headings, and a header strip showing your plan and language usage.
+* Fixed unreadable buttons, missing dropdown arrows, an empty flag list on Widget Style, and two settings rows rendered far narrower than the space given to them.
+* Colour pickers on Widget Style now show the selected value as a hex code.
+* Fixed an empty rule selector on Excluded Pages, and a saved page URL is now escaped when redisplayed.
+* Fixed two fatal errors: a setting stored as an empty string on PHP 8, and sitemap generation with Yoast, Rank Math or SEOPress on PHP 7.x. The plugin now runs on PHP 7.4 and above.
+* Removed the recurring "SEO update deployed" notice, and assets are versioned by file so updates are no longer served from cache.
+
 = 270.6 =
 * Keep translated URLs on API errors (no bounce to English); longer timeout for page translate only.
 * Fix glossary full delete sync; homepage language links use /{lang}/.

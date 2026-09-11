@@ -29,7 +29,7 @@
         </div>
 
         <label>Sitemap URL</label>
-        <div class="row mb-3">
+        <div class="row mb-3 ct-wp-field-action">
             <div class="col-md-8">
                 <input type="text" class="form-control conveythis-input-text" id="sitemap_url_input"
                        placeholder="https://example.com/sitemap.xml"
