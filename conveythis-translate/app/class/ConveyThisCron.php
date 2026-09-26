@@ -17,15 +17,15 @@ class ConveyThisCron
         $schedules = Array(
             'every_ten_seconds' => Array(
                 'interval' => 10,
-                'display'  => __('Every Ten Seconds', 'text-domain')
+                'display'  => __('Every Ten Seconds', 'conveythis-translate')
             ),
             'every_24_hours' => Array(
                 'interval' => 24 * 60 * 60,
-                'display'  => __( 'Every 24 Hours' )
+                'display'  => __( 'Every 24 Hours', 'conveythis-translate' )
             ),
             'custome_time' => Array(
                 'interval' => $clear_cache * 60 * 60,
-                'display'  => __( 'Custome Time' )
+                'display'  => __( 'Custom Time', 'conveythis-translate' )
             )
         );
         return $schedules;

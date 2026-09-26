@@ -332,8 +332,8 @@
                         <?php foreach( $this->variables->languages as $language ): ?>
                             <?php if (in_array($language['code2'], $this->variables->target_languages)) :?>
                                 <tr>
-                                    <td><?= esc_html( $language['title_en'], 'conveythis-translate' ); ?></td>
-                                    <td><?= esc_html($language['code2']) ?>.<?php echo esc_html($this->getCurrentDomain())?></td>
+                                    <td><?php echo esc_html( $language['title_en'] ); ?></td>
+                                    <td><?php echo esc_html($language['code2']); ?>.<?php echo esc_html($this->getCurrentDomain())?></td>
                                     <td>dns2.conveythis.com</td>
                                 </tr>
                             <?php endif; ?>
@@ -615,7 +615,7 @@
         <table class="table" style="width: 100%; text-align: left;">
             <tbody id="target_languages_translations"></tbody>
         </table>
-        <input type="hidden" name="target_languages_translations" value="<?= esc_attr( wp_json_encode( $this->variables->target_languages_translations ) ) ?>">
+        <input type="hidden" name="target_languages_translations" value="<?php echo esc_attr( wp_json_encode( $this->variables->target_languages_translations ) ); ?>">
     </div>
 
 </div>

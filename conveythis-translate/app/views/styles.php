@@ -29,8 +29,8 @@ wp_enqueue_style('conveythis-dropdown', plugins_url('../widget/css/dropdown.min.
 wp_enqueue_style('conveythis-input', plugins_url('../widget/css/input.min.css', __FILE__), array(), conveythis_asset_ver('widget/css/input.min.css') );
 wp_enqueue_style('conveythis-transition', plugins_url('../widget/css/transition.min.css',__FILE__), array(), conveythis_asset_ver('widget/css/transition.min.css') );
 wp_enqueue_style('conveythis-style', plugins_url('../widget/css/style.css',__FILE__), array(), conveythis_asset_ver('widget/css/style.css') );
-wp_enqueue_style('conveythis-bootstrap-css', '//cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css', array(), '5.0.2');
-wp_enqueue_style('conveythis-toastr', '//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css', array(), '2.1.3');
+wp_enqueue_style('conveythis-bootstrap-css', plugins_url('../widget/css/bootstrap.min.css', __FILE__), array(), '5.0.2');
+wp_enqueue_style('conveythis-toastr', plugins_url('../widget/css/toastr.min.css', __FILE__), array(), '2.1.4');
 wp_enqueue_style('conveythis-slider', plugins_url('../widget/css/slider.min.css', __FILE__), array(), conveythis_asset_ver('widget/css/slider.min.css'));
 
 // ── ConveyThis WordPress admin UI pilot — TEST BUILD ─────────────────────────
@@ -41,10 +41,10 @@ wp_enqueue_style('conveythis-slider', plugins_url('../widget/css/slider.min.css'
 wp_enqueue_style('conveythis-admin-pilot', plugins_url('../widget/css/ct-admin-pilot.css', __FILE__), array(), conveythis_asset_ver('widget/css/ct-admin-pilot.css'));
 
 wp_enqueue_script('conveythis-dropdown', plugins_url('../widget/js/dropdown.min.js', __FILE__), array(), conveythis_asset_ver('widget/js/dropdown.min.js'), true);
-wp_enqueue_script('conveythis-toastr', '//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js', array(), '2.1.3', false);
-wp_enqueue_script('conveythis-bootstrap-js', '//cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js', array(), '5.0.2', false);
+wp_enqueue_script('conveythis-toastr', plugins_url('../widget/js/toastr.min.js', __FILE__), array(), '2.1.4', false);
+wp_enqueue_script('conveythis-bootstrap-js', plugins_url('../widget/js/bootstrap.min.js', __FILE__), array(), '5.0.2', false);
 wp_enqueue_script('conveythis-pusher', '//js.pusher.com/7.2/pusher.min.js', array(), '7.2.0', false);
-wp_enqueue_script('conveythis-sweetalert', '//cdn.jsdelivr.net/npm/sweetalert2@11', array(), '11.11.0', false);
+wp_enqueue_script('conveythis-sweetalert', plugins_url('../widget/js/sweetalert2.min.js', __FILE__), array(), '11.11.0', false);
 wp_enqueue_script('conveythis-transition', plugins_url('../widget/js/transition.min.js', __FILE__), array('jquery'), conveythis_asset_ver('widget/js/transition.min.js'), true);
 wp_enqueue_script('conveythis-slider', plugins_url('../widget/js/slider.min.js', __FILE__), array(), conveythis_asset_ver('widget/js/slider.min.js'), false);
 //FOR CUSTOM CSS

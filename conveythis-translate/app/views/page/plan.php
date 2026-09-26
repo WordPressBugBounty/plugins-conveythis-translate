@@ -19,7 +19,7 @@
                 if (planTab) {
                     planTab.addEventListener('shown.bs.tab', function () {
                         jQuery.ajax({
-                            url: "https://api.conveythis.com/admin/account/plan/api-key/<?= esc_html($this->variables->api_key) ?>/",
+                            url: "https://api.conveythis.com/admin/account/plan/api-key/<?php echo esc_html($this->variables->api_key); ?>/",
                             success: function (result) {
                                 jQuery('#plan-name').text(result.data.meta.title || 'N/A');
                                 jQuery('#plan-languages').text(result.data.meta.languages || 'N/A');

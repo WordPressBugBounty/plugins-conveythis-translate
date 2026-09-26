@@ -178,7 +178,7 @@ class ConveyThisAdminNotices
                 'Hello,<br>My name is Alex Buran. I\'m the founder of ConveyThis Translate plugin.<br>If you like this plugin, please write a few words about it at wordpress.org or twitter. Your opinion will help other people.<br>Thank you!'
         ,
             'link' =>
-                '<span class="conveythis-admin-notice"><a href="https://wordpress.org/support/plugin/conveythis-translate/reviews/?filter=5#postform" target="_blank" class="button button-primary conveythis-admin-notice-link">Rate plugin</a></span>
+                '<span class="conveythis-admin-notice"><a href="https://wordpress.org/support/plugin/conveythis-translate/reviews/" target="_blank" class="button button-primary conveythis-admin-notice-link">Rate plugin</a></span>
 				<span class="conveythis-admin-notice" style="margin-left: 20px;"><a href="' . esc_url($two_week_review_temp) . '" class="conveythis-admin-notice-link">Remind me later</a></span>
 				<span class="conveythis-admin-notice" style="margin-left: 20px;"><a href="' . esc_url($two_week_review_ignore) . '" class="conveythis-admin-notice-link">Don\'t show anymore</a></span>'
         ,

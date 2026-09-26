@@ -96,51 +96,59 @@ class ConveyThis {
             }
         }
 
-        $this->variables->exclusions = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
-
         $active_plugins = get_option('active_plugins');
 
-        if (empty($this->variables->is_active)) {
+        // Do not contact the ConveyThis API until the site has connected an
+        // account (an API key). Without a key there is no account, so these
+        // calls returned nothing anyway — and firing them on plugins_loaded and
+        // on activation sent the site's host to our server before the user had
+        // configured the plugin or consented (a WordPress.org guideline issue).
+        // exclusions defaults to [] in Variables, so no fetch is fine here.
+        if (!empty($this->variables->api_key)) {
+            $this->variables->exclusions = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
+
+            if (empty($this->variables->is_active)) {
+                $url = home_url();
+                $domain_name = $this->getPageHost($url);
+
+                $account = $this->getAccountByApiKey($this->variables->api_key);
+
+                if (!empty($account)) {
+                    $domain = $this->getDomainDetails($account['account_id'], $domain_name);
+                    // $this->print_log("@@@ domain: " . json_encode($domain));
+                }
+
+                if (!empty($domain) && $domain[0]['is_active'] === '1') {
+                    update_option('is_active_domain', ['is_active' => 1]);
+                }
+            }
+
+            // get domain_id for Edit translations link
             $url = home_url();
             $domain_name = $this->getPageHost($url);
-
             $account = $this->getAccountByApiKey($this->variables->api_key);
-
             if (!empty($account)) {
+                // The account row is already fetched here for domain_id, so keeping
+                // languages_count costs nothing extra. It is the number of DISTINCT
+                // languages across every active domain on this account — computed by
+                // the API's Recount::recountLanguages() as
+                // count(array_unique(target_languages)) over is_active domains — and
+                // it is the figure Controller/Website.php:330 enforces the plan
+                // allowance against. The admin header shows it so the allowance
+                // reads as the shared pool it actually is.
+                $this->variables->account = $account;
+                if (isset($account['languages_count'])) {
+                    $this->variables->account_languages_count = (int) $account['languages_count'];
+                }
+
                 $domain = $this->getDomainDetails($account['account_id'], $domain_name);
-                // $this->print_log("@@@ domain: " . json_encode($domain));
-            }
-
-            if (!empty($domain) && $domain[0]['is_active'] === '1') {
-                update_option('is_active_domain', ['is_active' => 1]);
-            }
-        }
-
-        // get domain_id for Edit translations link
-        $url = home_url();
-        $domain_name = $this->getPageHost($url);
-        $account = $this->getAccountByApiKey($this->variables->api_key);
-        if (!empty($account)) {
-            // The account row is already fetched here for domain_id, so keeping
-            // languages_count costs nothing extra. It is the number of DISTINCT
-            // languages across every active domain on this account — computed by
-            // the API's Recount::recountLanguages() as
-            // count(array_unique(target_languages)) over is_active domains — and
-            // it is the figure Controller/Website.php:330 enforces the plan
-            // allowance against. The admin header shows it so the allowance
-            // reads as the shared pool it actually is.
-            $this->variables->account = $account;
-            if (isset($account['languages_count'])) {
-                $this->variables->account_languages_count = (int) $account['languages_count'];
-            }
-
-            $domain = $this->getDomainDetails($account['account_id'], $domain_name);
-            $this->print_log("@@@ domain: " . json_encode($domain));
-            $domain_id = "";
-            if (!empty($domain)) {
-                $domain_id = $domain[0]['domain_id'];
-                $this->print_log("domain_id: " . $domain_id);
-                $this->variables->domain_id = $domain_id;
+                $this->print_log("@@@ domain: " . json_encode($domain));
+                $domain_id = "";
+                if (!empty($domain)) {
+                    $domain_id = $domain[0]['domain_id'];
+                    $this->print_log("domain_id: " . $domain_id);
+                    $this->variables->domain_id = $domain_id;
+                }
             }
         }
 
@@ -1944,59 +1952,59 @@ class ConveyThis {
 
     public function admin_init() {
         // SEO Translation Quality options
-        register_setting('my-plugin-settings', 'conveythis_seo_brand');
-        register_setting('my-plugin-settings', 'conveythis_seo_glossary');
-        register_setting('my-plugin-settings', 'conveythis_seo_enforce_length');
-        register_setting('my-plugin-settings', 'conveythis_seo_jsonld_validation');
-        register_setting('my-plugin-settings-group', 'conveythis_seo_brand');
-        register_setting('my-plugin-settings-group', 'conveythis_seo_glossary');
-        register_setting('my-plugin-settings-group', 'conveythis_seo_enforce_length');
-        register_setting('my-plugin-settings-group', 'conveythis_seo_jsonld_validation');
+        register_setting('my-plugin-settings', 'conveythis_seo_brand', 'sanitize_text_field');
+        register_setting('my-plugin-settings', 'conveythis_seo_glossary', 'sanitize_textarea_field');
+        register_setting('my-plugin-settings', 'conveythis_seo_enforce_length', 'sanitize_text_field');
+        register_setting('my-plugin-settings', 'conveythis_seo_jsonld_validation', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_seo_brand', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_seo_glossary', 'sanitize_textarea_field');
+        register_setting('my-plugin-settings-group', 'conveythis_seo_enforce_length', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_seo_jsonld_validation', 'sanitize_text_field');
 
         register_setting('my-plugin-settings', 'api_key', array($this, 'check_api_key'));
-        register_setting('my-plugin-settings', 'source_language');
+        register_setting('my-plugin-settings', 'source_language', 'sanitize_text_field');
         register_setting('my-plugin-settings', 'target_languages', array($this, 'check_target_languages'));
         register_setting('my-plugin-settings-group', 'api_key', array($this, 'check_api_key'));
-        register_setting('my-plugin-settings-group', 'source_language');
+        register_setting('my-plugin-settings-group', 'source_language', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'target_languages', array($this, 'check_target_languages'));
-        register_setting('my-plugin-settings-group', 'target_languages_translations');
-        register_setting('my-plugin-settings-group', 'default_language');
+        register_setting('my-plugin-settings-group', 'target_languages_translations', array($this, 'sanitize_string_array'));
+        register_setting('my-plugin-settings-group', 'default_language', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'style_change_language', array($this, 'check_style_change_language'));
         register_setting('my-plugin-settings-group', 'style_change_flag', array($this, 'check_style_change_flag'));
-        register_setting('my-plugin-settings-group', 'style_flag');
-        register_setting('my-plugin-settings-group', 'style_text');
-        register_setting('my-plugin-settings-group', 'style_position_vertical');
-        register_setting('my-plugin-settings-group', 'style_position_horizontal');
-        register_setting('my-plugin-settings-group', 'style_indenting_vertical');
-        register_setting('my-plugin-settings-group', 'style_indenting_horizontal');
-        register_setting('my-plugin-settings-group', 'auto_translate');
-        register_setting('my-plugin-settings-group', 'hide_conveythis_logo');
-        register_setting('my-plugin-settings-group', 'dynamic_translation');
-        register_setting('my-plugin-settings-group', 'translate_media');
-        register_setting('my-plugin-settings-group', 'translate_document');
-        register_setting('my-plugin-settings-group', 'translate_links');
-        register_setting('my-plugin-settings-group', 'translate_structured_data');
-        register_setting('my-plugin-settings-group', 'change_direction');
-        register_setting('my-plugin-settings-group', 'conveythis_clear_cache');
-        register_setting('my-plugin-settings-group', 'conveythis_select_region');
-        register_setting('my-plugin-settings-group', 'is_active_domain');
-        register_setting('my-plugin-settings-group', 'alternate');
-        register_setting('my-plugin-settings-group', 'accept_language');
+        register_setting('my-plugin-settings-group', 'style_flag', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_text', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_position_vertical', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_position_horizontal', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_indenting_vertical', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_indenting_horizontal', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'auto_translate', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'hide_conveythis_logo', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'dynamic_translation', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'translate_media', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'translate_document', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'translate_links', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'translate_structured_data', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'change_direction', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_clear_cache', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_select_region', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'is_active_domain', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'alternate', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'accept_language', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'blockpages', array($this, 'check_blockpages'));
-        register_setting('my-plugin-settings-group', 'show_javascript');
-        register_setting('my-plugin-settings-group', 'style_position_type');
-        register_setting('my-plugin-settings-group', 'style_position_vertical_custom');
-        register_setting('my-plugin-settings-group', 'style_selector_id');
-        register_setting('my-plugin-settings-group', 'url_structure');
-        register_setting('my-plugin-settings-group', 'style_background_color');
-        register_setting('my-plugin-settings-group', 'style_hover_color');
-        register_setting('my-plugin-settings-group', 'style_border_color');
-        register_setting('my-plugin-settings-group', 'style_text_color');
-        register_setting('my-plugin-settings-group', 'style_corner_type');
-        register_setting('my-plugin-settings-group', 'custom_css_json');
-        register_setting('my-plugin-settings-group', 'style_widget');
-        register_setting('my-plugin-settings-group', 'conveythis_system_links');
-        register_setting('my-plugin-settings-group', 'use_trailing_slash');
+        register_setting('my-plugin-settings-group', 'show_javascript', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_position_type', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_position_vertical_custom', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_selector_id', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'url_structure', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_background_color', 'sanitize_hex_color');
+        register_setting('my-plugin-settings-group', 'style_hover_color', 'sanitize_hex_color');
+        register_setting('my-plugin-settings-group', 'style_border_color', 'sanitize_hex_color');
+        register_setting('my-plugin-settings-group', 'style_text_color', 'sanitize_hex_color');
+        register_setting('my-plugin-settings-group', 'style_corner_type', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'custom_css_json', 'sanitize_textarea_field');
+        register_setting('my-plugin-settings-group', 'style_widget', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_system_links', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'use_trailing_slash', 'sanitize_text_field');
 
         if (!empty($_REQUEST['page']) && $_REQUEST['page'] == 'convey_this') //phpcs:ignore
         {
@@ -2233,26 +2241,36 @@ class ConveyThis {
 
     public function check_style_change_language($value) {
         $this->print_log("* check_style_change_language()");
-        if (!is_array($value)) {
-            return array();
-        }
-        return $value;
+        return $this->sanitize_string_array($value);
     }
 
     public function check_style_change_flag($value) {
         $this->print_log("* check_style_change_flag()");
-        if (!is_array($value)) {
-            return array();
-        }
-        return $value;
+        return $this->sanitize_string_array($value);
     }
 
     public function check_blockpages($value) {
         $this->print_log("* check_blockpages()");
+        return $this->sanitize_string_array($value);
+    }
+
+    /**
+     * Sanitize an option that is an array of strings: every key and every
+     * scalar value is run through sanitize_text_field(), recursing into nested
+     * arrays. A non-array becomes an empty array.
+     */
+    public function sanitize_string_array($value) {
         if (!is_array($value)) {
             return array();
         }
-        return $value;
+        $clean = array();
+        foreach ($value as $key => $item) {
+            $key = sanitize_text_field($key);
+            $clean[$key] = is_array($item)
+                ? $this->sanitize_string_array($item)
+                : sanitize_text_field($item);
+        }
+        return $clean;
     }
 
     public function check_api_key($value) {
@@ -2365,6 +2383,23 @@ class ConveyThis {
         return $host;
     }
 
+    /**
+     * True for requests that are not a page a visitor is looking at: WP-Cron,
+     * admin-ajax, XML-RPC and REST. They carry no language prefix and, for cron
+     * and XML-RPC, no Referer, so the default-language and browser-language
+     * redirects in init() would treat them as a landing page and 302 them to
+     * /{lang}/wp-cron.php. That exit() happens on the init hook, before WordPress
+     * reaches its cron job loop, so scheduled events silently never run.
+     * (REST is normally caught earlier by the /wp-json/ return at the top of
+     * init(); REST_REQUEST is defined on parse_request, after init.)
+     */
+    private function is_non_page_request() {
+        return wp_doing_cron()
+            || wp_doing_ajax()
+            || (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)
+            || (defined('REST_REQUEST') && REST_REQUEST);
+    }
+
     function init() {
         $this->print_log("* init()");
         // Snapshot the original REQUEST_URI before the plugin's own rewrite strips
@@ -2395,7 +2430,7 @@ class ConveyThis {
             if (empty($this->variables->url_structure) || $this->variables->url_structure != "subdomain") { // not subdomains
 
                 $this->print_log("@@@ structure: NOT subdomain @@@ : ");
-                if ($this->variables->auto_translate && isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+                if ($this->variables->auto_translate && isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) && !$this->is_non_page_request()) {
                     if (class_exists('Locale')) {
                         $browserLanguage = locale_accept_from_http($_SERVER['HTTP_ACCEPT_LANGUAGE']);
                         $browserLanguage = substr($browserLanguage, 0, 2);
@@ -2404,9 +2439,12 @@ class ConveyThis {
                     }
 
                     if (in_array($browserLanguage, $this->variables->target_languages)) {
-                        session_start();
-                        if (empty($_SESSION['conveythis-autoredirected'])) {
-                            $_SESSION['conveythis-autoredirected'] = true;
+                        // Was session_start() + $_SESSION, which forces every
+                        // front-end request out of full-page caches (a WordPress.org
+                        // guideline issue). A cookie gives the same once-per-visit
+                        // behaviour without starting a PHP session.
+                        if (empty($_COOKIE['conveythis-autoredirected'])) {
+                            setcookie('conveythis-autoredirected', '1', 0, '/');
                             $preventAutoRedirect = false;
                             foreach ($this->variables->target_languages as $key => $language) {    //check if already contains translate language prefix
 
@@ -2464,7 +2502,7 @@ class ConveyThis {
                     if (!in_array($this->variables->default_language, $this->variables->target_languages)) {
                         $this->variables->default_language = '';
                     }
-                    if (!$this->variables->language_code && strpos($_SERVER['REQUEST_URI'], 'wp-login') === false && strpos($_SERVER['REQUEST_URI'], 'wp-admin') === false) {
+                    if (!$this->variables->language_code && strpos($_SERVER['REQUEST_URI'], 'wp-login') === false && strpos($_SERVER['REQUEST_URI'], 'wp-admin') === false && !$this->is_non_page_request()) {
                         if (!isset($_SERVER['HTTP_REFERER']) || !$_SERVER['HTTP_REFERER'] || $this->variables->site_host != $this->getPageHost($_SERVER['HTTP_REFERER'])) {
                             $this->variables->language_code = isset($this->variables->target_languages_translations[$this->variables->default_language]) ? $this->variables->target_languages_translations[$this->variables->default_language] : $this->variables->default_language;
                         }
@@ -6693,12 +6731,11 @@ class ConveyThis {
         add_option('style_widget', 'dropdown');
         add_option('conveythis_system_links', []);
         add_option('use_trailing_slash', 0);
-
-        self::sendEvent('activate');
     }
 
     public static function plugin_deactivate() {
-        self::sendEvent('deactivate');
+        // Telemetry ping removed — WordPress.org disallows contacting external
+        // servers without opt-in consent. Nothing to do on deactivation now.
     }
 
     public static function plugin_uninstall() {
@@ -6748,36 +6785,14 @@ class ConveyThis {
         delete_option('conveythis_system_links');
         delete_option('is_active_domain');
         delete_option('use_trailing_slash');
-
-        self::sendEvent('uninstall');
     }
 
     static function plugin_update_option($optionName, $oldValue, $newValue) {
         //$this->print_log("* plugin_update_option()");
+        // The telemetry that used to fire here (updOption events) was removed —
+        // WordPress.org disallows tracking without opt-in consent. The permalink
+        // transient flush below is unrelated to telemetry and stays.
         self::optionPermalinkChanged($optionName, $oldValue, $newValue);
-
-        $pluginOption = false;
-        $eventName = 'updOption';
-        if (!empty($optionName)) {
-            if ($optionName == 'api_key') {
-                $eventName .= self::getEventOptionName('ApiKey', $oldValue, $newValue);
-                $pluginOption = true;
-            }
-
-            if ($optionName == 'source_language') {
-                $eventName .= self::getEventOptionName('SourceLanguage', $oldValue, $newValue);
-                $pluginOption = true;
-            }
-
-            if ($optionName == 'target_languages') {
-                $eventName .= self::getEventOptionName('TargetLanguage', $oldValue, $newValue);
-                $pluginOption = true;
-            }
-        }
-
-        if ($pluginOption) {
-            self::sendEvent($eventName);
-        }
     }
 
     static function optionPermalinkChanged($option, $oldValue, $value) {
@@ -6785,20 +6800,6 @@ class ConveyThis {
         if ($option === 'permalink_structure') {
             delete_transient('convey_permalink_structure');
         }
-    }
-
-    static function getEventOptionName($name = '', $oldValue = '', $newValue = '') {
-        //$this->print_log("* getEventOptionName()");
-        $eventName = '';
-        if (empty($oldValue) && !empty($newValue)) {
-            $eventName .= 'First';
-        }
-        if (!empty($oldValue) && !empty($newValue)) {
-            $eventName .= 'Update';
-        }
-        $eventName .= $name;
-
-        return $eventName;
     }
 
 
@@ -6809,12 +6810,6 @@ class ConveyThis {
             return;
         }
         include_once CONVEYTHIS_VIEWS . '/activation_notice.php';
-    }
-
-    public static function sendEvent($event = 'default', $message = '') {
-        //$this->print_log("* sendEvent()");
-        $key = get_option('api_key') ? get_option('api_key') : 'no_key';
-        $response = self::httpRequest('/25/background/event/' . $key . '/' . base64_encode(self::getCurrentDomain()) . '/' . $event . '/');
     }
 
     function dismissNotice($function) {

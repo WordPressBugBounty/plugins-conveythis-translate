@@ -1,10 +1,10 @@
-=== Translate WordPress with ConveyThis – AI Multilingual Plugin ===
+=== ConveyThis AI Translation for WordPress ===
 Contributors: alexburan, conveythis
 Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 270.7
+Stable tag: 270.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -220,7 +220,21 @@ Learn how your data and content are securely handled by ConveyThis.
 
 For more information and troubleshooting, visit the official [ConveyThis Documentation](https://developers.conveythis.com/wordpress)
 
+== External services ==
+
+This plugin relies on the following third-party services. For each one, the data sent and the conditions are described below.
+
+**ConveyThis translation service** — the core service that translates your website. Your site's domain, your chosen source and target languages, the content of the pages to be translated, and your API key are sent to ConveyThis when you set up the plugin and whenever a translated page is generated or updated. Translated content and the language switcher are then served from the ConveyThis CDN. Provided by ConveyThis — [Terms and Conditions](https://www.conveythis.com/legal/terms-and-conditions), [Privacy Policy](https://www.conveythis.com/legal/privacy-policy).
+
+**Pusher** — used to receive real-time status updates (such as translation progress) inside the plugin's admin screens. A connection to Pusher is opened while you are on the plugin's admin pages; no page content is sent. Provided by Pusher — [Terms of Service](https://pusher.com/legal/terms/), [Privacy Policy](https://pusher.com/legal/privacy/).
+
+**Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
+
 == Changelog ==
+= 270.8 =
+* Compliance and privacy: the plugin no longer contacts our servers until you connect an API key, and no longer starts a PHP session on the front end (so full-page caching keeps working). Bootstrap, Toastr and SweetAlert are now bundled with the plugin instead of loaded from a CDN, and all settings are sanitised on save. Added an "External services" section documenting the services the plugin uses.
+* Fixed scheduled tasks (WP-Cron) silently not running on sites with a default-language redirect enabled — cron, admin-ajax and XML-RPC requests are no longer caught by the language redirect.
+
 = 270.7 =
 * Redesigned the settings screen: one consistent field and button style across every tab, clearer section headings, and a header strip showing your plan and language usage.
 * Fixed unreadable buttons, missing dropdown arrows, an empty flag list on Widget Style, and two settings rows rendered far narrower than the space given to them.
