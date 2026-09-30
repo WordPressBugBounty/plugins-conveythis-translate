@@ -1,4 +1,9 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 require_once  CONVEY_PLUGIN_ROOT_PATH . 'app/class/Variables.php';
 $variables = new Variables();
 
@@ -43,15 +48,16 @@ wp_enqueue_style('conveythis-admin-pilot', plugins_url('../widget/css/ct-admin-p
 wp_enqueue_script('conveythis-dropdown', plugins_url('../widget/js/dropdown.min.js', __FILE__), array(), conveythis_asset_ver('widget/js/dropdown.min.js'), true);
 wp_enqueue_script('conveythis-toastr', plugins_url('../widget/js/toastr.min.js', __FILE__), array(), '2.1.4', false);
 wp_enqueue_script('conveythis-bootstrap-js', plugins_url('../widget/js/bootstrap.min.js', __FILE__), array(), '5.0.2', false);
-wp_enqueue_script('conveythis-pusher', '//js.pusher.com/7.2/pusher.min.js', array(), '7.2.0', false);
+wp_enqueue_script('conveythis-pusher', plugins_url('../widget/js/pusher.min.js', __FILE__), array(), '7.2.0', false);
 wp_enqueue_script('conveythis-sweetalert', plugins_url('../widget/js/sweetalert2.min.js', __FILE__), array(), '11.11.0', false);
 wp_enqueue_script('conveythis-transition', plugins_url('../widget/js/transition.min.js', __FILE__), array('jquery'), conveythis_asset_ver('widget/js/transition.min.js'), true);
 wp_enqueue_script('conveythis-slider', plugins_url('../widget/js/slider.min.js', __FILE__), array(), conveythis_asset_ver('widget/js/slider.min.js'), false);
 //FOR CUSTOM CSS
-wp_enqueue_style('codemirror-css', CONVEYTHIS_APP_URL . '/templates/backpage/template/css/codemirror.min.css', array(), '5.63.1');
-wp_enqueue_script('codemirror-js', CONVEYTHIS_APP_URL . '/templates/backpage/template/js/codemirror.min.js', array(), '5.63.1', true);
-wp_enqueue_script('codemirror-css-mode', CONVEYTHIS_APP_URL . '/templates/backpage/template/js/css.min.js', array('codemirror-js'), '5.63.1', true);
-wp_enqueue_script('codemirror-placeholder', CONVEYTHIS_APP_URL . '/templates/backpage/template/js/placeholder.min.js', array('codemirror-js'), '5.65.16', true);
+// CodeMirror comes from WordPress core, which bundles it with the CSS mode and the
+// placeholder / active-line add-ons. WordPress.org allows neither loading it from a
+// remote server nor shipping a second copy. Core exposes it as wp.CodeMirror.
+wp_enqueue_style('wp-codemirror');
+wp_enqueue_script('wp-codemirror');
 
 //wp_enqueue_script('conveythis-plugin', CONVEYTHIS_JAVASCRIPT_PLUGIN_URL."/conveythis-preview.js", [], '6.3', false); old
 

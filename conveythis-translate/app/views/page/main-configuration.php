@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <style>
     /* Fix vertical alignment of selected languages in Semantic UI dropdown */
     .ui.dropdown .label {
@@ -67,7 +72,7 @@
                 $edit_translations_url = "https://app.conveythis.com/dashboard/translation/domain/" . $this->variables->domain_id . "/";
             }
             ?>
-            <a href="<?php echo $edit_translations_url; ?>" target="_blank" class="btn btn-primary btn-sm ct-wp-cta">Edit translations</a>
+            <a href="<?php echo esc_url($edit_translations_url); ?>" target="_blank" class="btn btn-primary btn-sm ct-wp-cta">Edit translations</a>
         </div>
     </div>
 

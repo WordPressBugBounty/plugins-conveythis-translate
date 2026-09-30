@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div id="widget-preview-general" class="widget-preview">
     <span>
         Widget preview

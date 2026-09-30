@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <form id="login-form-settings" method="POST" action="options.php">
     <?php
     settings_fields('my-plugin-settings');
@@ -28,7 +33,7 @@
                     <span>
                         &nbsp;|&nbsp;
                            </span>
-                        <a href="<?php echo CONVEYTHIS_APP_URL . '/setup/?technology=wordpress&domain_name=' . parse_url(home_url(), PHP_URL_HOST)  ?>" class="api-key-setting" target="_blank">
+                        <a href="<?php echo esc_url(CONVEYTHIS_APP_URL . '/setup/?technology=wordpress&domain_name=' . wp_parse_url(home_url(), PHP_URL_HOST)); ?>" class="api-key-setting" target="_blank">
                             Need an API key?
                         </a>
 
@@ -47,7 +52,7 @@
                     Please check the key and try again.
                 </p>
                 <div class="validation-links">
-                    <a href="<?php echo CONVEYTHIS_APP_URL . '/setup/?technology=wordpress&domain_name=' . parse_url(home_url(), PHP_URL_HOST)  ?>" class="api-key-setting" target="_blank">
+                    <a href="<?php echo esc_url(CONVEYTHIS_APP_URL . '/setup/?technology=wordpress&domain_name=' . wp_parse_url(home_url(), PHP_URL_HOST)); ?>" class="api-key-setting" target="_blank">
                         Complete the setup
                     </a>
                     <span>&nbsp;&middot;&nbsp;</span>
@@ -177,7 +182,7 @@
         }
     </style>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <?php // jQuery comes from WordPress core (enqueued as a dependency in styles.php). Core runs it in noConflict mode, so this script uses jQuery, not $. ?>
 <script>
     let submitBlocked = true; // flag to prevent initial form submit
 
@@ -240,7 +245,7 @@
             ? conveythis_plugin_ajax.nonce
             : '<?php echo esc_js(wp_create_nonce('conveythis_ajax_save')); ?>';
 
-        $.ajax({
+        jQuery.ajax({
             url: ajaxUrl,
             method: 'POST',
             dataType: 'json',
@@ -254,26 +259,26 @@
                 if (response && response !== null) {
                     const data = (typeof response === 'string') ? JSON.parse(response) : response;
                     if (data.source_language && target_languages) {
-                        $('.dropdown-current-language').removeClass('validation-failed'); // clear source validation
-                        $('.dropdown-target-languages').removeClass('validation-failed'); // clear target validation
+                        jQuery('.dropdown-current-language').removeClass('validation-failed'); // clear source validation
+                        jQuery('.dropdown-target-languages').removeClass('validation-failed'); // clear target validation
                     }
-                    $('.dropdown-current-language').dropdown('set selected', data.source_language); // set source language
-                    $('.dropdown-target-languages').dropdown('set selected', target_languages); // set target languages
+                    jQuery('.dropdown-current-language').dropdown('set selected', data.source_language); // set source language
+                    jQuery('.dropdown-target-languages').dropdown('set selected', target_languages); // set target languages
                 }
 
-                // $('#submit').val('Save Settings');
-                // $('#submit').val('Please wait...');
-                // $('#submit').prop('disabled', true);
+                // jQuery('#submit').val('Save Settings');
+                // jQuery('#submit').val('Please wait...');
+                // jQuery('#submit').prop('disabled', true);
 
-                $('#button_continue').addClass('d-none'); // hide continue button
-                $('#please_wait_message').removeClass('d-none'); // show please wait message
+                jQuery('#button_continue').addClass('d-none'); // hide continue button
+                jQuery('#please_wait_message').removeClass('d-none'); // show please wait message
                 // return
 
                 // dropdownElements.forEach(block => block.style.display = 'block');
 
-                //  $('#submit').off('click').on('click', () => {
-                $('input[name="source_language"]').removeClass('first-submit'); // remove first submit flag
-                $('input[name="target_languages"]').removeClass('first-submit'); // remove first submit flag
+                //  jQuery('#submit').off('click').on('click', () => {
+                jQuery('input[name="source_language"]').removeClass('first-submit'); // remove first submit flag
+                jQuery('input[name="target_languages"]').removeClass('first-submit'); // remove first submit flag
                 submitBlocked = false; // allow next submit
                 //  form.submit();
                 //  });
@@ -297,7 +302,7 @@
     const validateApiKey = (apiKeyValue, form) => {
         let domain_name = window.location.hostname; // get current domain
         let url = <?php echo json_encode(CONVEYTHIS_API_URL); ?> + '/admin/accounts/check_wordpress/'; // API validation endpoint
-        $.ajax({
+        jQuery.ajax({
             // url: 'https://api.conveythis.com/admin/accounts/check/',
             url: url,
             method: 'POST',

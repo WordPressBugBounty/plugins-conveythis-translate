@@ -1,4 +1,9 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 class ConveyThisCompetitorCheck
 {
     protected static $conflicts = [];

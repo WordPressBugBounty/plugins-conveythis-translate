@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="tab-pane fade" id="v-pills-block" role="tabpanel" aria-labelledby="block-pages-tab">
 
     <div class="title">Excluded pages</div>

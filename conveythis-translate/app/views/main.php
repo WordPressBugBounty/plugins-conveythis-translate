@@ -1,4 +1,9 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 // ConveyThis WordPress admin UI pilot — TEST BUILD.
 // The ct-wp-pilot class below scopes app/widget/css/ct-admin-pilot.css to this
 // plugin's own screen. Nothing in that stylesheet can reach wp-admin or another

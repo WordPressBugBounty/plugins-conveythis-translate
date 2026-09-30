@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="tab-pane fade" id="v-pills-general" role="tabpanel" aria-labelledby="general-tab">
 
     <div class="title">Region</div>
@@ -131,7 +136,7 @@
             $ct_notice_style = $ct_custom_selected ? '' : 'display:none;';
             $ct_notice_class = ($ct_map_total > 0) ? 'alert-success' : 'alert-warning';
             ?>
-            <div id="trailing_slash_custom_notice" class="alert <?php echo esc_attr($ct_notice_class); ?> mt-2" style="<?php echo $ct_notice_style; ?>">
+            <div id="trailing_slash_custom_notice" class="alert <?php echo esc_attr($ct_notice_class); ?> mt-2" style="<?php echo esc_attr($ct_notice_style); ?>">
                 <?php if ($ct_map_total > 0): ?>
                     Sitemap loaded: <strong><?php echo (int)$ct_map_total; ?></strong> URLs
                     (<strong><?php echo (int)$ct_map_has; ?></strong> with slash,
@@ -550,7 +555,10 @@
                                 ?>
                                     <button type="button" name="conveythis_seo_add_to_glossary" class="button button-small"
                                             onclick="<?php echo esc_attr("window.location.href='" . esc_url_raw($add_url) . "';"); ?>">
-                                        <?php echo esc_html(sprintf(__('Add "%s" to glossary', 'conveythis-translate'), $orig)); ?>
+                                        <?php
+                                        /* translators: %s: the original (untranslated) term */
+                                        echo esc_html(sprintf(__('Add "%s" to glossary', 'conveythis-translate'), $orig));
+                                        ?>
                                     </button>
                                 <?php elseif ($id !== null):
                                     $dismiss_url = wp_nonce_url(

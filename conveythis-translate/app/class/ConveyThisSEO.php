@@ -1,5 +1,10 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+
 require_once 'Variables.php';
 
 class ConveyThisSEO
@@ -297,7 +302,7 @@ class ConveyThisSEO
         foreach ($languages_to_render as $lang) {
             $modifiedResult = $this->modify_url($url, $lang);
 
-            if (str_contains($actual_link, '-' . $lang . '-') === false) {
+            if (strpos($actual_link, '-' . $lang . '-') === false) {
                 $alternate .= $modifiedResult['alternate'];
                 continue;
             } else {

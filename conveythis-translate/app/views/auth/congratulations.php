@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="box-congratulation key-block mt-5 d-flex justify-content-center flex-column gap-3 text-center" >
 <!-- container p-4 main-block shadow-sm rounded d-flex justify-content-center flex-column gap-3 text-center	 -->
 

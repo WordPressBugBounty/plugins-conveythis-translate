@@ -1,5 +1,10 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+
 class ConveyThisAdminNotices
 {
     public $config;

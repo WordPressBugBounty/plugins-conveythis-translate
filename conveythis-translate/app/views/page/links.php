@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="tab-pane fade" id="v-pills-links" role="tabpanel" aria-labelledby="links-tab">
 
     <?php if ($this->variables->translate_links == 1) : ?>

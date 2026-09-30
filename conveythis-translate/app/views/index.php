@@ -1,4 +1,9 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 require_once(CONVEY_PLUGIN_ROOT_PATH . 'app/views/layout/loader.php');
 ?>
     <div id="content" style="display: none">

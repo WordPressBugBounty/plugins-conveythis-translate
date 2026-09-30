@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <?php if (!empty($this->api_key) && $this->checkCachePlugin() && !$this->isDismiss('all_cache_notice')){ ?>
     <div class="row">
         <div class="col-md-12">

@@ -1,5 +1,10 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+
 require_once(ABSPATH . 'wp-admin/includes/file.php');
 
 class ConveyThisCache

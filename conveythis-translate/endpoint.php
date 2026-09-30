@@ -8,7 +8,13 @@
     $variables = new Variables();
     $ConveyThisCache = new ConveyThisCache();
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['api_key'] === $variables->api_key) { //phpcs:ignore
+    // Called by the ConveyThis dashboard to clear the cache after an edit. The key must
+    // be set on this site and match exactly: comparing against an unset key let an
+    // empty api_key through on sites that were installed but never connected.
+    $posted_key = isset($_POST['api_key']) ? sanitize_text_field(wp_unslash($_POST['api_key'])) : ''; //phpcs:ignore
+    $site_key = is_string($variables->api_key) ? $variables->api_key : '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $site_key !== '' && $posted_key !== '' && hash_equals($site_key, $posted_key)) {
         $url = '//' . $_SERVER['HTTP_HOST'] . $_POST['url']; //phpcs:ignore
         $source = $_POST['source']; //phpcs:ignore
         $target = $_POST['target']; //phpcs:ignore

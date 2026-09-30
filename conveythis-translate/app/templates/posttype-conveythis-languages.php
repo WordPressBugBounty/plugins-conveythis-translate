@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div id="posttype-conveythis-languages" class="posttypediv">
     <div id="tabs-panel-conveythis-endpoints" class="tabs-panel tabs-panel-active">
         <ul id="conveythis-endpoints-checklist" class="categorychecklist form-no-clear">

@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="tab-pane fade" id="v-pills-widget" role="tabpanel" aria-labelledby="widget-style-tab">
 
     <div class="title">Widget style</div>
@@ -444,7 +449,7 @@
             });
         });
 
-        var css_editor = CodeMirror.fromTextArea(document.getElementById("custom_css"), {
+        var css_editor = wp.CodeMirror.fromTextArea(document.getElementById("custom_css"), {
             lineNumbers: true,
             mode: "css",
             lineWrapping: true,

@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <form id="login-form" action="" method="post">
 
     <input type="hidden" name="set_api_key"  value="1"/>

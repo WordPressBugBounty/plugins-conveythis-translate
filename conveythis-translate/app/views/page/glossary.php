@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div class="tab-pane fade" id="v-pills-glossary" role="tabpanel" aria-labelledby="glossary-tab">
    <div class="form-group paid-function">
        <div class="title">Glossary</div>

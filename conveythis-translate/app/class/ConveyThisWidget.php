@@ -1,5 +1,10 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+
 // Creating the widget
 class ConveyThisWidget extends \WP_Widget {
 
@@ -33,11 +38,11 @@ class ConveyThisWidget extends \WP_Widget {
 
     // Widget Backend
     public function form( $instance ) {
-        $title = !empty($instance['title']) ?  filter_var($instance['title'], FILTER_SANITIZE_STRING) : '';
+        $title = !empty($instance['title']) ?  sanitize_text_field($instance['title']) : '';
         // Widget admin form
         ?>
         <p>
-            <label for="<?php echo  esc_attr($this->get_field_id( 'title' )); ?>"><?php esc_html_e( 'Title:' ); ?></label>
+            <label for="<?php echo  esc_attr($this->get_field_id( 'title' )); ?>"><?php esc_html_e( 'Title:', 'conveythis-translate' ); ?></label>
             <input class="widefat" id="<?php echo  esc_attr($this->get_field_id( 'title' )); ?>" name="<?php echo  esc_attr($this->get_field_name( 'title' )); ?>" type="text" value="<?php echo  esc_attr( $title ); ?>" />
         </p>
         <?php

@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <?php if (isset($this->variables->api_key)
     && !empty($this->variables->api_key)
     // && !empty($this->variables->target_languages)

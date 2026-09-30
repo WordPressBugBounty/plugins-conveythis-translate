@@ -1,10 +1,10 @@
-=== ConveyThis AI Translation for WordPress ===
+=== ConveyThis AI Multilingual Translation ===
 Contributors: alexburan, conveythis
 Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 270.8
+Stable tag: 270.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ Translate WordPress into 200+ languages. AI translation plugin for multilingual 
 
 🎯 **Maintain Your Brand Voice** – Build your own **AI Language Model** with ConveyThis. Customize translations using your **glossary, past edits, and style preferences** to ensure consistent messaging across all languages.
 
-💡 **Flexible Plans for Every Website** – Start with the **free plan** — 5,000 words and one language, no card required — or pick a plan that fits your needs. Learn more at [ConveyThis Pricing](https://www.conveythis.com/pricing).
+💡 **Flexible Plans for Every Website** – Start with the **free plan** — 10,000 words and one language, no card required — or pick a plan that fits your needs. Learn more at [ConveyThis Pricing](https://www.conveythis.com/pricing).
 
 === What you can do with this WordPress translation plugin ===
 
@@ -120,26 +120,26 @@ ConveyThis offers **flexible pricing tiers** to fit any business size:
 
 **Free Plan**
 
-* Translate up to **5,000 words** and **1 language**
+* Translate up to **10,000 words** and **1 language**
 * Perfect for testing or small websites
 
 **Starter Plan**
 
-* Translate up to **30,000 words** and **1 language**
+* Translate up to **60,000 words** and **1 language**
 * Ideal for growing websites
 
 **Business Plan**
 
-* Translate up to **100,000 words** and **3 languages**
+* Translate up to **200,000 words** and **3 languages**
 
 **Pro+ Plan**
 
-* Translate up to **700,000 words** and **9 languages**
+* Translate up to **1,400,000 words** and **9 languages**
 * Includes Export and Import (CSV, TMX)
 
 **Advanced Plan**
 
-* Translate up to **4,000,000 words** and **40 languages**
+* Translate up to **8,000,000 words** and **40 languages**
 * Includes glossary, and team collaboration
 
 **Enterprise Plan**
@@ -231,6 +231,11 @@ This plugin relies on the following third-party services. For each one, the data
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 270.9 =
+* Word limits doubled on all standard plans.
+* Renamed the plugin to "ConveyThis AI Multilingual Translation".
+* Compliance and stability fixes: admin libraries now load locally or from WordPress core, and the settings screen no longer fails when the ConveyThis API is unreachable.
+
 = 270.8 =
 * Compliance and privacy: the plugin no longer contacts our servers until you connect an API key, and no longer starts a PHP session on the front end (so full-page caching keeps working). Bootstrap, Toastr and SweetAlert are now bundled with the plugin instead of loaded from a CDN, and all settings are sanitised on save. Added an "External services" section documenting the services the plugin uses.
 * Fixed scheduled tasks (WP-Cron) silently not running on sites with a default-language redirect enabled — cron, admin-ajax and XML-RPC requests are no longer caught by the language redirect.
@@ -695,7 +700,7 @@ While this list contains all the most-spoken languages of the world, many rare d
 
 = Is ConveyThis Translate free? =
 
-ConveyThis Translate provides Free plan with 5,000 words and 1 language.
+ConveyThis Translate provides Free plan with 10,000 words and 1 language.
 
 Users of paid plans can get their money back within the month of using the plugin you are not satisfied with the result.
 

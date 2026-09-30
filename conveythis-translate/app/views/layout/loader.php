@@ -1,3 +1,8 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+?>
 <div id="loader" style="display: <?php echo (CONVEYTHIS_LOADER) ? 'block' : 'none'; ?>;width: 100%;height: 600px;background-color: rgba(255, 255, 255, 0.8);z-index: 1000;">
     <div style="	position: relative;width: 100%;height: 100%;display: flex;justify-content: center;align-items: center;" >
         <img style="position: absolute; width: 230px;" src="<?php echo esc_url(CONVEY_PLUGIN_PATH)?>app/widget/images/loader-1.webp" alt="Loading" id="image1">

@@ -1,5 +1,10 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+
 require_once 'Variables.php';
 
 class ConveyThis {
@@ -2201,6 +2206,12 @@ class ConveyThis {
             'cookies' => []
         ], false);
 
+        // Unreachable / timed-out API: httpRequest() returns a WP_Error, and indexing
+        // it was a fatal error that took down every settings page. Same guard as send().
+        if (!is_array($response)) {
+            return array();
+        }
+
         $body = $response['body'];
         $data = json_decode($body, true);
 
@@ -2482,9 +2493,9 @@ class ConveyThis {
                         $haystack = $this->variables->target_languages_translations;
 
                         if (!is_array($haystack)) {
-                            $logFile = __DIR__ . '/language_code_error.log';
-                            $message = "[" . date('Y-m-d H:i:s') . "] target_languages_translations is not an array. Value: " . print_r($haystack, true) . "\n";
-                            file_put_contents($logFile, $message, FILE_APPEND);
+                            // Debug-only (CONVEYTHIS_DEBUG_LOG). This used to append to a file inside
+                            // the plugin folder on every such request, which WordPress.org disallows.
+                            $this->print_log('target_languages_translations is not an array. Value: ' . print_r($haystack, true));
                         } else {
                             $this->variables->language_code = array_search(
                                 urldecode(trim($matches[2])),
@@ -2738,16 +2749,16 @@ class ConveyThis {
             $hreflang = $this->variables->source_language;
             $href_link = $this->applyTrailingSlash(esc_attr($location));
             $this->print_log("### alternate href_link: " . $href_link);
-            echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+            echo '<link href="' . esc_attr($href_link) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            echo '<link href="' . esc_attr($href_link) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         } else {
             $sourcePath = $this->getSourcePathForHreflang();
             $location = $this->getLocationUsingSyntheticRequest($prefix, $this->variables->source_language, $sourcePath, false);
             $hreflang = $this->variables->source_language;
             $href_link = $this->applyTrailingSlash(esc_attr($site_domain . $location));
             $this->print_log("### alternate href_link: " . $href_link);
-            echo '<link href="' . $href_link . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
-            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
+            echo '<link href="' . esc_attr($href_link) . '" hreflang="x-default" rel="alternate">' . PHP_EOL;
+            echo '<link href="' . esc_attr($href_link) . '" hreflang="' . esc_attr($hreflang) . '" rel="alternate">';
         }
         echo "\n";
 
@@ -2772,7 +2783,7 @@ class ConveyThis {
                 if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
                     $location = $this->getSubDomainLocationForPublicUrl($language['code2'], true);
                     $href_link = $this->applyTrailingSlash(esc_attr($location));
-                    echo '<link href="' . $href_link . '" hreflang="' . esc_attr($language['code2']) . '"  rel="alternate">';
+                    echo '<link href="' . esc_attr($href_link) . '" hreflang="' . esc_attr($language['code2']) . '"  rel="alternate">';
                 } else {
                     $location = $this->getLocationForPublicUrl($prefix, $language['code2'], true);
 
@@ -2781,7 +2792,7 @@ class ConveyThis {
 
                         if (!in_array($_short_url, $_temp_blockpages)) {
                             $href_link = $this->applyTrailingSlash(esc_attr($site_domain . $location));
-                            echo '<link href="' . $href_link . '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
+                            echo '<link href="' . esc_attr($href_link) . '" hreflang="' . esc_attr($language['code2']) . '" rel="alternate">';
                         } else {
                             continue;
                         }
@@ -5811,6 +5822,7 @@ class ConveyThis {
         echo '<div class="notice notice-warning is-dismissible">';
         echo '<p><strong>' . esc_html__('ConveyThis SEO: high JSON-LD fallback rate.', 'conveythis-translate') . '</strong> ';
         echo esc_html(sprintf(
+            /* translators: %d: number of JSON-LD translations that fell back to the original in the last 24 hours */
             __('In the last 24h, %d JSON-LD translations fell back to the original. Please review your structured data and translation quality.', 'conveythis-translate'),
             (int) $stats['fallbacks']
         ));
@@ -6936,7 +6948,10 @@ class ConveyThis {
         if (!defined('CONVEYTHIS_DEBUG_LOG') || !CONVEYTHIS_DEBUG_LOG) {
             return;
         }
-        $logFile = dirname(__DIR__) . '/print.log';
+        // In uploads, not the plugin folder: WordPress deletes that folder on every
+        // update, and WordPress.org does not allow plugins to write into it.
+        $upload_dir = wp_upload_dir(null, false);
+        $logFile = trailingslashit($upload_dir['basedir']) . 'conveythis-debug.log';
         $maxSize = 25 * 1024 * 1024; // 25 MB
         if (file_exists($logFile) && filesize($logFile) > $maxSize) {
             file_put_contents($logFile, ""); // Clear the log file
