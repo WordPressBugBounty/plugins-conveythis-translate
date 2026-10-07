@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 Plugin Name: ConveyThis AI Multilingual Translation
 Plugin URI: https://www.conveythis.com/?utm_source=widget&utm_medium=wordpress
 Description: Translate your WordPress site into over 100 languages using professional and instant machine translation technology. ConveyThis will help provide you with an SEO-friendy, multilingual website in minutes with no coding required.
-Version: 270.9
+Version: 271.0
 Requires at least: 5.3
 Requires PHP: 7.4
 Author: ConveyThis Translate Team

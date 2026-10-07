@@ -24,6 +24,56 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
     </div>
 
+    <div class="form-group ct-wp-theme-group">
+        <div class="subtitle"><?php echo esc_html__('Switcher theme', 'conveythis-translate'); ?> <span class="ct-wp-new-badge"><?php echo esc_html__('New', 'conveythis-translate'); ?></span></div>
+        <label for=""><?php echo esc_html__('Give the dropdown switcher a ready-made look, or keep Classic. Pick one to see it in the preview.', 'conveythis-translate'); ?></label>
+        <?php
+        $conveythis_theme_current = $this->variables->style_theme ?: 'classic';
+        $conveythis_theme_classic = array(
+            'label' => __('Classic', 'conveythis-translate'),
+            'desc'  => __('The switcher as it has always looked, with the colours and corners you set below.', 'conveythis-translate'),
+        );
+        $conveythis_themes_new = array(
+            'glass'  => array(
+                'label' => __('Glass', 'conveythis-translate'),
+                'desc'  => __('A frosted, see-through switcher with round flags. Made for photo headers and dark pages. On a light background it switches to dark text.', 'conveythis-translate'),
+            ),
+            'bubble' => array(
+                'label' => __('Bubble', 'conveythis-translate'),
+                'desc'  => __('A small round button. The other languages pop up above it as round chips. Best when the switcher sits at the bottom of the page.', 'conveythis-translate'),
+            ),
+            'neon'   => array(
+                'label' => __('Neon', 'conveythis-translate'),
+                'desc'  => __('Glowing pink and cyan outlines with a lit dot instead of flags. Made for dark, bold sites. It brings its own dark background.', 'conveythis-translate'),
+            ),
+            'auto'   => array(
+                'label' => __('Auto', 'conveythis-translate'),
+                'desc'  => __('A clean card that turns dark on dark pages and stays light everywhere else. A safe choice if you are not sure.', 'conveythis-translate'),
+            ),
+        );
+        ?>
+        <div class="ct-wp-theme-options">
+            <div class="form-check ct-wp-theme-option" title="<?php echo esc_attr($conveythis_theme_classic['desc']); ?>">
+                <input type="radio" class="form-check-input" name="style_theme" id="style_theme_classic" value="classic" <?php checked($conveythis_theme_current, 'classic'); ?>>
+                <label for="style_theme_classic">
+                    <span class="ct-wp-theme-name"><?php echo esc_html($conveythis_theme_classic['label']); ?></span>
+                    <span class="ct-wp-theme-desc"><?php echo esc_html($conveythis_theme_classic['desc']); ?></span>
+                </label>
+            </div>
+            <div class="ct-wp-theme-heading"><?php echo esc_html__('New themes', 'conveythis-translate'); ?></div>
+            <?php foreach ($conveythis_themes_new as $conveythis_theme_value => $conveythis_theme): ?>
+                <div class="form-check ct-wp-theme-option" title="<?php echo esc_attr($conveythis_theme['desc']); ?>">
+                    <input type="radio" class="form-check-input" name="style_theme" id="style_theme_<?php echo esc_attr($conveythis_theme_value); ?>" value="<?php echo esc_attr($conveythis_theme_value); ?>" <?php checked($conveythis_theme_current, $conveythis_theme_value); ?>>
+                    <label for="style_theme_<?php echo esc_attr($conveythis_theme_value); ?>">
+                        <span class="ct-wp-theme-name"><?php echo esc_html($conveythis_theme['label']); ?> <span class="ct-wp-new-badge"><?php echo esc_html__('New', 'conveythis-translate'); ?></span></span>
+                        <span class="ct-wp-theme-desc"><?php echo esc_html($conveythis_theme['desc']); ?></span>
+                    </label>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <p class="ct-wp-theme-note" style="display: none;"><?php echo esc_html__("This theme sets the switcher's colours and corners. Your own colours are kept and come back when you choose Classic.", 'conveythis-translate'); ?></p>
+    </div>
+
     <div class="form-group">
         <div class="subtitle">Picture</div>
         <label for="">Select the display style for flags</label>
@@ -167,7 +217,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <button class="btn btn-primary btn-sm" type="button" id="add_flag_style">Add more rules</button>
     </div>
 
-    <div class="form-group">
+    <div class="form-group ct-wp-colour-group">
         <div class="subtitle">Color Style</div>
         <div class="row w-100 ct-wp-color-grid">
             <div class="col-md-6">
@@ -221,7 +271,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
     </div>
 
-    <div class="form-group">
+    <div class="form-group ct-wp-corner-group">
         <div class="subtitle">Corner type</div>
         <div class="radio-block">
             <div class="form-check">

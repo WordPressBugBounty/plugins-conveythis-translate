@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 270.9
+Stable tag: 271.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -231,6 +231,10 @@ This plugin relies on the following third-party services. For each one, the data
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.0 =
+* New: switcher themes. Pick Glass, Bubble, Neon or Auto for the dropdown language switcher on the Widget Style tab. Sites that don't pick a theme keep the classic switcher, and a theme chosen in the ConveyThis dashboard is kept when you update the plugin.
+* Fixed translated text that contains "<" or ">", such as "<50 units" or "<1cm", disappearing on translated pages, and code samples like "&lt;div&gt;" turning into real tags.
+
 = 270.9 =
 * Word limits doubled on all standard plans.
 * Renamed the plugin to "ConveyThis AI Multilingual Translation".
@@ -583,6 +587,9 @@ This plugin relies on the following third-party services. For each one, the data
 * Bug fixes
 
 == Upgrade Notice ==
+
+= 271.0 =
+Adds switcher themes for the dropdown language switcher and fixes text with "<" or ">" disappearing on translated pages.
 
 = 270.7 =
 Redesigned settings screen with one consistent field and button style. Fixes unreadable buttons, missing dropdown arrows, an empty rule selector on Excluded Pages, and two fatal errors. Requires PHP 7.4 or higher.

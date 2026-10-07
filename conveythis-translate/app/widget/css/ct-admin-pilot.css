@@ -1644,3 +1644,70 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Switcher theme picker (Widget Style): new themes listed apart, each with a
+   "New" badge and a one-line description of what it is for. */
+.ct-wp-pilot .ct-wp-new-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--ct-wp-brand-tint-2);
+    color: var(--ct-wp-brand-deep);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+.ct-wp-pilot .ct-wp-theme-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 640px;
+}
+.ct-wp-pilot .ct-wp-theme-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--ct-wp-border);
+    border-radius: var(--ct-wp-radius-s);
+    background: var(--ct-wp-surface);
+}
+.ct-wp-pilot .ct-wp-theme-option:has(input:checked) {
+    border-color: var(--ct-wp-brand);
+    background: var(--ct-wp-brand-tint);
+}
+.ct-wp-pilot .ct-wp-theme-options .ct-wp-theme-option .form-check-input {
+    flex: 0 0 auto;
+    /* style.min.css sets margin-left:-1.5em !important on every .form-check-input */
+    margin: 3px 0 0 !important;
+    float: none;
+}
+.ct-wp-pilot .ct-wp-theme-option label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    cursor: pointer;
+}
+.ct-wp-pilot .ct-wp-theme-name {
+    color: var(--ct-wp-text);
+    font-weight: 600;
+}
+.ct-wp-pilot .ct-wp-theme-desc {
+    color: var(--ct-wp-text-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+.ct-wp-pilot .ct-wp-theme-heading {
+    margin-top: 8px;
+    color: var(--ct-wp-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

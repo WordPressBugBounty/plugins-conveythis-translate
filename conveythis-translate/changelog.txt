@@ -1,4 +1,8 @@
 == Changelog ==
+= 271.0 =
+* New: switcher themes. Pick Glass, Bubble, Neon or Auto for the dropdown language switcher on the Widget Style tab. Sites that don't pick a theme keep the classic switcher, and a theme chosen in the ConveyThis dashboard is kept when you update the plugin.
+* Fixed translated text that contains "<" or ">", such as "<50 units" or "<1cm", disappearing on translated pages, and code samples like "&lt;div&gt;" turning into real tags.
+
 = 270.9 =
 * Word limits doubled on all standard plans.
 * Renamed the plugin to "ConveyThis AI Multilingual Translation".

@@ -989,6 +989,7 @@ class ConveyThis {
             'style_corner_type',
             'custom_css_json',
             'style_widget',
+            'style_theme',
             'conveythis_system_links',
             'exclusions',
             'glossary',
@@ -1100,6 +1101,11 @@ class ConveyThis {
                 }
 
                 $value = $unslashed;
+
+                // Only a theme the widget knows; anything else is not stored.
+                if ($field === 'style_theme' && !in_array($value, Variables::STYLE_THEMES, true)) {
+                    continue;
+                }
 
                 if ($field === 'style_change_language' || $field === 'style_change_flag') {
                     if (is_array($value)) {
@@ -2008,6 +2014,7 @@ class ConveyThis {
         register_setting('my-plugin-settings-group', 'style_corner_type', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'custom_css_json', 'sanitize_textarea_field');
         register_setting('my-plugin-settings-group', 'style_widget', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'style_theme', array($this, 'check_style_theme'));
         register_setting('my-plugin-settings-group', 'conveythis_system_links', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'use_trailing_slash', 'sanitize_text_field');
 
@@ -2122,6 +2129,16 @@ class ConveyThis {
             'seo_use_ai' => 0,
         );
 
+        // The theme is sent only once this site has one stored here: picked in
+        // this panel, or pulled from the dashboard by writeDataInBD(). A site
+        // updated from a version without the setting has no option yet, and
+        // sending the 'classic' default would overwrite a theme chosen in the
+        // dashboard; left out, the service keeps the stored theme.
+        $theme = get_option('style_theme', null);
+        if (is_string($theme) && in_array($theme, Variables::STYLE_THEMES, true)) {
+            $payload['style_theme'] = $theme;
+        }
+
         // trailing_slash_map can be large (50k+ URLs). Only include when the
         // user has actually picked Custom mode, to keep the common payload
         // small. Older API/App builds ignore unknown keys, so this is safe.
@@ -2224,6 +2241,12 @@ class ConveyThis {
         foreach ($data as $option_name => $new_value) {
             $current_value = get_option($option_name, 'option_does_not_exist');
             if ($current_value === 'option_does_not_exist') {
+                // style_theme is newer than most installs, so on an update the
+                // option does not exist yet. Take the dashboard's value, so the
+                // panel shows the theme the site really has.
+                if ($option_name === 'style_theme' && in_array($new_value, Variables::STYLE_THEMES, true)) {
+                    update_option('style_theme', $new_value);
+                }
                 continue;
             }
             if ($current_value !== $new_value) {
@@ -2253,6 +2276,11 @@ class ConveyThis {
     public function check_style_change_language($value) {
         $this->print_log("* check_style_change_language()");
         return $this->sanitize_string_array($value);
+    }
+
+    public function check_style_theme($value) {
+        $this->print_log("* check_style_theme()");
+        return in_array($value, Variables::STYLE_THEMES, true) ? $value : 'classic';
     }
 
     public function check_style_change_flag($value) {
@@ -3884,6 +3912,43 @@ class ConveyThis {
         $this->nodePathListSpace[$path][$attr] = ['left' => $leftSpace, 'right' => $rightSpace];
     }
 
+    /**
+     * True when a translation of a plain-text source contains a tag the source didn't have
+     * (inline markup that must be parsed). A tag-like token already present in the source
+     * text, such as "<Enter>", is text and stays text.
+     */
+    private function translationAddsMarkup($source, $translation) {
+        $translation = (string) $translation;
+        if (strpos($translation, '<') === false
+            || !preg_match_all('/<\/?[a-zA-Z][a-zA-Z0-9:-]*(?:\s[^<>]*)?\/?>/', $translation, $tags)) {
+            return false;
+        }
+        $source = html_entity_decode((string) $source, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        foreach ($tags[0] as $tag) {
+            if (strpos($source, $tag) === false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Turns entities saveHTML() produced back into UTF-8 characters, except the five that
+     * carry HTML meaning. Decoding &lt; &gt; &amp; too (the old whole-page
+     * html_entity_decode) put bare "<" into visible text, so "<50 units" vanished and code
+     * samples (&lt;div&gt;) became real tags on translated pages.
+     */
+    public function decodeOutputEntities($content) {
+        $decoded = preg_replace_callback('/&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/', function ($m) {
+            $char = html_entity_decode($m[0], ENT_HTML5, 'UTF-8');
+            if ($char === $m[0] || in_array($char, ['<', '>', '&', '"', "'"], true)) {
+                return $m[0];
+            }
+            return $char;
+        }, (string) $content);
+        return $decoded === null ? $content : $decoded;
+    }
+
     function replaceSegments($doc) {
         $this->print_log("* replaceSegments()");
         // Get all elements of document
@@ -3913,7 +3978,11 @@ class ConveyThis {
                         if ($attr == 'innerHTML') {
                             $el->innerHTML = $segment;
                         } elseif ($attr == 'textContent') {
-                            if ($el->parentNode && $el->parentNode->childNodes->length == 1) {
+                            // The source was a plain text node, so its translation goes in as text
+                            // unless it carries markup the source didn't have. Parsing plain text as
+                            // HTML dropped "<50 units", "<1cm ..." and turned "<Enter>" into a tag.
+                            if ($el->parentNode && $el->parentNode->childNodes->length == 1
+                                && $this->translationAddsMarkup($value, $segment)) {
                                 $el->parentNode->innerHTML = $segment;
                             } else {
                                 $el->textContent = $segment;
@@ -5082,7 +5151,7 @@ class ConveyThis {
                 // return JS content
                 $content = strtr($content, $scriptContainer);
                 $content = strtr($content, $commentedScripts);
-                $content = html_entity_decode($content, ENT_HTML5, 'UTF-8');
+                $content = $this->decodeOutputEntities($content);
 
                 // Remove C1 control characters (U+0080–U+009F) that are never valid in
                 // HTML or JavaScript and can cause SyntaxError in browsers.
@@ -6794,6 +6863,7 @@ class ConveyThis {
         delete_option('style_corner_type');
         delete_option('custom_css_json');
         delete_option('style_widget');
+        delete_option('style_theme');
         delete_option('conveythis_system_links');
         delete_option('is_active_domain');
         delete_option('use_trailing_slash');

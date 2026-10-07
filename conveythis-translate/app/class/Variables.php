@@ -8,6 +8,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Variables {
 
+    /**
+     * Switcher themes the widget knows (cdn_conveythis src/service/themes).
+     * 'classic' is the switcher as it has always looked. The widget draws a
+     * theme only on the dropdown layout; on list or popup it stays classic.
+     */
+    const STYLE_THEMES = array('classic', 'glass', 'bubble', 'neon', 'auto');
+
     public $new_user = true;
     public $segments = [];
     public $jsonld_flags = [];
@@ -385,6 +392,7 @@ class Variables {
     public $style_corner_type;
     public $custom_css_json;
     public $style_widget;
+    public $style_theme;
     public $blockpages_items;
     public $referrer;
     public $clear_cache;
@@ -1018,6 +1026,8 @@ class Variables {
         $this->style_text_color = get_option('style_text_color', '#000000');
         $this->style_corner_type = get_option('style_corner_type', 'rect');
         $this->style_widget = get_option('style_widget', 'dropdown');
+        $theme = get_option('style_theme', 'classic');
+        $this->style_theme = in_array($theme, self::STYLE_THEMES, true) ? $theme : 'classic';
         $customCssRaw = get_option('custom_css_json', '');
         $customCssHealed = $this->healCustomCssJson($customCssRaw);
         if ($customCssHealed !== $customCssRaw) {

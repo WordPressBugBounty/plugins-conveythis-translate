@@ -791,6 +791,27 @@ jQuery(document).ready(function ($) {
         conveythisSettings.view();
     });
 
+    // Theme: offered for the dropdown layout only, the one the widget draws
+    // themes on. A theme brings its own colours and corners, so those blocks
+    // hide while one is on; hidden inputs still post, so Classic gets the
+    // site's own colours back.
+    function syncThemeUi() {
+        var layout = $('.widget-trigger [name="style_widget"]').val() || 'dropdown';
+        var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
+        var themed = layout === 'dropdown' && theme !== 'classic';
+        $('.ct-wp-theme-group').toggle(layout === 'dropdown');
+        $('.ct-wp-colour-group, .ct-wp-corner-group').toggle(!themed);
+        $('.ct-wp-theme-note').toggle(themed);
+    }
+
+    $('.conveythis-widget-option-form input[name=style_theme]').on('change', function () {
+        syncThemeUi();
+        conveythisSettings.view();
+    });
+
+    $('.widget-trigger [name="style_widget"]').on('change', syncThemeUi);
+    syncThemeUi();
+
     $('.conveythis-widget-option-form .form-control-color').on('change', function () {
         conveythisSettings.view();
     });
