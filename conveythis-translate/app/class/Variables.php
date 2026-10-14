@@ -17,6 +17,7 @@ class Variables {
 
     public $new_user = true;
     public $segments = [];
+    public $segment_types = [];
     public $jsonld_flags = [];
     public $segments_seen = [];
 
@@ -377,6 +378,7 @@ class Variables {
     public $select_region;
     public $hide_conveythis_logo;
     public $change_direction;
+    public $translate_emails;
     public $alternate;
     public $accept_language;
     public $blockpages;
@@ -1011,6 +1013,7 @@ class Variables {
         $this->translate_links = get_option('translate_links', '0');
         $this->translate_structured_data = get_option('translate_structured_data', '0');
         $this->change_direction = get_option('change_direction', '0');
+        $this->translate_emails = get_option('conveythis_translate_emails', '0');
         $this->alternate = get_option('alternate', '1');
         $this->accept_language = get_option('accept_language', '0');
         $this->blockpages = get_option('blockpages', array());

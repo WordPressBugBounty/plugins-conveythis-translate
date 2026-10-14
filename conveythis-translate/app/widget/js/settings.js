@@ -795,6 +795,11 @@ jQuery(document).ready(function ($) {
     // themes on. A theme brings its own colours and corners, so those blocks
     // hide while one is on; hidden inputs still post, so Classic gets the
     // site's own colours back.
+    //
+    // As on app.conveythis, a picked theme also locks the other widget styles:
+    // they are disabled in the list until Classic is chosen again. Before, a
+    // theme could be picked and the style then switched to Popup, List..., which
+    // hid the picker but kept the theme saved with a style it does not draw on.
     function syncThemeUi() {
         var layout = $('.widget-trigger [name="style_widget"]').val() || 'dropdown';
         var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
@@ -802,14 +807,51 @@ jQuery(document).ready(function ($) {
         $('.ct-wp-theme-group').toggle(layout === 'dropdown');
         $('.ct-wp-colour-group, .ct-wp-corner-group').toggle(!themed);
         $('.ct-wp-theme-note').toggle(themed);
+        $('#style_widget_list .item').each(function () {
+            $(this).toggleClass('disabled', themed && $(this).attr('data-value') !== 'dropdown');
+        });
+    }
+
+    // A theme saved earlier with another style (possible before the lock) is
+    // drawn as Classic by the widget and the server; show Classic too, so the
+    // style list is not locked on a style the theme cannot use.
+    (function () {
+        var layout = $('.widget-trigger [name="style_widget"]').val() || 'dropdown';
+        if (layout !== 'dropdown') {
+            $('.conveythis-widget-option-form input[name=style_theme][value="classic"]').prop('checked', true);
+        }
+    })();
+
+    // Themes are drawn as floating pills and cards and look cut off flush
+    // against the window edge, so picking one moves a 0 vertical spacing to
+    // 8px (as on app.conveythis). Only on the customer's own pick, never on load.
+    function nudgeThemeSpacing() {
+        var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
+        var $value = $('[name=style_indenting_vertical]');
+        if (theme !== 'classic' && Number($value.val() || 0) === 0) {
+            $('#range-style-indenting-vertical').slider('set value', 8);
+            $('#display-style-indenting-vertical').html(8);
+            $value.val(8);
+        }
     }
 
     $('.conveythis-widget-option-form input[name=style_theme]').on('change', function () {
         syncThemeUi();
+        nudgeThemeSpacing();
         conveythisSettings.view();
     });
 
-    $('.widget-trigger [name="style_widget"]').on('change', syncThemeUi);
+    // Disabled items cannot be clicked (pointer-events: none) or reached with the
+    // arrow keys; any other way a style still changes while a theme is picked
+    // (typing in the search, a script) goes back to Dropdown.
+    $('.widget-trigger [name="style_widget"]').on('change', function () {
+        var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
+        if (theme !== 'classic' && $(this).val() !== 'dropdown') {
+            $(this).closest('.ui.dropdown').dropdown('set selected', 'dropdown');
+            return;
+        }
+        syncThemeUi();
+    });
     syncThemeUi();
 
     $('.conveythis-widget-option-form .form-control-color').on('change', function () {

@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 271.0
+Stable tag: 271.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,11 +226,16 @@ This plugin relies on the following third-party services. For each one, the data
 
 **ConveyThis translation service** — the core service that translates your website. Your site's domain, your chosen source and target languages, the content of the pages to be translated, and your API key are sent to ConveyThis when you set up the plugin and whenever a translated page is generated or updated. Translated content and the language switcher are then served from the ConveyThis CDN. Provided by ConveyThis — [Terms and Conditions](https://www.conveythis.com/legal/terms-and-conditions), [Privacy Policy](https://www.conveythis.com/legal/privacy-policy).
 
+**WooCommerce order emails (optional, off by default)**: when turned on, the text of customer order emails is sent to the ConveyThis translation service. Customer names, addresses, contact details and order numbers are not sent. Same provider and terms as above.
+
 **Pusher** — used to receive real-time status updates (such as translation progress) inside the plugin's admin screens. A connection to Pusher is opened while you are on the plugin's admin pages; no page content is sent. Provided by Pusher — [Terms of Service](https://pusher.com/legal/terms/), [Privacy Policy](https://pusher.com/legal/privacy/).
 
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.1 =
+* New: WooCommerce order emails can be sent in the customer's language. Off by default, turn it on in Extended settings.
+
 = 271.0 =
 * New: switcher themes. Pick Glass, Bubble, Neon or Auto for the dropdown language switcher on the Widget Style tab. Sites that don't pick a theme keep the classic switcher, and a theme chosen in the ConveyThis dashboard is kept when you update the plugin.
 * Fixed translated text that contains "<" or ">", such as "<50 units" or "<1cm", disappearing on translated pages, and code samples like "&lt;div&gt;" turning into real tags.
@@ -587,6 +592,9 @@ This plugin relies on the following third-party services. For each one, the data
 * Bug fixes
 
 == Upgrade Notice ==
+
+= 271.1 =
+Adds optional translation of WooCommerce order emails.
 
 = 271.0 =
 Adds switcher themes for the dropdown language switcher and fixes text with "<" or ">" disappearing on translated pages.

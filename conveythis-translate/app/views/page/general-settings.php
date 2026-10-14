@@ -102,6 +102,27 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
     </div>
 
+    <?php if (class_exists('WooCommerce')) : ?>
+    <div class="form-group mb-4">
+        <div class="subtitle">Translate WooCommerce emails into the customer's language?</div>
+        <div class="radio-block">
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="conveythis_translate_emails_yes" name="conveythis_translate_emails" value="1" <?php echo $this->variables->translate_emails == 1 ? 'checked' : ''?>>
+                <label for="conveythis_translate_emails_yes">Yes</label></div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input me-2" id="conveythis_translate_emails_no" name="conveythis_translate_emails" value="0" <?php echo $this->variables->translate_emails == 0 ? 'checked' : ''?>>
+                <label for="conveythis_translate_emails_no">No</label></div>
+        </div>
+        <p style="margin-top: 8px; font-size: 0.9em; max-width: 720px;">
+            Order emails (order received, processing, completed, refunded, customer notes) are sent in the language the customer used at checkout. Names, addresses, email addresses and order numbers are not sent for translation. Turning this on prepares the email templates in every target language once (about 300 words per language) and counts email translations toward your word limit. You can edit them in your ConveyThis dashboard on the /conveythis-emails/ page.
+        </p>
+        <?php $conveythis_last_email = class_exists('ConveyThisWooEmails') ? ConveyThisWooEmails::describe_last_result() : ''; ?>
+        <?php if ($conveythis_last_email !== '') : ?>
+        <p style="margin-top: 4px; font-size: 0.9em; max-width: 720px; color: #646970;"><?php echo nl2br(esc_html($conveythis_last_email)); ?></p>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="form-group mb-4">
         <div class="subtitle">Add trailing slash for links? <span class="text-danger"> *Keep in mind, this setting can cause redirects and affect SEO.</span></div>
 

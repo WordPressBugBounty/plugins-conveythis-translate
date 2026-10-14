@@ -71,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </div>
             <?php endforeach; ?>
         </div>
-        <p class="ct-wp-theme-note" style="display: none;"><?php echo esc_html__("This theme sets the switcher's colours and corners. Your own colours are kept and come back when you choose Classic.", 'conveythis-translate'); ?></p>
+        <p class="ct-wp-theme-note" style="display: none;"><?php echo esc_html__("This theme sets the switcher's colours and corners and works with the Dropdown style. Your own colours and the other widget styles come back when you choose Classic.", 'conveythis-translate'); ?></p>
     </div>
 
     <div class="form-group">

@@ -172,6 +172,10 @@ class ConveyThis {
 
         add_action('update_option', array($this, 'plugin_update_option'), 10, 3);
 
+        if (class_exists('WooCommerce')) {
+            new ConveyThisWooEmails($this);
+        }
+
         add_action('admin_menu', array($this, 'admin_menu'));
         add_action('admin_init', array($this, 'admin_init'));
         add_action('admin_notices', array($this, 'admin_notices'), 10);
@@ -971,6 +975,7 @@ class ConveyThis {
             'translate_links',
             'translate_structured_data',
             'change_direction',
+            'conveythis_translate_emails',
             'conveythis_clear_cache',
             'conveythis_select_region',
             'is_active_domain',
@@ -1996,6 +2001,7 @@ class ConveyThis {
         register_setting('my-plugin-settings-group', 'translate_links', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'translate_structured_data', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'change_direction', 'sanitize_text_field');
+        register_setting('my-plugin-settings-group', 'conveythis_translate_emails', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'conveythis_clear_cache', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'conveythis_select_region', 'sanitize_text_field');
         register_setting('my-plugin-settings-group', 'is_active_domain', 'sanitize_text_field');
@@ -5172,6 +5178,302 @@ class ConveyThis {
         return $content;
     }
 
+    /** Source path the email "page" is stored under in the dashboard (relative to the site root). */
+    const EMAIL_PAGE_PATH = 'conveythis-emails/';
+
+    /** Why the last translateEmail() call returned null ('' after a success). */
+    private $lastEmailError = '';
+
+    public function getLastEmailError() {
+        return $this->lastEmailError;
+    }
+
+    /** Segments the last successful translateEmail() left in the source language. */
+    private $lastEmailMissing = 0;
+
+    public function getLastEmailMissing() {
+        return $this->lastEmailMissing;
+    }
+
+    public function getTargetLanguages() {
+        return array_values(array_filter((array) $this->variables->target_languages, array($this, 'isActiveTargetLanguage')));
+    }
+
+    /**
+     * Acceptance rule for emails (pages keep allowCache()). Every email carries a few
+     * per-order texts, such as the payment method or a variation name, that may not be
+     * translated yet. One such line in the source language is better than an untranslated
+     * email, so up to 10% of the letters may stay untranslated. Returns '' when
+     * acceptable, otherwise the reason.
+     */
+    private function emailTranslationVerdict($items, &$missingCount) {
+        $missingCount = 0;
+        $comparable = 0;
+        $changed = 0;
+        foreach ($items as $item) {
+            $src = isset($item['source_text']) ? trim((string) $item['source_text']) : '';
+            $dst = isset($item['translate_text']) ? trim((string) $item['translate_text']) : '';
+            if ($src === '' || $dst === '' || !preg_match('/\p{L}/u', $src)) {
+                continue;
+            }
+            $comparable++;
+            if ($src !== $dst) {
+                $changed++;
+            }
+        }
+        // Same identity guard as allowCache(): a cold API can answer with the source text.
+        if ($comparable >= 3 && $changed === 0) {
+            return 'identity';
+        }
+        $letters = function ($text) {
+            $text = preg_replace('/CTXNTP_[0-9a-f]+/', '', html_entity_decode(wp_strip_all_tags((string) $text), ENT_QUOTES, 'UTF-8'));
+            return (int) preg_match_all('/\p{L}/u', $text);
+        };
+        $total = 0;
+        $missingLetters = 0;
+        foreach ($this->variables->segments as $segment) {
+            $count = $letters($segment);
+            $total += $count;
+            $found = false;
+            foreach ($items as $item) {
+                if (!empty($item['source_text']) && isset($item['translate_text']) && trim((string) $item['translate_text']) !== ''
+                    && $this->comparisonSegments($item['source_text'], $segment)) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $missingCount++;
+                $missingLetters += $count;
+            }
+        }
+        $maxShare = (float) apply_filters('conveythis_email_max_untranslated_share', 0.1);
+        if ($total === 0 || $missingLetters / $total > $maxShare) {
+            return 'incomplete';
+        }
+        return '';
+    }
+
+    /** Language of the current translated page request, or '' on source-language pages. */
+    public function getCurrentLanguageCode() {
+        return (string) $this->variables->language_code;
+    }
+
+    public function isTranslateEmailsEnabled() {
+        return (string) $this->variables->translate_emails === '1';
+    }
+
+    /** Site path prefix ('/' or '/blog/'). Set in init(); computed here when init() returned early (REST, cron). */
+    public function getSitePrefix() {
+        if (empty($this->variables->site_url)) {
+            $this->variables->site_url = home_url();
+            $this->variables->site_host = $this->getPageHost($this->variables->site_url);
+            $this->variables->site_prefix = $this->getPageUrl($this->variables->site_url);
+        }
+        return $this->variables->site_prefix;
+    }
+
+    /**
+     * Target language code of a site URL, read from its language prefix the same way init()
+     * does (custom prefix from target_languages_translations first, then the code itself).
+     * '' for source-language URLs, foreign hosts and unknown prefixes.
+     */
+    public function languageCodeFromUrl($url) {
+        if (!is_string($url) || $url === '' || empty($this->variables->target_languages)) {
+            return '';
+        }
+        $prefix = $this->getSitePrefix();
+        $host = $this->getPageHost($url);
+        if (is_string($host) && $host !== '' && strcasecmp($host, (string) $this->variables->site_host) !== 0) {
+            return '';
+        }
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!is_string($path) || strpos($path, $prefix) !== 0) {
+            return '';
+        }
+        $parts = explode('/', substr($path, strlen($prefix)));
+        $segment = urldecode(trim($parts[0]));
+        if ($segment === '') {
+            return '';
+        }
+        $targets = (array) $this->variables->target_languages;
+        if (is_array($this->variables->target_languages_translations)) {
+            $code = array_search($segment, $this->variables->target_languages_translations);
+            if ($code !== false && in_array($code, $targets, true)) {
+                return (string) $code;
+            }
+        }
+        return in_array($segment, $targets, true) ? $segment : '';
+    }
+
+    public function isActiveTargetLanguage($code) {
+        return is_string($code) && $code !== ''
+            && $code !== $this->variables->source_language
+            && in_array($code, (array) $this->variables->target_languages, true);
+    }
+
+    /**
+     * Translate an email (subject + HTML body) into $languageCode with the same
+     * domLoad -> domRecursiveRead -> /website/translate/ -> replaceSegments pipeline
+     * translatePage() uses, under the synthetic page EMAIL_PAGE_PATH.
+     *
+     * Returns ['subject' => ..., 'html' => ...], or null when the email should go out
+     * unchanged: feature unavailable, API error or timeout, or a translation that is
+     * mostly missing (see emailTranslationVerdict()). Per-request translation
+     * state is saved and restored, so this is safe to call during a translated page request.
+     */
+    public function translateEmail($html, $subject, $languageCode, $timeout = 5) {
+        $this->lastEmailError = '';
+        $this->lastEmailMissing = 0;
+        if (!extension_loaded('xml') || !is_string($html) || trim($html) === ''
+            || empty($this->variables->api_key) || !$this->isActiveTargetLanguage($languageCode)) {
+            $this->lastEmailError = 'not_configured';
+            return null;
+        }
+
+        $savedVariables = clone $this->variables;
+        $savedNodePathList = $this->nodePathList;
+        $savedNodePathListSpace = $this->nodePathListSpace;
+        $savedTemplateVarMap = $this->templateVarMap;
+        $savedServer = $_SERVER;
+
+        try {
+            // The referrer and replaceSegments() read these; CLI requests may lack them.
+            // No getCurrentPlan() here: free accounts get the same widget code as paid ones, so
+            // it only tells whether the API answers, and the translate call tells that too
+            // (an expired trial is refused by the API). Skipping it keeps checkout fast.
+            $home = wp_parse_url(home_url());
+            if (empty($_SERVER['HTTP_HOST']) && !empty($home['host'])) {
+                $_SERVER['HTTP_HOST'] = $home['host'] . (!empty($home['port']) ? ':' . (int) $home['port'] : '');
+            }
+            $prefix = $this->getSitePrefix();
+            $_SERVER['REQUEST_URI'] = $prefix . self::EMAIL_PAGE_PATH;
+
+            $this->variables->segments = [];
+            $this->variables->segments_seen = [];
+            $this->variables->segments_hash = [];
+            $this->variables->segment_types = [];
+            $this->variables->items = [];
+            $this->variables->links = [];
+            $this->variables->language_code = $languageCode;
+            $this->variables->referrer = '//' . $_SERVER['HTTP_HOST'] . $prefix . self::EMAIL_PAGE_PATH;
+            $this->nodePathList = [];
+            $this->nodePathListSpace = [];
+            $this->templateVarMap = [];
+
+            // The subject rides along in the same request as a marked element.
+            $subjectMarker = 'conveythis-email-subject';
+            $subject = (string) $subject;
+            if (trim($subject) !== '') {
+                $subjectHtml = '<div id="' . $subjectMarker . '">' . htmlspecialchars($subject, ENT_QUOTES, 'UTF-8') . '</div>';
+                $count = 0;
+                $html = preg_replace('/<body(\s[^>]*)?>/i', '$0' . $subjectHtml, $html, 1, $count);
+                if (!$count) {
+                    $html = $subjectHtml . $html;
+                }
+            }
+            $hadCanonical = (bool) preg_match('/<link[^>]+rel=["\']?canonical/i', $html);
+
+            require_once 'JSLikeHTMLElement.php';
+            $doc = $this->domLoad($html);
+            $doc->registerNodeClass('DOMElement', 'JSLikeHTMLElement');
+            $this->domRecursiveRead($doc);
+
+            sort($this->variables->segments);
+            $this->variables->segments = $this->filterSegments($this->variables->segments);
+            if (empty($this->variables->segments)) {
+                $this->lastEmailError = 'nothing_to_translate';
+                return null;
+            }
+
+            $segmentTypesPayload = [];
+            foreach ((array) $this->variables->segment_types as $value => $types) {
+                if ($types !== ['text']) {
+                    $segmentTypesPayload[] = ['text' => $value, 'types' => array_values($types)];
+                }
+            }
+            $response = $this->send('POST', '/website/translate/', [
+                'referrer'           => $this->variables->referrer,
+                'source_language'    => $this->variables->source_language,
+                'target_language'    => $languageCode,
+                'segments'           => $this->variables->segments,
+                'links'              => $this->variables->links,
+                'segment_types'      => $segmentTypesPayload,
+                'use_trailing_slash' => $this->variables->use_trailing_slash,
+            ], true, $timeout);
+
+            if (empty($response) || !is_array($response) || isset($response['error'])) {
+                if (isset($response['error'])) {
+                    $message = is_string($response['error']) ? $response['error'] : wp_json_encode($response['error']);
+                    error_log('[ConveyThis] email translate error: ' . $message);
+                    $this->lastEmailError = 'api_error: ' . $message;
+                } else {
+                    $this->lastEmailError = 'no_response';
+                }
+                return null;
+            }
+
+            $matched = [];
+            foreach ($response as $item) {
+                foreach ($this->variables->segments as $segment) {
+                    if (!empty($item['source_text']) && !empty($segment) && $this->comparisonSegments($item['source_text'], $segment)) {
+                        $matched[] = $item;
+                    }
+                }
+            }
+            $items = $this->removeDuplicates($matched, 'source_text');
+            $missing = 0;
+            $verdict = $this->emailTranslationVerdict($items, $missing);
+            if ($verdict !== '') {
+                $this->lastEmailError = $verdict === 'identity'
+                    ? 'incomplete: not translated yet'
+                    : 'incomplete: ' . (count($this->variables->segments) - $missing) . ' of ' . count($this->variables->segments);
+                return null;
+            }
+            $this->lastEmailMissing = $missing;
+            $this->variables->items = $items;
+
+            foreach ($this->variables->segments as $segment) {
+                $source_text = trim(preg_replace("/\<!--(.*?)\-->/", "", html_entity_decode($segment)));
+                $this->variables->segments_hash[md5($source_text)] = 1;
+            }
+
+            $out = $this->decodeOutputEntities($this->replaceSegments($doc));
+            $cleaned = preg_replace('/[\x{0080}-\x{009F}]/u', '', $out);
+            if ($cleaned !== null) {
+                $out = $cleaned;
+            }
+            // replaceSegments() adds a canonical <link> for pages; an email has no use for one.
+            if (!$hadCanonical) {
+                $out = preg_replace('/<link rel="canonical"[^>]*>\s*/i', '', $out);
+            }
+            // Drop the charset <meta> domLoad() injected right after <head> for libxml.
+            if (stripos($html, '<head') !== false) {
+                $out = preg_replace('/(<head(?:\s[^>]*)?>)\s*<meta http-equiv="Content-Type" content="text\/html; charset=UTF-8">/i', '$1', $out, 1);
+            }
+
+            $translatedSubject = $subject;
+            if (trim($subject) !== '' && preg_match('#<div id="' . $subjectMarker . '">(.*?)</div>\s*#s', $out, $m)) {
+                $translatedSubject = trim(html_entity_decode(wp_strip_all_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                $out = str_replace($m[0], '', $out);
+            }
+
+            return ['subject' => $translatedSubject, 'html' => $out];
+        } catch (\Throwable $e) {
+            error_log('[ConveyThis] email translate failed: ' . $e->getMessage());
+            $this->lastEmailError = 'exception: ' . $e->getMessage();
+            return null;
+        } finally {
+            foreach (get_object_vars($savedVariables) as $name => $value) {
+                $this->variables->$name = $value;
+            }
+            $this->nodePathList = $savedNodePathList;
+            $this->nodePathListSpace = $savedNodePathListSpace;
+            $this->templateVarMap = $savedTemplateVarMap;
+            $_SERVER = $savedServer;
+        }
+    }
+
     public function removeDuplicates($array, $key) {
         $this->print_log("* removeDuplicates()");
         $tempArray = [];
@@ -6227,7 +6529,7 @@ class ConveyThis {
         }
     }
 
-    private function send($request_method = 'GET', $request_uri = '', $query = [], $return_error = false) {
+    private function send($request_method = 'GET', $request_uri = '', $query = [], $return_error = false, $timeout = null) {
         $this->print_log("* send");
         $this->print_log("$request_uri");
         $headers = [
@@ -6250,7 +6552,7 @@ class ConveyThis {
             'cookies' => []
         ];
 
-        $response = $this->httpRequest($request_uri, $args, true, $this->variables->select_region);
+        $response = $this->httpRequest($request_uri, $args, true, $this->variables->select_region, $timeout);
 
         if (!is_array($response)) {
             return [];
@@ -6297,7 +6599,7 @@ class ConveyThis {
         return null;
     }
 
-    private static function httpRequest($url, $args = [], $proxy = true, $region = 'US') {
+    private static function httpRequest($url, $args = [], $proxy = true, $region = 'US', $timeout = null) {
         // Long timeout for write/heavy POSTs only: glossary sync + full page translate.
         // Light GETs (find_original_slug, code/get, etc.) stay at 5s/3s so PHP-FPM and
         // api-proxy workers are not parked (see May 2026 timeout hardening).
@@ -6307,6 +6609,12 @@ class ConveyThis {
         // Primary: 30s matches API async wall (~25s under ~30s FPM kill) for page translate;
         // 5s covers api-proxy p50~0.8s / p90~2s for light calls.
         $args['timeout'] = $long_timeout ? 30 : 5;
+        // Callers that must not block (email translation during checkout) pass their own
+        // timeout. It is a total budget: the direct fallback only gets what the proxy left.
+        if ($timeout !== null) {
+            $args['timeout'] = $timeout;
+        }
+        $started = microtime(true);
         $response = [];
         $proxyApiURL = ($region == 'EU' && !empty(CONVEYTHIS_API_PROXY_URL_FOR_EU)) ? CONVEYTHIS_API_PROXY_URL_FOR_EU : CONVEYTHIS_API_PROXY_URL;
         if ($proxy) {
@@ -6315,7 +6623,14 @@ class ConveyThis {
         if (is_wp_error($response) || empty($response) || empty($response['body'])) {
             // Fallback direct-to-API: keep long timeout for glossary/page-translate POSTs;
             // light calls stay at 3s so a slow upstream fails fast and can be negatively cached.
-            $args['timeout'] = $long_timeout ? 30 : 3;
+            if ($timeout !== null) {
+                $args['timeout'] = $timeout - (microtime(true) - $started);
+                if ($args['timeout'] < 1) {
+                    return $response;
+                }
+            } else {
+                $args['timeout'] = $long_timeout ? 30 : 3;
+            }
             $response = wp_remote_request(CONVEYTHIS_API_URL . $url, $args);
         }
         return $response;
@@ -6855,6 +7170,10 @@ class ConveyThis {
         delete_option('url_structure');
         delete_option('conveythis_clear_cache');
         delete_option('conveythis_select_region');
+        delete_option('conveythis_translate_emails');
+        delete_option('conveythis_email_last_result');
+        delete_option('conveythis_email_warmup');
+        delete_option('conveythis_email_warmup_version');
 
         delete_option('style_background_color');
         delete_option('style_hover_color');
