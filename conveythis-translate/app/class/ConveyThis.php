@@ -2838,6 +2838,15 @@ class ConveyThis {
         }
     }
 
+    private function powered_by_link_html() {
+        $url = 'https://www.conveythis.com/powered-by?utm_source=conveythis_drop_down_btn';
+        $host = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+        if ($host !== '') {
+            $url .= '&utm_content=' . rawurlencode($host) . '&site=' . rawurlencode($host);
+        }
+        return '<div><span>Powered by </span><a href="' . esc_url($url) . '" alt="conveythis.com">ConveyThis</a></div>';
+    }
+
     public function html_plugin() {
         if (!$this->variables->show_widget ||
             empty($this->variables->target_languages) ||
@@ -2894,7 +2903,7 @@ class ConveyThis {
             }
         }
 
-        $conveythisLogo = '<div><span>Powered by </span><a href="https://www.conveythis.com/?utm_source=conveythis_drop_down_btn" alt="conveythis.com">ConveyThis</a></div>';
+        $conveythisLogo = $this->powered_by_link_html();
         $conveythisLogo = $this->variables->hide_conveythis_logo ?  "" : $conveythisLogo;
 
         $languageHtml = '<div class="conveythis-widget-languages" id="language-list" style="display: none;">

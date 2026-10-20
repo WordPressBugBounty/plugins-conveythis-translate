@@ -1,4 +1,7 @@
 == Changelog ==
+= 271.2 =
+* The "Powered by ConveyThis" link in the language switcher now opens a page about ConveyThis that names your site, instead of the ConveyThis home page.
+
 = 271.1 =
 * New: WooCommerce order emails can be sent in the customer's language. Off by default, turn it on in Extended settings.
 
