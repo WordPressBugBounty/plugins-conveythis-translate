@@ -1,1 +1,0 @@
-console.log("ConveyThis error: Your 7 day trial period is over. You can upgrade your plan to keep your site translated.");
