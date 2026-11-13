@@ -1,4 +1,9 @@
 == Changelog ==
+= 271.3 =
+* Fixed: language menu items showed [ConveyThis_...] instead of flags on WordPress 6.7+.
+* Fixed: some translated links led to 404 pages.
+* Translate URLs is no longer marked as beta.
+
 = 271.2 =
 * The "Powered by ConveyThis" link in the language switcher now opens a page about ConveyThis that names your site, instead of the ConveyThis home page.
 

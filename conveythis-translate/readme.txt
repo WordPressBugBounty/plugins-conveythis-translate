@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 271.2
+Stable tag: 271.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,36 +116,31 @@ ConveyThis Translate supports **200+ languages** 🌍, including major global la
 
 ==Pricing==
 
-ConveyThis offers **flexible pricing tiers** to fit any business size:
+Every plan starts free. **Yearly billing is two months free** on every paid plan.
 
-**Free Plan**
+**Free Plan** – $0
 
-* Translate up to **10,000 words** and **1 language**
-* Perfect for testing or small websites
+* Translate up to **10,000 words** into **1 language**, 1 website
+* No card, no time limit
 
-**Starter Plan**
+**Starter Plan** – $10/month billed yearly ($120/year), or $12 monthly
 
-* Translate up to **60,000 words** and **1 language**
-* Ideal for growing websites
+* Translate up to **60,000 words** into **1 language**
 
-**Business Plan**
+**Business Plan** – $20/month billed yearly ($240/year), or $24 monthly
 
-* Translate up to **200,000 words** and **3 languages**
+* Translate up to **200,000 words** into **3 languages**
 
-**Pro+ Plan**
+**Pro Plan** – $53.33/month billed yearly ($640/year), or $64 monthly
 
-* Translate up to **1,400,000 words** and **9 languages**
-* Includes Export and Import (CSV, TMX)
+* Translate up to **800,000 words** into **5 languages**, 3 websites
 
-**Advanced Plan**
+**Larger plans** – from Pro+ (1,400,000 words, 9 languages) up to **Extreme** (20,000,000 words, 100 languages, 50 websites)
 
-* Translate up to **8,000,000 words** and **40 languages**
-* Includes glossary, and team collaboration
+**Enterprise Plan** – custom pricing
 
-**Enterprise Plan**
-
-* **Unlimited** words!
-* Access to **account manager & engineer**
+* **Unlimited** words, languages and websites
+* Dedicated server and an **account manager & engineer**
 
 ✅ All plans include:
 
@@ -154,7 +149,7 @@ ConveyThis offers **flexible pricing tiers** to fit any business size:
 * SEO optimization for all translated pages
 * Full integration with WordPress plugins
 
-🔗 Check full details and sign up: [conveythis.com/pricing](http://conveythis.com/pricing).
+🔗 Check full details and sign up: [conveythis.com/pricing](https://www.conveythis.com/pricing).
 
 ==We’ve Got You Covered – Support You Can Rely On==
 
@@ -186,7 +181,7 @@ Find the plan that fits your website, including words, languages, and features.
 **_FAQs / Help Center_** – [https://www.conveythis.com/faqs](https://www.conveythis.com/faqs)
 Answers to common questions about plugin functionality and usage.
 
-**_Word Counter Tool_** – [https://wordcounter.conveythis.com/](https://wordcounter.conveythis.com/)
+**_Word Counter Tool_** – [https://www.conveythis.com/tools/website-word-counter](https://www.conveythis.com/tools/website-word-counter)
 Check your website word count to estimate translation costs and plan accordingly.
 
 **_ConveyThis Translate on WordPress.org_** – [https://translate.wordpress.org/projects/wp-plugins/conveythis-translate](https://translate.wordpress.org/projects/wp-plugins/conveythis-translate)
@@ -233,6 +228,11 @@ This plugin relies on the following third-party services. For each one, the data
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.3 =
+* Fixed: language menu items showed [ConveyThis_...] instead of flags on WordPress 6.7+.
+* Fixed: some translated links led to 404 pages.
+* Translate URLs is no longer marked as beta.
+
 = 271.2 =
 * The "Powered by ConveyThis" link in the language switcher now opens a page about ConveyThis that names your site, instead of the ConveyThis home page.
 
@@ -710,7 +710,7 @@ As of version 2.7 of the plugin, ConveyThis can now be tested from localhost. Pr
 
 The number of languages available depends on the plan that you are subscribed to.
 
-With the most advanced “Extreme plan,” you have 100 languages at your disposal.
+On the largest listed plan, Extreme, you have 100 languages at your disposal; Enterprise has no language limit.
 
 The current number of possible languages to operate in is 210.
 
@@ -720,7 +720,7 @@ While this list contains all the most-spoken languages of the world, many rare d
 
 ConveyThis Translate provides Free plan with 10,000 words and 1 language.
 
-Users of paid plans can get their money back within the month of using the plugin you are not satisfied with the result.
+You can request a refund within 7 days of buying a paid plan (renewals and upgrades are not refundable; see the Terms at conveythis.com).
 
 = Can I migrate from WPML, Polylang or Weglot Translate? =
 

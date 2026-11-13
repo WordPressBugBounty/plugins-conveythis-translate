@@ -2698,15 +2698,13 @@ jQuery(document).ready(function ($) {
         serializePostTypeToggles();
     };
 
-    // Translate URLs is a beta feature; confirm OFF->ON transitions.
+    // Translate URLs changes SEO tags; confirm OFF->ON transitions.
     var translateLinksInitial = jQuery('input[name="translate_links"]:checked').val();
     jQuery('input[name="translate_links"]').on('change', function () {
         if (this.value === '1' && translateLinksInitial !== '1') {
             var ok = confirm(
-                'Enable Translate URLs (beta)?\n\n' +
-                'URL translation may not work correctly in some cases, such as pages with non-Latin URLs (Cyrillic, Arabic, Chinese, Japanese, etc.), custom post types, or temporary translation service issues.\n\n' +
-                'After enabling, verify your hreflang and canonical tags, then request a re-crawl in Google Search Console.\n\n' +
-                'OK to enable?'
+                'Enable Translate URLs?\n\n' +
+                'Translating URLs changes the addresses of your translated pages. After enabling, open a few translated pages and check that their links work, then request a re-crawl in Google Search Console.'
             );
             if (!ok) {
                 jQuery('input[name="translate_links"][value="' + translateLinksInitial + '"]').prop('checked', true);

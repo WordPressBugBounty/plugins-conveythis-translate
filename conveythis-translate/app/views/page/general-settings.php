@@ -85,8 +85,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <input type="radio" class="form-check-input me-2" id="translate_links_no" name="translate_links" value="0" <?php echo $this->variables->translate_links == 0 ? 'checked' : ''?>>
                 <label for="translate_links_no">No</label></div>
         </div>
-        <p class="text-warning" style="margin-top: 8px; font-size: 0.9em; max-width: 720px;">
-            <strong>Beta feature.</strong> URL translation may not work correctly in some cases, such as pages with non-Latin URLs (Cyrillic, Arabic, Chinese, Japanese, etc.), custom post types, or temporary translation service issues. After enabling this feature, verify your hreflang and canonical tags, then request a re-crawl in Google Search Console.
+        <p class="text-muted" style="margin-top: 8px; font-size: 0.875em; max-width: 720px;">
+            Translating URLs changes the addresses of your translated pages. After enabling, open a few translated pages and check that their links work, then request a re-crawl in Google Search Console.
         </p>
     </div>
 

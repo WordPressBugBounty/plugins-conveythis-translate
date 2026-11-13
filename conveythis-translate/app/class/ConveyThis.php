@@ -182,6 +182,7 @@ class ConveyThis {
 
         add_action('admin_head-nav-menus.php', array($this, 'add_nav_menu_meta_boxes'));
         add_filter('nav_menu_link_attributes', array($this, 'magellanlinkfilter'), 10, 3);
+        add_filter('nav_menu_item_title', array($this, 'magellan_menu_item_title'), 10, 4);
 
         add_action('widgets_init', 'wp_register_widget');
         add_shortcode('conveythis_switcher', array($this, 'get_conveythis_shortcode'));
@@ -849,6 +850,12 @@ class ConveyThis {
      */
     private function shouldTranslateLink(string $path, string $context = 'content'): bool
     {
+        // RSS feeds and the REST API are never slug-translated: init() serves them
+        // untranslated, and a translated /feed/ slug produced links like /ar/يطعم/.
+        if (preg_match('#(^|/)(feed|wp-json)(/|$)#i', $path)) {
+            return false;
+        }
+
         $rules = $this->variables->link_rules ?? [];
         $scope = $this->variables->link_rules_scope ?? 'all';
         $pt_settings = $this->variables->link_rules_post_types ?? [];
@@ -1806,47 +1813,93 @@ class ConveyThis {
         return $html_url;
     }
 
+    /**
+     * Language for a [ConveyThis_<Language>] menu item, or null when the title
+     * is not a switcher placeholder. On a translated page the source-language
+     * item and the current-language item swap places (existing behaviour).
+     */
+    private function menuSwitcherLanguage($title) {
+        if (!is_string($title) || !preg_match('/\[ConveyThis_(.*)\]/', $title, $matches)) {
+            return null;
+        }
+        $language = $this->searchLanguage($matches[1]);
+        if (empty($language)) {
+            return null;
+        }
+        if (!empty($this->variables->language_code)) {
+            if ($language['code2'] === $this->variables->source_language) {
+                $language = $this->searchLanguage($this->variables->language_code);
+            } else if ($language['code2'] === $this->variables->language_code) {
+                $language = $this->searchLanguage($this->variables->source_language);
+            }
+        }
+        return empty($language) ? null : $language;
+    }
+
+    /**
+     * Visible label (flag and/or name) for a switcher menu item. Every
+     * "style_text" value gets a label, so no placeholder is left visible.
+     */
+    private function menuSwitcherLabel(array $language) {
+        $icon = $this->genIcon($language['language_id'], $language['flag']);
+        if ($this->variables->style_text === 'full-text') {
+            return $icon . $language['title'];
+        }
+        if ($this->variables->style_text === 'short-text') {
+            return $icon . strtoupper($language['code3']);
+        }
+        if ($this->variables->style_text === 'without-text') {
+            return $icon;
+        }
+        if ($this->variables->style_text === 'short-text-alfa-2') {
+            return $icon . strtoupper($language['code2']);
+        }
+        // "full-text-native" (added in 2024) and any other value: show the
+        // language name rather than leaving the [ConveyThis_...] placeholder.
+        return $icon . $language['title'];
+    }
+
     public function magellanlinkfilter($attr, $post, $menu) {
         $this->print_log("* magellanlinkfilter()");
-        preg_match('/\[ConveyThis_(.*)\]/', $post->title, $matches);
+        $language = $this->menuSwitcherLanguage($post->title);
 
-        if (!empty($matches)) {
-            $language = $this->searchLanguage($matches[1]);
+        if (!empty($language)) {
+            $site_url = $this->variables->site_url;
+            $prefix = $this->getPageUrl($site_url);
 
-            if (!empty($language)) {
-                if (!empty($this->variables->language_code)) {
-                    if ($language['code2'] === $this->variables->source_language) {
-                        $language = $this->searchLanguage($this->variables->language_code);
-                    } else if ($language['code2'] === $this->variables->language_code) {
-                        $language = $this->searchLanguage($this->variables->source_language);
-                    }
-                }
+            if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
+                $location = $this->getSubDomainLocation($language['code2']);
+            } else {
+                $location = $this->getLocation($prefix, $language['code2']);
+            }
+            $attr['translate'] = 'no';
+            $attr['href'] = $location;
+            $attr['class'] = "conveythis-no-translate notranslate";
 
-                $site_url = $this->variables->site_url;
-                $prefix = $this->getPageUrl($site_url);
-
-                if (!empty($this->variables->url_structure) && $this->variables->url_structure == "subdomain") {
-                    $location = $this->getSubDomainLocation($language['code2']);
-                } else {
-                    $location = $this->getLocation($prefix, $language['code2']);
-                }
-                $icon = $this->genIcon($language['language_id'], $language['flag']);
-                $attr['translate'] = 'no';
-                $attr['href'] = $location;
-                $attr['class'] = "conveythis-no-translate notranslate";
-
-                if ($this->variables->style_text === 'full-text') {
-                    $post->title = $icon . $language['title'];
-                }
-                if ($this->variables->style_text === 'short-text') {
-                    $post->title = $icon . strtoupper($language['code3']);
-                }
-                if ($this->variables->style_text === 'without-text') {
-                    $post->title = $icon;
-                }
+            // WordPress before 6.7 (and themes with their own walker) read the
+            // title after this filter, so the label is still set here.
+            $label = $this->menuSwitcherLabel($language);
+            if ($label !== null) {
+                $post->title = $label;
             }
         }
         return $attr;
+    }
+
+    /**
+     * WordPress 6.7+ prints the menu item title before nav_menu_link_attributes
+     * runs, so the placeholder is replaced here as well.
+     */
+    public function magellan_menu_item_title($title, $menu_item = null, $args = null, $depth = 0) {
+        if (!is_string($title) || strpos($title, '[ConveyThis_') === false) {
+            return $title;
+        }
+        $language = $this->menuSwitcherLanguage($title);
+        if (empty($language)) {
+            return $title;
+        }
+        $label = $this->menuSwitcherLabel($language);
+        return $label !== null ? $label : $title;
     }
 
     public function genIcon($language_id, $flag) {
@@ -4356,7 +4409,7 @@ class ConveyThis {
                             $href = $child->hasAttribute('href');
 
                             if (!filter_var($href, FILTER_VALIDATE_URL)) {
-                                $href = preg_replace('/[^\p{L}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $href);
+                                $href = preg_replace('/[^\p{L}\p{M}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $href);
                             }
 
                             $metaAttrValue = trim($href);
@@ -4595,7 +4648,9 @@ class ConveyThis {
         $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
 
         // $path is a path segment from parse_url(), not a full URL — FILTER_VALIDATE_URL was always false here.
-        $path = preg_replace('/[^\p{L}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $path);
+        // \p{M} keeps combining marks (Arabic harakat, Turkish dotted i): stripping them
+        // turned working translated slugs like /ar/يٌطعم/ into 404s.
+        $path = preg_replace('/[^\p{L}\p{M}\p{N}\-._~:\/?#\[\]@!$&\'()*+,;=%]/u', '', $path);
 
         return "$scheme$user$pass$host$port$path$query$fragment";
     }
