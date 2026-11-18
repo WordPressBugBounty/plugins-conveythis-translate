@@ -1,6 +1,17 @@
 <?php
 
-    require_once($_SERVER['DOCUMENT_ROOT'] . '/wp-load.php');
+    // WordPress is three folders above this file (wp-content/plugins/conveythis-translate).
+    // DOCUMENT_ROOT alone is wrong when WordPress lives in a subfolder and on hosts
+    // that report a different root, so it is only the fallback.
+    $conveythis_wp_load = dirname(__DIR__, 3) . '/wp-load.php';
+    if (!file_exists($conveythis_wp_load) && isset($_SERVER['DOCUMENT_ROOT'])) {
+        $conveythis_wp_load = $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php'; //phpcs:ignore
+    }
+    if (!file_exists($conveythis_wp_load)) {
+        echo json_encode(["action" => "error"]);
+        exit;
+    }
+    require_once($conveythis_wp_load);
 
     require_once("index.php");
 
@@ -30,6 +41,12 @@
         $ConveyThisCache::clearPageCache($url_plugin, $page_id);
 
         $result = $ConveyThisCache->clear_cached_translations(false, $url, $source, $target);
+
+        // The edit also changed the translations version: refresh the page cache
+        // now (other pages share the edited text) instead of waiting for WP-Cron.
+        if (method_exists($ConveyThis, 'refreshPageCacheOnTranslationsChange')) {
+            $ConveyThis->refreshPageCacheOnTranslationsChange(true);
+        }
 
         echo json_encode(["action" => "success"]);
     }

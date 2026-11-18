@@ -1,4 +1,9 @@
 == Changelog ==
+= 271.4 =
+* Translation edits made in the dashboard, by import, glossary or AI agents now show on your site within a few minutes, without clearing the translation cache.
+* Your page cache (WP Rocket, LiteSpeed Cache, WP Super Cache and similar plugins) is now refreshed when translations change. You can turn this off on the Cache tab.
+* Fixed: edits saved in the dashboard did not reach sites where WordPress is installed in a subfolder.
+
 = 271.3 =
 * Fixed: language menu items showed [ConveyThis_...] instead of flags on WordPress 6.7+.
 * Fixed: some translated links led to 404 pages.

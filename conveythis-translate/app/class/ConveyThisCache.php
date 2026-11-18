@@ -77,6 +77,95 @@ class ConveyThisCache
         }
     }
 
+    /**
+     * Empty the site's page cache after translations changed on the ConveyThis
+     * side (ConveyThis::refreshPageCacheOnTranslationsChange()). Page caches
+     * only: unlike flush_cache_on_activate() it leaves asset caches (Autoptimize)
+     * and this plugin's slug caches alone, they do not hold translated text.
+     * Every call is the one flush_cache_on_activate() already uses.
+     *
+     * A failing cache plugin must not stop the others or break the request.
+     *
+     * @return string[] names of the caches that were asked to clear.
+     */
+    public static function flushPageCachesForTranslations() {
+        $caches = array(
+            'w3-total-cache' => function () {
+                if (function_exists('w3tc_pgcache_flush')) { w3tc_pgcache_flush(); return true; }
+                if (function_exists('w3tc_flush_all')) { w3tc_flush_all(); return true; }
+                return false;
+            },
+            'litespeed' => function () {
+                if (class_exists('LiteSpeed_Cache')) { LiteSpeed_Cache::plugin()->purge_all(); return true; }
+                return false;
+            },
+            'wp-super-cache' => function () {
+                if (function_exists('wp_cache_clear_cache')) { wp_cache_clear_cache(); return true; }
+                return false;
+            },
+            'wp-fastest-cache' => function () {
+                if (function_exists('wpfc_clear_all_cache')) { wpfc_clear_all_cache(); return true; }
+                return false;
+            },
+            'wp-rocket' => function () {
+                if (function_exists('rocket_clean_domain')) { rocket_clean_domain(); return true; }
+                return false;
+            },
+            'hyper-cache' => function () {
+                if (function_exists('hyper_cache_clean')) { hyper_cache_clean(); return true; }
+                return false;
+            },
+            'simple-cache' => function () {
+                if (function_exists('sc_cache_flush')) { sc_cache_flush(); return true; }
+                return false;
+            },
+            'wp-engine' => function () {
+                if (class_exists('WpeCommon') && method_exists('WpeCommon', 'purge_varnish_cache')) { WpeCommon::purge_varnish_cache(); return true; }
+                return false;
+            },
+            'siteground' => function () {
+                if (function_exists('sg_cachepress_purge_cache')) { sg_cachepress_purge_cache(); return true; }
+                return false;
+            },
+            'cache-enabler' => function () {
+                if (class_exists('Cache_Enabler') && method_exists('Cache_Enabler', 'clear_total_cache')) { Cache_Enabler::clear_total_cache(); return true; }
+                return false;
+            },
+            'comet-cache' => function () {
+                if (class_exists('comet_cache') && method_exists('comet_cache', 'clear')) { comet_cache::clear(); return true; }
+                return false;
+            },
+            'pagely' => function () {
+                if (class_exists('PagelyCachePurge') && method_exists('PagelyCachePurge', 'purgeAll')) { PagelyCachePurge::purgeAll(); return true; }
+                return false;
+            },
+            'hummingbird' => function () {
+                if (class_exists('\Hummingbird\WP_Hummingbird') && method_exists('\Hummingbird\WP_Hummingbird', 'flush_cache')) { \Hummingbird\WP_Hummingbird::flush_cache(); return true; }
+                return false;
+            },
+            'cachify' => function () {
+                if (has_action('cachify_flush_cache')) {
+                    do_action('cachify_flush_cache'); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Cachify's own hook.
+                    return true;
+                }
+                return false;
+            },
+        );
+
+        $flushed = array();
+        foreach ($caches as $name => $flush) {
+            try {
+                if ($flush()) {
+                    $flushed[] = $name;
+                }
+            } catch (\Throwable $e) {
+                // Another plugin's cache failed to clear: keep going with the rest.
+                $flushed[] = $name . ' (failed)';
+            }
+        }
+        return $flushed;
+    }
+
     public static function flush_cache_on_activate(){
         if (function_exists('w3tc_flush_all')) {
             w3tc_flush_all();

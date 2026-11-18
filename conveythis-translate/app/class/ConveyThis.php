@@ -245,6 +245,7 @@ class ConveyThis {
         add_action('wp_ajax_conveythis_clear_all_cache', array($this, 'ajax_conveythis_clear_all_cache'));
         add_action('wp_ajax_conveythis_dismiss_all_cache', array($this, 'ajax_conveythis_dismiss_all_cache'));
         add_action('wp_ajax_conveythis_clear_translate_cache', array($this, 'ajax_conveythis_clear_translate_cache'));
+        add_action('wp_ajax_conveythis_refresh_page_cache_setting', array($this, 'ajax_conveythis_refresh_page_cache_setting'));
         add_action('wp_ajax_conveythis_setup_sync', array($this, 'ajax_conveythis_setup_sync'));
         add_action('wp_ajax_conveythis_ready_user', array($this, 'ajax_conveythis_ready_user'));
         add_action('wp_ajax_conveythis_set_api_key', array($this, 'ajax_conveythis_set_api_key'));
@@ -2735,6 +2736,214 @@ class ConveyThis {
         }
     }
 
+    /**
+     * True unless the translations version check is switched off for this site:
+     * define('CONVEYTHIS_TRANSLATIONS_VERSION_CHECK', false) in wp-config.php, or
+     * return false from the conveythis_translations_version_check filter.
+     */
+    private function translationsVersionEnabled() {
+        if (defined('CONVEYTHIS_TRANSLATIONS_VERSION_CHECK') && !CONVEYTHIS_TRANSLATIONS_VERSION_CHECK) {
+            return false;
+        }
+        return (bool) apply_filters('conveythis_translations_version_check', true);
+    }
+
+    /**
+     * The "translations version" of this site as last told by the ConveyThis API:
+     * ['domain' => token, 'languages' => [language => token], 'checked' => time].
+     * 'domain' changes when translations of the whole site changed, a language
+     * token when that language changed. 'domain' is '' when there is no version.
+     *
+     * The API is asked at most once a minute per site. If it cannot be reached,
+     * the last known answer stays in use and the next try is a minute later, so
+     * an outage never empties the stored copies.
+     *
+     * @return array|null null when the check is off or the host is unknown.
+     */
+    private function translationsVersionState($ask_now = false) {
+        if (!$this->translationsVersionEnabled()) {
+            return null;
+        }
+        $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
+        if ($host === '') {
+            // WP-Cron started from the command line has no Host header.
+            $host = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+        }
+        if ($host === '') {
+            return null;
+        }
+
+        $transient = 'ct_translations_version_' . md5($host);
+        $state = get_transient($transient);
+        if (!is_array($state) || !isset($state['checked'], $state['domain'], $state['languages']) || !is_array($state['languages'])) {
+            $state = null;
+        }
+
+        // $ask_now: the dashboard has just told this site about an edit (endpoint.php),
+        // so the answer from a moment ago is already old. Still not more often than
+        // every ten seconds, the key that opens endpoint.php is public.
+        $max_age = $ask_now ? 10 : MINUTE_IN_SECONDS;
+        if ($state === null || time() - (int) $state['checked'] >= $max_age || (int) $state['checked'] > time()) {
+            $fresh = $this->fetchTranslationsVersion($host);
+            if ($fresh !== null) {
+                $state = $fresh;
+            } elseif ($state === null) {
+                $state = ['domain' => '', 'languages' => []];
+            }
+            $state['checked'] = time();
+            // Kept far longer than a minute: 'checked' decides when to ask again,
+            // the long lifetime keeps the last known answer through an outage.
+            set_transient($transient, $state, WEEK_IN_SECONDS);
+        }
+
+        return $state;
+    }
+
+    /**
+     * A short token that changes when this site's translations change on the
+     * ConveyThis side, for the given target language. It becomes part of the
+     * name of the stored page copy (see translatePage), so a copy made before
+     * an edit is not used after it. '' means "no version": copies are then kept
+     * for their normal lifetime, as before 271.4.
+     */
+    private function translationsVersionToken($language_code) {
+        $language = strtolower(trim((string) $language_code));
+        if ($language === '') {
+            return '';
+        }
+        $state = $this->translationsVersionState();
+        if ($state === null || !is_string($state['domain']) || $state['domain'] === '') {
+            return '';
+        }
+        $languageToken = isset($state['languages'][$language]) && is_string($state['languages'][$language])
+            ? $state['languages'][$language]
+            : '0';
+        return $state['domain'] . '.' . $languageToken;
+    }
+
+    /**
+     * WP-Cron, every two minutes (ConveyThisCron): when the translations version
+     * changed, empty the site's page cache (WP Rocket, LiteSpeed, WP Super Cache
+     * and the others in ConveyThisCache::flushPageCachesForTranslations()), so
+     * visitors stop getting pages rendered before the edit.
+     *
+     * This cannot happen on a page view: a page served from the page cache never
+     * reaches this plugin, so it would never notice the new version.
+     *
+     * - Off when the site owner unticked the setting on the Cache tab
+     *   (option conveythis_refresh_page_cache = '0').
+     * - No API call at all on a site without a supported page cache, unless
+     *   something listens to the conveythis_translations_changed action.
+     * - The first version ever seen is only remembered, never a reason to flush.
+     * - At most one flush every five minutes; a change that arrives sooner is
+     *   flushed by a later run, so the last edit is never left behind.
+     *
+     * @return string what happened, for logs and tests.
+     */
+    public function refreshPageCacheOnTranslationsChange($ask_now = false) {
+        if (get_option('conveythis_refresh_page_cache', '1') === '0') {
+            return 'off';
+        }
+        if (!ConveyThisCache::checkCachePlugin() && !has_action('conveythis_translations_changed')) {
+            return 'no-page-cache';
+        }
+        $state = $this->translationsVersionState($ask_now);
+        if ($state === null || !is_string($state['domain']) || $state['domain'] === '') {
+            return 'no-version';
+        }
+
+        $languages = $state['languages'];
+        ksort($languages);
+        $signature = md5($state['domain'] . '|' . wp_json_encode($languages));
+
+        $last = get_option('conveythis_page_cache_version');
+        if (!is_array($last) || !isset($last['signature'], $last['flushed'])) {
+            update_option('conveythis_page_cache_version', ['signature' => $signature, 'flushed' => 0], false);
+            return 'remembered';
+        }
+        if ($last['signature'] === $signature) {
+            return 'unchanged';
+        }
+        if (time() - (int) $last['flushed'] < 5 * MINUTE_IN_SECONDS && (int) $last['flushed'] <= time()) {
+            return 'waiting';
+        }
+
+        // Saved before the flush: if a cache plugin fails halfway, the next run
+        // must not flush again and again.
+        update_option('conveythis_page_cache_version', ['signature' => $signature, 'flushed' => time()], false);
+        $flushed = ConveyThisCache::flushPageCachesForTranslations();
+
+        /**
+         * Fires when translations of this site changed on the ConveyThis side.
+         * For page caches this plugin cannot clear by itself (Varnish, a CDN, a
+         * host's own cache): hook your purge here.
+         *
+         * @param array $state ['domain' => token, 'languages' => [language => token]]
+         */
+        do_action('conveythis_translations_changed', ['domain' => $state['domain'], 'languages' => $languages]);
+
+        $this->print_log('[ConveyThis] translations changed, page cache refreshed: ' . implode(', ', $flushed));
+        return 'flushed:' . implode(',', $flushed);
+    }
+
+    /**
+     * AJAX: the "Refresh the page cache when translations change" checkbox on the Cache tab.
+     */
+    public function ajax_conveythis_refresh_page_cache_setting() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Access denied'], 403);
+        }
+        if (!check_ajax_referer('conveythis_ajax_save', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        $enabled = isset($_POST['enabled']) && sanitize_text_field(wp_unslash($_POST['enabled'])) === '1' ? '1' : '0';
+        update_option('conveythis_refresh_page_cache', $enabled);
+
+        wp_send_json(array('enabled' => $enabled));
+    }
+
+    /**
+     * GET /plugin/translations-version/ for this site.
+     *
+     * @return array|null ['domain' => string, 'languages' => [language => token]];
+     *                    'domain' is '' when the API has no version to give.
+     *                    null when there was no usable answer.
+     */
+    private function fetchTranslationsVersion($host) {
+        $response = self::httpRequest(
+            '/plugin/translations-version/?referrer=' . rawurlencode($host),
+            array('method' => 'GET'),
+            true,
+            $this->variables->select_region,
+            3
+        );
+        if (!is_array($response) || is_wp_error($response)) {
+            return null;
+        }
+        if ((int) wp_remote_retrieve_response_code($response) !== 200) {
+            return null;
+        }
+        $json = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($json) || !isset($json['status'], $json['data']) || $json['status'] !== 'success' || !is_array($json['data'])) {
+            return null;
+        }
+
+        $domain = isset($json['data']['domain']) && is_string($json['data']['domain']) ? $json['data']['domain'] : '';
+        if (!preg_match('/^[A-Za-z0-9]{1,64}$/', $domain)) {
+            $domain = '';
+        }
+        $languages = [];
+        if ($domain !== '' && isset($json['data']['languages']) && is_array($json['data']['languages'])) {
+            foreach ($json['data']['languages'] as $language => $token) {
+                if (is_string($token) && preg_match('/^[A-Za-z0-9]{1,64}$/', $token)) {
+                    $languages[strtolower((string) $language)] = $token;
+                }
+            }
+        }
+        return ['domain' => $domain, 'languages' => $languages];
+    }
+
     function getCurrentPlan() {
         $this->print_log("* getCurrentPlan()");
         $domain_name = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : '';
@@ -4981,10 +5190,19 @@ class ConveyThis {
 
                     $update_cache = isset($_POST['action']) && $_POST['action'] == 'conveythis_update_cache' ? true : false; //phpcs:ignore
 
+                    $cacheKeyParts = [$this->variables->referrer, self::CONVEYTHIS_SEO_CACHE_VERSION];
+                    // Translations edited outside this site (dashboard on another page,
+                    // import, glossary, AI agents): the version changes, the stored copy
+                    // stops matching and the page is fetched again. Added only when
+                    // there is a version, so nothing changes for a site without one.
+                    $translationsVersion = $this->translationsVersionToken($this->variables->language_code);
+                    if ($translationsVersion !== '') {
+                        $cacheKeyParts[] = $translationsVersion;
+                    }
                     $cacheKey = md5(serialize(array_merge(
                         $this->variables->segments,
                         $this->variables->links,
-                        [$this->variables->referrer, self::CONVEYTHIS_SEO_CACHE_VERSION]
+                        $cacheKeyParts
                     )));
                     $this->variables->items = $this->ConveyThisCache->get_cached_translations($this->variables->source_language, $this->variables->language_code, $this->variables->referrer, $cacheKey);
                     //  $this->print_log('CACHED - $this->variables->items');
@@ -7180,6 +7398,7 @@ class ConveyThis {
         add_option('style_position_vertical_custom', 'bottom');
         add_option('style_selector_id', '');
         add_option('conveythis_clear_cache', '0');
+        add_option('conveythis_refresh_page_cache', '1');
         add_option('conveythis_select_region', 'US');
         add_option('url_structure', 'regular');
         add_option('style_background_color', '#ffffff');
@@ -7233,6 +7452,8 @@ class ConveyThis {
         delete_option('style_selector_id');
         delete_option('url_structure');
         delete_option('conveythis_clear_cache');
+        delete_option('conveythis_refresh_page_cache');
+        delete_option('conveythis_page_cache_version');
         delete_option('conveythis_select_region');
         delete_option('conveythis_translate_emails');
         delete_option('conveythis_email_last_result');

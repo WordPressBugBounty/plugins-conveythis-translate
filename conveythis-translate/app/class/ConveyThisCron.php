@@ -31,9 +31,35 @@ class ConveyThisCron
             'custome_time' => Array(
                 'interval' => $clear_cache * 60 * 60,
                 'display'  => __( 'Custom Time', 'conveythis-translate' )
+            ),
+            'conveythis_two_minutes' => Array(
+                'interval' => 2 * 60,
+                'display'  => __( 'Every Two Minutes', 'conveythis-translate' )
             )
         );
         return $schedules;
+    }
+
+    /*
+     * Translations version check for the page cache (271.4). Runs on 'init'
+     * because a plugin UPDATE does not run the activation hook: sites coming
+     * from an older version would never get the event otherwise.
+     */
+    public static function EnsureTranslationsVersionCheck() {
+        if (!wp_next_scheduled('ConveyThisTranslationsVersionCheck')) {
+            wp_schedule_event(time() + 60, 'conveythis_two_minutes', 'ConveyThisTranslationsVersionCheck');
+        }
+    }
+
+    public static function TranslationsVersionCheck() {
+        if (!class_exists('ConveyThis')) {
+            return;
+        }
+        try {
+            ConveyThis::Instance()->refreshPageCacheOnTranslationsChange();
+        } catch (\Throwable $e) {
+            // A cron task must never take the site down.
+        }
     }
 
     // Start cron method
@@ -51,6 +77,7 @@ class ConveyThisCron
 
     public static function ConveyThisDeactivationCron() {
         wp_clear_scheduled_hook('ConveyThisClearCache');
+        wp_clear_scheduled_hook('ConveyThisTranslationsVersionCheck');
     }
 
     public static function ClearCache() {

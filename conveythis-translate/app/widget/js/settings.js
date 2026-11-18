@@ -1602,6 +1602,35 @@ jQuery(document).ready(function ($) {
         })
     });
 
+    // Cache tab: "Refresh the page cache when translations change". Saved on its
+    // own, right away, so it does not depend on the main settings form.
+    $('#conveythis_refresh_page_cache').on('change', function () {
+        var $box = $(this);
+        var wanted = $box.is(':checked');
+        $('.refresh-page-cache-saved').addClass('d-none');
+        jQuery.ajax({
+            url: conveythisGetAjaxUrl(),
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'conveythis_refresh_page_cache_setting',
+                nonce: conveythisGetNonce(),
+                enabled: wanted ? '1' : '0'
+            },
+            success: function (result) {
+                if (result && (result.enabled === '1' || result.enabled === '0')) {
+                    $box.prop('checked', result.enabled === '1');
+                    $('.refresh-page-cache-saved').removeClass('d-none');
+                } else {
+                    $box.prop('checked', !wanted);
+                }
+            },
+            error: function () {
+                $box.prop('checked', !wanted);
+            }
+        });
+    });
+
     $(document).on('change', '#glossary_wrapper select.rule', function (e) {
         e.preventDefault();
         var $row = $(this).closest('.glossary');

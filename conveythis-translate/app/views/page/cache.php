@@ -19,6 +19,15 @@ if ( ! defined( 'ABSPATH' ) ) {
             <label class="clear-failure d-none" style="color: red">No cache found to clear.</label>
         </div>
 
+        <div class="block-setting form-group">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input me-2" id="conveythis_refresh_page_cache" <?php checked(get_option('conveythis_refresh_page_cache', '1'), '1'); ?>>
+                <label for="conveythis_refresh_page_cache">Refresh the page cache when translations change</label>
+            </div>
+            <p class="m-0">When a translation is edited in the dashboard, by import, glossary or AI agents, ConveyThis clears your site's page cache (WP Rocket, LiteSpeed Cache, WP Super Cache and similar plugins), so visitors see the change within a few minutes. Untick this if you prefer to clear the page cache yourself.</p>
+            <label class="refresh-page-cache-saved d-none" style="color: green">Saved.</label>
+        </div>
+
     </div>
 
 </div>

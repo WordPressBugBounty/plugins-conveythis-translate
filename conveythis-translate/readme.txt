@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 271.3
+Stable tag: 271.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,11 @@ This plugin relies on the following third-party services. For each one, the data
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.4 =
+* Translation edits made in the dashboard, by import, glossary or AI agents now show on your site within a few minutes, without clearing the translation cache.
+* Your page cache (WP Rocket, LiteSpeed Cache, WP Super Cache and similar plugins) is now refreshed when translations change. You can turn this off on the Cache tab.
+* Fixed: edits saved in the dashboard did not reach sites where WordPress is installed in a subfolder.
+
 = 271.3 =
 * Fixed: language menu items showed [ConveyThis_...] instead of flags on WordPress 6.7+.
 * Fixed: some translated links led to 404 pages.
