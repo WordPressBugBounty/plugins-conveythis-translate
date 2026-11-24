@@ -35,6 +35,12 @@ class ConveyThisCron
             'conveythis_two_minutes' => Array(
                 'interval' => 2 * 60,
                 'display'  => __( 'Every Two Minutes', 'conveythis-translate' )
+            ),
+            // This filter replaces the whole list, so WordPress' own 'hourly'
+            // is not available here.
+            ConveyThisSlugMap::CRON_SCHEDULE => Array(
+                'interval' => HOUR_IN_SECONDS,
+                'display'  => __( 'Every Hour', 'conveythis-translate' )
             )
         );
         return $schedules;
@@ -48,6 +54,27 @@ class ConveyThisCron
     public static function EnsureTranslationsVersionCheck() {
         if (!wp_next_scheduled('ConveyThisTranslationsVersionCheck')) {
             wp_schedule_event(time() + 60, 'conveythis_two_minutes', 'ConveyThisTranslationsVersionCheck');
+        }
+    }
+
+    /*
+     * One translated address per page (Trello #2256): fetch the API's list
+     * every hour. On 'init' for the same reason as above.
+     */
+    public static function EnsureSlugMapRefresh() {
+        if (!wp_next_scheduled(ConveyThisSlugMap::CRON_HOOK)) {
+            wp_schedule_event(time() + 60, ConveyThisSlugMap::CRON_SCHEDULE, ConveyThisSlugMap::CRON_HOOK);
+        }
+    }
+
+    public static function SlugMapRefresh() {
+        if (!class_exists('ConveyThis')) {
+            return;
+        }
+        try {
+            ConveyThis::Instance()->refreshSlugMap();
+        } catch (\Throwable $e) {
+            // A cron task must never take the site down.
         }
     }
 
@@ -78,6 +105,7 @@ class ConveyThisCron
     public static function ConveyThisDeactivationCron() {
         wp_clear_scheduled_hook('ConveyThisClearCache');
         wp_clear_scheduled_hook('ConveyThisTranslationsVersionCheck');
+        wp_clear_scheduled_hook(ConveyThisSlugMap::CRON_HOOK);
     }
 
     public static function ClearCache() {

@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 271.4
+Stable tag: 271.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -223,11 +223,18 @@ This plugin relies on the following third-party services. For each one, the data
 
 **WooCommerce order emails (optional, off by default)**: when turned on, the text of customer order emails is sent to the ConveyThis translation service. Customer names, addresses, contact details and order numbers are not sent. Same provider and terms as above.
 
+**Deactivation feedback (optional)**: when you deactivate the plugin, the reason you pick and any comment you type, together with your site's domain and API key, are sent to ConveyThis (app.conveythis.com). If you skip the question, only the fact of the deactivation is sent. Same provider and terms as above.
+
 **Pusher** — used to receive real-time status updates (such as translation progress) inside the plugin's admin screens. A connection to Pusher is opened while you are on the plugin's admin pages; no page content is sent. Provided by Pusher — [Terms of Service](https://pusher.com/legal/terms/), [Privacy Policy](https://pusher.com/legal/privacy/).
 
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.5 =
+* Translated page addresses: each translated page can now have one address. Older translated addresses of the same page redirect to it, and links, canonical, hreflang and the sitemap use it. Turned on by ConveyThis site by site; nothing changes until it is turned on for your site.
+* When you deactivate the plugin, a short optional question asks why. You can skip it; deactivation is never blocked.
+* Switcher themes now work with the Popup style too, not only Dropdown.
+
 = 271.4 =
 * Translation edits made in the dashboard, by import, glossary or AI agents now show on your site within a few minutes, without clearing the translation cache.
 * Your page cache (WP Rocket, LiteSpeed Cache, WP Super Cache and similar plugins) is now refreshed when translations change. You can turn this off on the Cache tab.

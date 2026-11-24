@@ -22,11 +22,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php /* Read by the CDN preview (Preview.js): draw the Popup layout as popup v2, which carries themes. Not saved.
+                 Kept OUTSIDE .widget-trigger: that dropdown writes its value into every hidden input inside it. */ ?>
+        <input type="hidden" name="popup_v2" value="1">
     </div>
 
     <div class="form-group ct-wp-theme-group">
         <div class="subtitle"><?php echo esc_html__('Switcher theme', 'conveythis-translate'); ?> <span class="ct-wp-new-badge"><?php echo esc_html__('New', 'conveythis-translate'); ?></span></div>
-        <label for=""><?php echo esc_html__('Give the dropdown switcher a ready-made look, or keep Classic. Pick one to see it in the preview.', 'conveythis-translate'); ?></label>
+        <label for=""><?php echo esc_html__('Give the Dropdown or Popup switcher a ready-made look, or keep Classic. Pick one to see it in the preview.', 'conveythis-translate'); ?></label>
         <?php
         $conveythis_theme_current = $this->variables->style_theme ?: 'classic';
         $conveythis_theme_classic = array(
@@ -71,7 +74,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </div>
             <?php endforeach; ?>
         </div>
-        <p class="ct-wp-theme-note" style="display: none;"><?php echo esc_html__("This theme sets the switcher's colours and corners and works with the Dropdown style. Your own colours and the other widget styles come back when you choose Classic.", 'conveythis-translate'); ?></p>
+        <p class="ct-wp-theme-note" style="display: none;"><?php echo esc_html__("This theme sets the switcher's colours and corners and works with the Dropdown and Popup styles. Your own colours and the other widget styles come back when you choose Classic.", 'conveythis-translate'); ?></p>
     </div>
 
     <div class="form-group">

@@ -1,4 +1,9 @@
 == Changelog ==
+= 271.5 =
+* Translated page addresses: each translated page can now have one address. Older translated addresses of the same page redirect to it, and links, canonical, hreflang and the sitemap use it. Turned on by ConveyThis site by site; nothing changes until it is turned on for your site.
+* When you deactivate the plugin, a short optional question asks why. You can skip it; deactivation is never blocked.
+* Switcher themes now work with the Popup style too, not only Dropdown.
+
 = 271.4 =
 * Translation edits made in the dashboard, by import, glossary or AI agents now show on your site within a few minutes, without clearing the translation cache.
 * Your page cache (WP Rocket, LiteSpeed Cache, WP Super Cache and similar plugins) is now refreshed when translations change. You can turn this off on the Cache tab.

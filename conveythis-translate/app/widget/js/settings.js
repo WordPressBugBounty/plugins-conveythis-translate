@@ -791,7 +791,7 @@ jQuery(document).ready(function ($) {
         conveythisSettings.view();
     });
 
-    // Theme: offered for the dropdown layout only, the one the widget draws
+    // Theme: offered for the dropdown and popup layouts, the ones the widget draws
     // themes on. A theme brings its own colours and corners, so those blocks
     // hide while one is on; hidden inputs still post, so Classic gets the
     // site's own colours back.
@@ -800,15 +800,24 @@ jQuery(document).ready(function ($) {
     // they are disabled in the list until Classic is chosen again. Before, a
     // theme could be picked and the style then switched to Popup, List..., which
     // hid the picker but kept the theme saved with a style it does not draw on.
+    //
+    // Popup v2 (live for every site since 2026-11-20) draws every theme on the
+    // Popup layout too, and the server accepts that pair, so Popup is offered
+    // beside Dropdown.
+    var THEME_LAYOUTS = ['dropdown', 'popup'];
+    function themeLayout(layout) {
+        return THEME_LAYOUTS.indexOf(layout) !== -1;
+    }
+
     function syncThemeUi() {
         var layout = $('.widget-trigger [name="style_widget"]').val() || 'dropdown';
         var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
-        var themed = layout === 'dropdown' && theme !== 'classic';
-        $('.ct-wp-theme-group').toggle(layout === 'dropdown');
+        var themed = themeLayout(layout) && theme !== 'classic';
+        $('.ct-wp-theme-group').toggle(themeLayout(layout));
         $('.ct-wp-colour-group, .ct-wp-corner-group').toggle(!themed);
         $('.ct-wp-theme-note').toggle(themed);
         $('#style_widget_list .item').each(function () {
-            $(this).toggleClass('disabled', themed && $(this).attr('data-value') !== 'dropdown');
+            $(this).toggleClass('disabled', themed && !themeLayout($(this).attr('data-value')));
         });
     }
 
@@ -817,7 +826,7 @@ jQuery(document).ready(function ($) {
     // style list is not locked on a style the theme cannot use.
     (function () {
         var layout = $('.widget-trigger [name="style_widget"]').val() || 'dropdown';
-        if (layout !== 'dropdown') {
+        if (!themeLayout(layout)) {
             $('.conveythis-widget-option-form input[name=style_theme][value="classic"]').prop('checked', true);
         }
     })();
@@ -846,7 +855,7 @@ jQuery(document).ready(function ($) {
     // (typing in the search, a script) goes back to Dropdown.
     $('.widget-trigger [name="style_widget"]').on('change', function () {
         var theme = $('.conveythis-widget-option-form input[name=style_theme]:checked').val() || 'classic';
-        if (theme !== 'classic' && $(this).val() !== 'dropdown') {
+        if (theme !== 'classic' && !themeLayout($(this).val())) {
             $(this).closest('.ui.dropdown').dropdown('set selected', 'dropdown');
             return;
         }

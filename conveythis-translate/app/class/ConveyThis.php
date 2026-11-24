@@ -2634,7 +2634,12 @@ class ConveyThis {
 
                         if (trim($matches[3]) && $this->variables->translate_links) {
                             $slug = '/' . urldecode(trim($matches[3]));
-                            $original_slug = $this->find_original_slug($slug, $this->variables->source_language, $this->variables->language_code, $this->variables->referrer);
+                            $this->redirectOldTranslatedAddress($slug, $tmp, $origin);
+                            $mapHit = $this->slugMap()->resolve($slug, (string) $this->variables->language_code,
+                                is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : []);
+                            $original_slug = $mapHit !== null
+                                ? $mapHit['source']
+                                : $this->find_original_slug($slug, $this->variables->source_language, $this->variables->language_code, $this->variables->referrer);
                             if ($original_slug) {
                                 $this->rewriteRequestUriTranslatedTailToOriginal($matches[3], $original_slug);
                                 $this->variables->referrer = '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
@@ -2884,6 +2889,48 @@ class ConveyThis {
 
         $this->print_log('[ConveyThis] translations changed, page cache refreshed: ' . implode(', ', $flushed));
         return 'flushed:' . implode(',', $flushed);
+    }
+
+    /** @var ConveyThisSlugMap|null */
+    private $slugMap = null;
+
+    /** One translated address per page (Trello #2256), see ConveyThisSlugMap. */
+    public function slugMap(): ConveyThisSlugMap {
+        if ($this->slugMap === null) {
+            $this->slugMap = new ConveyThisSlugMap(function ($uri, $body) {
+                return $this->send('POST', $uri, $body, true, 15);
+            });
+        }
+        return $this->slugMap;
+    }
+
+    /**
+     * WP-Cron, hourly (ConveyThisCron::SlugMapRefresh): fetch the list of
+     * translated addresses. While ConveyThis has not turned the site on, the
+     * API says so and nothing is stored. When the list changed, page caches
+     * are emptied like after a translation edit, so cached pages pick up the
+     * new links, canonical and hreflang.
+     */
+    public function refreshSlugMap(): string {
+        if (empty($this->variables->api_key) || ($this->variables->url_structure ?? '') === 'subdomain') {
+            $changed = $this->slugMap()->refresh('', [], false);
+            return $changed ? 'cleared' : 'off';
+        }
+        $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
+        if ($host === '') {
+            $host = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+        }
+        $languages = array_values(array_filter(array_map('strval', (array) $this->variables->target_languages)));
+        $changed = $this->slugMap()->refresh($host === '' ? '' : '//' . $host . '/', $languages, !empty($this->variables->translate_links));
+        if (!$changed) {
+            return 'unchanged';
+        }
+        if (get_option('conveythis_refresh_page_cache', '1') !== '0' && ConveyThisCache::checkCachePlugin()) {
+            ConveyThisCache::flushPageCachesForTranslations();
+        }
+        /** Same hook as a translation edit: purge caches this plugin cannot clear. */
+        do_action('conveythis_translations_changed', ['domain' => 'slug-map', 'languages' => []]);
+        return 'changed';
     }
 
     /**
@@ -3451,6 +3498,14 @@ class ConveyThis {
         $key = $sourcePath . '|' . $targetLanguageCode;
         if (array_key_exists($key, $reqCache)) {
             return $reqCache[$key];
+        }
+
+        // One address per page (Trello #2256): when ConveyThis has turned this
+        // site on, the API's list decides canonical, hreflang and sitemap. A path
+        // the list does not know keeps the source path, like every other site.
+        $urlCodes = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
+        if ($sourcePath !== '' && $targetLanguageCode !== '' && $this->slugMap()->isActive($targetLanguageCode, $urlCodes)) {
+            return $reqCache[$key] = $this->slugMap()->forward($sourcePath, $targetLanguageCode, $urlCodes);
         }
 
         $sourceLang = (string) ($this->variables->source_language ?? '');
@@ -4739,8 +4794,15 @@ class ConveyThis {
                     if ($this->shouldTranslateLink($link['path'])) {
                         $sourcePath = $link['path'];
                         $lookupPath = $this->canonicalizeLinkPath($link['path']);
-                        $item = $this->searchSegmentItem($lookupPath);
-                        if (is_array($item) && !empty($item['translate_text'])) {
+                        $urlCodes = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
+                        // One address per page (Trello #2256): the API's list first,
+                        // so every page links to the same slug. Paths it does not
+                        // know keep the per-page translation below.
+                        $mapped = $this->slugMap()->forward($lookupPath, $language_code, $urlCodes);
+                        $item = $mapped === null ? $this->searchSegmentItem($lookupPath) : null;
+                        if ($mapped !== null) {
+                            $link['path'] = $mapped;
+                        } elseif (is_array($item) && !empty($item['translate_text'])) {
                             $translated = $item['translate_text'];
                             // Items flagged is_link by the API are URL-slug translations
                             // already sanitized server-side. Trust them directly — same
@@ -7054,6 +7116,86 @@ class ConveyThis {
      * regex; it may be percent-encoded while the path in REQUEST_URI is decoded (or the reverse),
      * so a single preg_quote($matchTail) replace often missed and left a 404.
      */
+    /**
+     * One address per page (Trello #2256): an old address of a page (another
+     * translation of its slug, or its source path under /lang/) is sent to the
+     * page's slug, keeping the query string. GET and HEAD only, so forms,
+     * carts and checkouts never lose a POST. 302 or 301 as the API says for
+     * this site; 302 while a site is being checked. Does nothing unless
+     * ConveyThis turned the site on (no list stored).
+     *
+     * @param string $slug       requested path after the language prefix, decoded
+     * @param string $langPrefix the matched "/<site prefix><lang>/"
+     * @param string $origin     the full request URI as received
+     */
+    private function redirectOldTranslatedAddress(string $slug, string $langPrefix, string $origin): void
+    {
+        $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+        if ($method !== 'GET' && $method !== 'HEAD') {
+            return;
+        }
+        if (is_admin() || wp_doing_ajax() || wp_doing_cron() || (defined('REST_REQUEST') && REST_REQUEST)) {
+            return;
+        }
+        /** Filter: false turns the redirects off on this site. */
+        if (!apply_filters('conveythis_redirect_old_translated_addresses', true)) {
+            return;
+        }
+        $urlCodes = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
+        $lang = (string) $this->variables->language_code;
+        $hit = $this->slugMap()->resolve($slug, $lang, $urlCodes);
+        if ($hit === null || $hit['redirect'] === null) {
+            return;
+        }
+        // Pages excluded from translation keep today's handling, and so do the
+        // shop's cart, checkout and account pages: those carry sessions and
+        // payment returns, and an extra hop there is not worth the risk.
+        if (in_array($this->getPageUrl('//' . ($_SERVER['HTTP_HOST'] ?? '') . $hit['source']), (array) $this->variables->blockpages_items, true)
+            || $this->isShopSessionPath($hit['source'])) {
+            return;
+        }
+        $segments = array_filter(explode('/', trim($hit['redirect'], '/')), 'strlen');
+        if ($segments === []) {
+            return;
+        }
+        $target = rtrim($langPrefix, '/') . '/' . implode('/', array_map('rawurlencode', $segments)) . '/';
+        $target = $this->applyTrailingSlash($target);
+        if (ConveyThisSlugMap::key(rawurldecode($target)) === ConveyThisSlugMap::key(rawurldecode((string) parse_url($origin, PHP_URL_PATH)))) {
+            return;   // never redirect an address to itself
+        }
+        $query = parse_url($origin, PHP_URL_QUERY);
+        if (is_string($query) && $query !== '') {
+            $target .= '?' . $query;
+        }
+        $status = $this->slugMap()->redirectStatus($lang, $urlCodes);
+        if ($status === 302) {
+            // A 302 must not be kept by a page cache either.
+            nocache_headers();
+        }
+        wp_safe_redirect($target, $status, 'ConveyThis');
+        exit;
+    }
+
+    /** WooCommerce cart, checkout or my-account (and everything under them). */
+    private function isShopSessionPath(string $sourcePath): bool
+    {
+        if (!function_exists('wc_get_page_permalink')) {
+            return false;
+        }
+        $key = ConveyThisSlugMap::key($sourcePath);
+        foreach (['cart', 'checkout', 'myaccount'] as $page) {
+            $path = wp_parse_url((string) wc_get_page_permalink($page), PHP_URL_PATH);
+            if (!is_string($path) || $path === '') {
+                continue;
+            }
+            $shop = ConveyThisSlugMap::key($path);
+            if ($shop !== '/' && ($key === $shop || strpos($key . '/', $shop . '/') === 0)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function rewriteRequestUriTranslatedTailToOriginal(string $matchTail, string $original_slug): void
     {
         $original_slug = trim($original_slug);
