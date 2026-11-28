@@ -7,6 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <div class="title">Excluded pages</div>
 
+    <?php if (empty($this->variables->rules_loaded['exclusions']) || empty($this->variables->rules_loaded['exclusion_blocks'])) : ?>
+        <div class="alert alert-warning ct-rules-not-loaded" role="alert">
+            <?php echo esc_html(__('We could not load your exclusion rules from ConveyThis just now, so the list below may look empty. Your rules are safe. Reload this page before you change them: changes made here now will not be saved.', 'conveythis-translate')); ?>
+        </div>
+    <?php endif; ?>
+
     <div class="glossary-description">
         <p>Here you can exclude pages from being translated. Please use the following rules:</p>
         <p><strong>Start</strong> - Excludes any page whose URL begins with the value you enter. For example, entering <i>blog</i> would exclude <i>/blog/hello-world</i>, <i>/blog/about</i>, and any other page under <i>blog</i>.</p>

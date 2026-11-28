@@ -7,6 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
    <div class="form-group paid-function">
        <div class="title">Glossary</div>
 
+       <?php if (empty($this->variables->rules_loaded['glossary'])) : ?>
+           <div class="alert alert-warning ct-rules-not-loaded" role="alert">
+               <?php echo esc_html(__('We could not load your glossary from ConveyThis just now, so the list below may look empty. Your rules are safe. Reload this page before you change them: changes made here now will not be saved.', 'conveythis-translate')); ?>
+           </div>
+       <?php endif; ?>
+
                <div class="glossary-description">
                    <p>To keep the consistency of your translations, tell ConveyThis which keyword or phrase should be translated in a certain way or not translated at all.</p>
                    <p>For example, when we translate the ConveyThis website, we specify the brand name <strong>ConveyThis</strong> to stay as <strong>ConveyThis</strong> in all languages.</p>

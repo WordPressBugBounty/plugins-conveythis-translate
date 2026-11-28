@@ -238,6 +238,9 @@ class Variables {
     public $exclusions = [];
     public $glossary = [];
     public $exclusion_blocks = [];
+    // Whether each list above really loaded from the API on this request.
+    // An empty list and a failed load look the same otherwise.
+    public $rules_loaded = ['exclusions' => false, 'glossary' => false, 'exclusion_blocks' => false];
     public $exclusion_block_ids = [];
     public $exclusion_block_classes = [];
     public $account;

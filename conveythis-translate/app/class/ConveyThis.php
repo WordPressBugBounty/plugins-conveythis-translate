@@ -20,11 +20,29 @@ class ConveyThis {
     private $trailingSlashMapLoaded = false;
     private $last_glossary_response_raw;
     /**
+     * True only when the last send() got a real "status: success" answer.
+     * send() returns [] both for "the list is empty" and for "the call failed",
+     * so callers that must tell the two apart read this right after the call.
+     */
+    private $last_send_ok = false;
+    /**
+     * True when the last send() got any JSON answer with a status from the API,
+     * success or error. False means no usable answer at all (timeout, 5xx page).
+     */
+    private $last_send_answered = false;
+    /**
      * Captured at the top of init() before the plugin's own REQUEST_URI rewrite
      * strips the /lang/ prefix. Used by maybe_redirect_translated_slash_canonical()
      * to compute the correct slash shape against what the browser actually asked for.
      */
     private $original_request_uri_for_slash_canonical = null;
+
+    /** "/<site prefix><lang>/" of the current translated request, set in init(). */
+    private $translated_lang_prefix = null;
+    /** [target, status] of an old-address redirect, sent at template_redirect. */
+    private $pending_translated_redirect = null;
+    /** Status for the redirect translateSameSiteRedirect() just rewrote. */
+    private $translated_redirect_status = null;
 
     /** SEO meta-field classification lookup. Keys are lowercased name/property values. */
     private static $META_FIELD_TO_TYPE = [
@@ -110,7 +128,7 @@ class ConveyThis {
         // configured the plugin or consented (a WordPress.org guideline issue).
         // exclusions defaults to [] in Variables, so no fetch is fine here.
         if (!empty($this->variables->api_key)) {
-            $this->variables->exclusions = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
+            $this->variables->exclusions = $this->loadExclusions();
 
             if (empty($this->variables->is_active)) {
                 $url = home_url();
@@ -166,6 +184,9 @@ class ConveyThis {
         add_filter('wp_nav_menu', array($this, '_menu_shortcode'), 20, 2);
 
         add_action('init', array($this, 'init'));
+        add_action('template_redirect', array($this, 'send_pending_translated_redirect'), 0);
+        add_filter('wp_redirect', array($this, 'translate_same_site_redirect'), 20, 2);
+        add_filter('wp_redirect_status', array($this, 'translated_redirect_status'), 20, 2);
         add_action('template_redirect', array($this, 'maybe_redirect_translated_slug_404'), 1);
         add_action('template_redirect', array($this, 'maybe_redirect_translated_slash_canonical'), 1);
         add_action('wp_footer', array($this, 'output_conveythis_api_debug_comment'), 9999);
@@ -1063,21 +1084,47 @@ class ConveyThis {
         $exclusion_blocks = $incoming['exclusion_blocks'] ?? null;
         $clear_translate_cache = $incoming['clear_translate_cache'] ?? null;
 
-        if ($exclusions) {
-            $this->updateRules($exclusions, 'exclusion');
+        // Each of the three saves below replaces the whole list on the API: any
+        // rule missing from what we send is deleted there. So a list is sent
+        // only when the settings page really loaded it (the *_loaded flag the
+        // page printed). When the load failed the form shows an empty list, and
+        // sending that would delete the customer's rules.
+        // is_array() and not a truthy check: an empty [] must still be sent
+        // when it loaded fine, or deleting the last rule never reaches the API.
+        $rules_not_saved = [];
+        $list_loaded = function ($list) use ($incoming) {
+            return isset($incoming[$list . '_loaded']) && (string) $incoming[$list . '_loaded'] === '1';
+        };
+
+        if (is_array($exclusions)) {
+            if ($list_loaded('exclusions')) {
+                $this->updateRules($exclusions, 'exclusion');
+                // The site's stored copy is now old: the next page view asks again.
+                $this->forgetStoredExclusions();
+            } else {
+                $rules_not_saved[] = 'exclusions';
+            }
         }
         $glossary_rules_sent = is_array($glossary) ? count($glossary) : 0;
         $glossary_debug = null;
-        // Must use is_array(): empty [] is falsy in PHP, but deleting the last
-        // rule(s) still needs a sync POST so the API removes them.
         if (is_array($glossary)) {
-            $this->print_log('[Glossary Save] Calling updateRules(glossary) with ' . $glossary_rules_sent . ' rules');
-            $glossary_debug = $this->updateRules($glossary, 'glossary');
+            if ($list_loaded('glossary')) {
+                $this->print_log('[Glossary Save] Calling updateRules(glossary) with ' . $glossary_rules_sent . ' rules');
+                $glossary_debug = $this->updateRules($glossary, 'glossary');
+            } else {
+                $this->print_log('[Glossary Save] Skipped: the glossary did not load on the settings page');
+                $rules_not_saved[] = 'glossary';
+                $glossary_rules_sent = 0;
+            }
         } else {
             $this->print_log('[Glossary Save] No glossary data to save');
         }
-        if ($exclusion_blocks) {
-            $this->updateRules($exclusion_blocks, 'exclusion_blocks');
+        if (is_array($exclusion_blocks)) {
+            if ($list_loaded('exclusion_blocks')) {
+                $this->updateRules($exclusion_blocks, 'exclusion_blocks');
+            } else {
+                $rules_not_saved[] = 'exclusion_blocks';
+            }
         }
         if ($clear_translate_cache) {
             $this->ConveyThisCache->clear_cached_translations(true);
@@ -1155,6 +1202,8 @@ class ConveyThis {
         $response_data = [
             'message'             => 'save',
             'glossary_rules_sent' => $glossary_rules_sent,
+            // Lists left untouched because they had not loaded; the page tells the user.
+            'rules_not_saved'     => $rules_not_saved,
         ];
         if ( $glossary_debug !== null && is_array( $glossary_debug ) ) {
             $response_data['glossary_debug'] = $glossary_debug;
@@ -2098,9 +2147,15 @@ class ConveyThis {
                     $this->variables->is_active = [];
                 }
 
-                //$this->variables->exclusions = $this->send(  'GET', '/admin/account/domain/pages/excluded/?referrer='. urlencode($_SERVER['HTTP_HOST']) );
-                $this->variables->glossary = $this->send('GET', '/admin/account/domain/pages/glossary/?referrer=' . urlencode($this->normalizeReferrerForApi(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '')));
-                $this->variables->exclusion_blocks = $this->send('GET', '/admin/account/domain/excluded/blocks/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
+                // The three lists the settings form sends back as a whole. Each
+                // records whether it really loaded (see fetchRuleList), because
+                // the API deletes every rule missing from what the form saves.
+                // Exclusions were already asked for in the constructor, but that
+                // runs before the PUT above registers a new site, so a site's
+                // first visit would look like a failed load. Ask again here.
+                $this->variables->exclusions = $this->fetchRuleList('exclusions', '/admin/account/domain/pages/excluded/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
+                $this->variables->glossary = $this->fetchRuleList('glossary', '/admin/account/domain/pages/glossary/?referrer=' . urlencode($this->normalizeReferrerForApi(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '')));
+                $this->variables->exclusion_blocks = $this->fetchRuleList('exclusion_blocks', '/admin/account/domain/excluded/blocks/?referrer=' . urlencode($_SERVER['HTTP_HOST']));
 
                 if (isset($_GET["settings-updated"])) //phpcs:ignore
                 {
@@ -2619,6 +2674,7 @@ class ConveyThis {
                     if ($this->variables->language_code) {
                         // Do not use esc_url() on internal paths: it can break or empty Unicode/apostrophe paths.
                         $tmp = $matches[1];
+                        $this->translated_lang_prefix = $tmp;
                         $origin = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '/';
                         $origin_path = parse_url($origin, PHP_URL_PATH);
                         if (!is_string($origin_path) || $origin_path === '') {
@@ -2640,6 +2696,11 @@ class ConveyThis {
                             $original_slug = $mapHit !== null
                                 ? $mapHit['source']
                                 : $this->find_original_slug($slug, $this->variables->source_language, $this->variables->language_code, $this->variables->referrer);
+                            if ($mapHit === null && is_string($original_slug) && $original_slug !== '') {
+                                // Not in the list, but the old lookup knows the page
+                                // (e.g. a misspelt variant): send it to the page's slug.
+                                $this->redirectOldTranslatedAddress($slug, $tmp, $origin, $original_slug);
+                            }
                             if ($original_slug) {
                                 $this->rewriteRequestUriTranslatedTailToOriginal($matches[3], $original_slug);
                                 $this->variables->referrer = '//' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
@@ -4555,6 +4616,20 @@ class ConveyThis {
                     }
                 }
                 $modifiedUrl = $scheme . '://' . $host . '/' . $lang . ($path !== '' ? '/' . $path : '');
+                // One address per page: REQUEST_URI holds the source path by now,
+                // so on pages WordPress prints no canonical for (shop, categories,
+                // other archives) the address above would be an old one that
+                // redirects back here. Take the page's slug from the list, as the
+                // branch above does. Only on sites where the mode is on.
+                $urlCodesCanon = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
+                if ($lang !== '' && $path !== '' && !empty($this->variables->translate_links)
+                    && $this->slugMap()->isActive($lang, $urlCodesCanon)
+                    && !$this->isPageExcluded($scheme . '://' . $host . '/' . $path, $this->variables->exclusions)) {
+                    $fromList = $this->buildTranslatedCanonicalFromHref($scheme . '://' . $host . '/' . $path, $lang);
+                    if (is_string($fromList) && $fromList !== '') {
+                        $modifiedUrl = $fromList;
+                    }
+                }
             } else {
                 $modifiedUrl = $scheme . '://' . $host . ($path !== '' ? '/' . $path : '');
             }
@@ -6873,7 +6948,137 @@ class ConveyThis {
         }
     }
 
+    /**
+     * Load one of the lists the settings form saves back as a whole
+     * (exclusions, glossary, exclusion_blocks) and record whether it really
+     * loaded. Always returns an array, so the views can loop over it.
+     */
+    private function fetchRuleList($list, $request_uri) {
+        $data = $this->send('GET', $request_uri);
+        $this->variables->rules_loaded[$list] = $this->last_send_ok && is_array($data);
+        $asked_host = $this->normalizeReferrerForApi(isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '');
+        if ($list === 'exclusions' && $this->variables->rules_loaded[$list] && $this->exclusionsStoreEnabled()
+            && $asked_host === $this->exclusionsHost()) {
+            // The settings page just got a fresh list: let the site use it too.
+            // Only when it asked about the same host the site keeps its copy under.
+            $this->storeExclusions($data);
+        }
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * True unless keeping a copy of the excluded pages list is switched off:
+     * define('CONVEYTHIS_EXCLUSIONS_STORE', false) in wp-config.php, or return
+     * false from the conveythis_exclusions_store filter. Off = the behaviour
+     * before 271.6: the API is asked on every request, by the visitor's host,
+     * and a failed call means "no pages excluded" for that request.
+     */
+    private function exclusionsStoreEnabled() {
+        if (defined('CONVEYTHIS_EXCLUSIONS_STORE') && !CONVEYTHIS_EXCLUSIONS_STORE) {
+            return false;
+        }
+        return (bool) apply_filters('conveythis_exclusions_store', true);
+    }
+
+    /**
+     * The host this site is registered under at ConveyThis: the one from the
+     * WordPress address setting. The visitor's Host header is not used, because
+     * a site opened by IP, by a second domain or by a bot without Host gets
+     * "domain not found" for it, and with that, no exclusions.
+     */
+    private function exclusionsHost() {
+        $host = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+        if ($host === '' && isset($_SERVER['HTTP_HOST'])) {
+            $host = (string) $_SERVER['HTTP_HOST'];
+        }
+        return $this->normalizeReferrerForApi($host);
+    }
+
+    private function exclusionsTransient() {
+        return 'ct_exclusions_' . md5((string) $this->variables->api_key . '|' . $this->exclusionsHost());
+    }
+
+    private function storeExclusions($rules) {
+        set_transient($this->exclusionsTransient(), ['rules' => array_values($rules), 'checked' => time()], WEEK_IN_SECONDS);
+    }
+
+    private function forgetStoredExclusions() {
+        delete_transient($this->exclusionsTransient());
+    }
+
+    /**
+     * The excluded pages rules this request works with.
+     *
+     * The site keeps the last list the API gave and asks again at most once a
+     * minute. Only a "status: success" answer replaces the kept list. When the
+     * API cannot be reached, or answers with an error, the kept list stays in
+     * use, so a short outage no longer makes excluded pages translated (#208).
+     *
+     * If no list was ever kept and the API gives no answer, there is nothing to
+     * go by: the page is built with no exclusions, as before, but page cache
+     * plugins are told not to keep it, so it is not served for hours.
+     */
+    private function loadExclusions() {
+        if (!$this->exclusionsStoreEnabled()) {
+            $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+            $data = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . urlencode($host));
+            return is_array($data) ? $data : [];
+        }
+
+        $transient = $this->exclusionsTransient();
+        $state = get_transient($transient);
+        if (!is_array($state) || !array_key_exists('rules', $state) || !isset($state['checked'])
+            || ($state['rules'] !== null && !is_array($state['rules']))) {
+            $state = null;
+        }
+
+        if ($state === null || time() - (int) $state['checked'] >= MINUTE_IN_SECONDS || (int) $state['checked'] > time()) {
+            $data = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . rawurlencode($this->exclusionsHost()));
+            if (!$this->last_send_ok && $this->last_send_answered) {
+                // The API does not know the WordPress address (the site is
+                // registered at ConveyThis under another of its domains): ask by
+                // the host the visitor used, as every version before 271.6 did.
+                $visitor_host = $this->normalizeReferrerForApi(isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '');
+                if ($visitor_host !== '' && $visitor_host !== $this->exclusionsHost()) {
+                    $by_visitor = $this->send('GET', '/admin/account/domain/pages/excluded/?referrer=' . rawurlencode($visitor_host));
+                    if ($this->last_send_ok && is_array($by_visitor)) {
+                        $data = $by_visitor;
+                    } else {
+                        $this->last_send_ok = false;
+                        $this->last_send_answered = true;
+                    }
+                }
+            }
+            if ($this->last_send_ok && is_array($data)) {
+                $state = ['rules' => array_values($data), 'checked' => time()];
+            } else {
+                if ($state === null) {
+                    // 'rules' => null: never loaded. 'answered' remembers whether
+                    // the API said something (an error such as "domain not found")
+                    // or nothing at all, which is what the no-cache rule needs.
+                    $state = ['rules' => null, 'answered' => $this->last_send_answered];
+                } elseif ($state['rules'] === null) {
+                    $state['answered'] = $this->last_send_answered;
+                }
+                $state['checked'] = time();
+            }
+            // Kept a week: 'checked' decides when to ask again, the long lifetime
+            // keeps the last good list through an outage.
+            set_transient($transient, $state, WEEK_IN_SECONDS);
+        }
+
+        if ($state['rules'] === null) {
+            if (empty($state['answered']) && !is_admin() && !defined('DONOTCACHEPAGE')) {
+                define('DONOTCACHEPAGE', true);
+            }
+            return [];
+        }
+        return $state['rules'];
+    }
+
     private function send($request_method = 'GET', $request_uri = '', $query = [], $return_error = false, $timeout = null) {
+        $this->last_send_ok = false;
+        $this->last_send_answered = false;
         $this->print_log("* send");
         $this->print_log("$request_uri");
         $headers = [
@@ -6917,8 +7122,11 @@ class ConveyThis {
 
             if (!empty($data)) {
                 if ($data['status'] == 'success') {
+                    $this->last_send_ok = true;
+                    $this->last_send_answered = true;
                     return $data['data'];
                 } else if ($data['status'] == 'error') {
+                    $this->last_send_answered = true;
                     if ($return_error) {
                         return ['error' => $data['message']];
                     }
@@ -6964,7 +7172,14 @@ class ConveyThis {
         if ($proxy) {
             $response = wp_remote_request($proxyApiURL . $url, $args);
         }
-        if (is_wp_error($response) || empty($response) || empty($response['body'])) {
+        // A proxy that is up but cannot reach the API answers 502/503/504 with an
+        // HTML page. That has a body, so it used to count as an answer and the
+        // direct API was never tried (#208). Only for GET: a POST may already have
+        // reached the API through the proxy, and sending it twice could apply it twice.
+        $proxy_5xx = $proxy && is_array($response)
+            && (empty($args['method']) || strtoupper($args['method']) === 'GET')
+            && (int) wp_remote_retrieve_response_code($response) >= 500;
+        if (is_wp_error($response) || empty($response) || empty($response['body']) || $proxy_5xx) {
             // Fallback direct-to-API: keep long timeout for glossary/page-translate POSTs;
             // light calls stay at 3s so a slow upstream fails fast and can be negatively cached.
             if ($timeout !== null) {
@@ -7124,11 +7339,18 @@ class ConveyThis {
      * this site; 302 while a site is being checked. Does nothing unless
      * ConveyThis turned the site on (no list stored).
      *
-     * @param string $slug       requested path after the language prefix, decoded
-     * @param string $langPrefix the matched "/<site prefix><lang>/"
-     * @param string $origin     the full request URI as received
+     * The redirect is only decided here; it is sent at template_redirect, and
+     * not at all when the source page no longer exists in WordPress (404):
+     * such an address keeps today's handling, so the site's own redirects
+     * (e.g. the Redirection plugin) still apply to it.
+     *
+     * @param string      $slug        requested path after the language prefix, decoded
+     * @param string      $langPrefix  the matched "/<site prefix><lang>/"
+     * @param string      $origin      the full request URI as received
+     * @param string|null $foundSource source path found by the older lookup for
+     *                                 an address that is not in the list
      */
-    private function redirectOldTranslatedAddress(string $slug, string $langPrefix, string $origin): void
+    private function redirectOldTranslatedAddress(string $slug, string $langPrefix, string $origin, ?string $foundSource = null): void
     {
         $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
         if ($method !== 'GET' && $method !== 'HEAD') {
@@ -7143,7 +7365,12 @@ class ConveyThis {
         }
         $urlCodes = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
         $lang = (string) $this->variables->language_code;
-        $hit = $this->slugMap()->resolve($slug, $lang, $urlCodes);
+        if ($foundSource === null) {
+            $hit = $this->slugMap()->resolve($slug, $lang, $urlCodes);
+        } else {
+            $main = $this->slugMap()->forward($foundSource, $lang, $urlCodes);
+            $hit = $main === null ? null : ['source' => '/' . ltrim($foundSource, '/'), 'redirect' => $main];
+        }
         if ($hit === null || $hit['redirect'] === null) {
             return;
         }
@@ -7167,13 +7394,180 @@ class ConveyThis {
         if (is_string($query) && $query !== '') {
             $target .= '?' . $query;
         }
-        $status = $this->slugMap()->redirectStatus($lang, $urlCodes);
+        $this->pending_translated_redirect = [$target, $this->slugMap()->redirectStatus($lang, $urlCodes)];
+    }
+
+    /** template_redirect, priority 0: send the redirect decided in init(). */
+    public function send_pending_translated_redirect()
+    {
+        if ($this->pending_translated_redirect === null || empty($this->variables->language_code)) {
+            return;
+        }
+        if (function_exists('is_404') && is_404()) {
+            return;   // the source page is gone: keep today's handling
+        }
+        [$target, $status] = $this->pending_translated_redirect;
+        $this->pending_translated_redirect = null;
         if ($status === 302) {
             // A 302 must not be kept by a page cache either.
             nocache_headers();
         }
         wp_safe_redirect($target, $status, 'ConveyThis');
         exit;
+    }
+
+    /**
+     * wp_redirect filter. On a translated request of a site with one address
+     * per page turned on, a redirect to an address of this site without a
+     * language folder (the Redirection plugin, WordPress's old-slug and
+     * canonical redirects, other plugins) is kept in the visitor's language:
+     * "/old-page/" becomes "/fr/<the page's French slug>/". The request's own
+     * parameters (gclid, utm_*) are carried over unless the target sets them;
+     * WordPress query vars are not, so canonical redirects cannot loop.
+     *
+     * Untouched: other sites, addresses already in a language folder,
+     * wp-admin / login / REST / feeds / files, pages excluded from
+     * translation, shop cart/checkout/account, addresses with no slug in the
+     * list, and POST requests. Filters to turn it off:
+     * conveythis_redirect_old_translated_addresses (all redirects) or
+     * conveythis_translate_same_site_redirects (this one only).
+     *
+     * @param string|false $location
+     * @param int          $status
+     * @return string|false
+     */
+    public function translate_same_site_redirect($location, $status = 302)
+    {
+        $this->translated_redirect_status = null;
+        if (!is_string($location) || $location === '' || !is_string($this->translated_lang_prefix)) {
+            return $location;
+        }
+        $lang = (string) ($this->variables->language_code ?? '');
+        if ($lang === '' || empty($this->variables->translate_links)) {
+            return $location;
+        }
+        $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+        if ($method !== 'GET' && $method !== 'HEAD') {
+            return $location;
+        }
+        if (is_admin() || wp_doing_ajax() || wp_doing_cron() || (defined('REST_REQUEST') && REST_REQUEST)) {
+            return $location;
+        }
+        if (!apply_filters('conveythis_redirect_old_translated_addresses', true)
+            || !apply_filters('conveythis_translate_same_site_redirects', true)) {
+            return $location;
+        }
+        $urlCodes = is_array($this->variables->target_languages_translations ?? null) ? $this->variables->target_languages_translations : [];
+        if (!$this->slugMap()->isActive($lang, $urlCodes)) {
+            return $location;
+        }
+
+        $parts = wp_parse_url($location);
+        if (!is_array($parts)) {
+            return $location;
+        }
+        $host = isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '';
+        if (isset($parts['host'])) {
+            $homeHost = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+            $h = strtolower($parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : ''));
+            if ($h !== strtolower($host) && strtolower($parts['host']) !== strtolower($homeHost)) {
+                return $location;   // another site
+            }
+        }
+        $path = isset($parts['path']) ? (string) $parts['path'] : '/';
+        $prefix = (string) ($this->variables->site_prefix ?? '/');
+        if ($prefix === '' || $path === '' || $path[0] !== '/' || strpos($path, $prefix) !== 0) {
+            return $location;
+        }
+        $rel = '/' . ltrim(substr($path, strlen($prefix)), '/');
+        $decodedRel = rawurldecode($rel);
+
+        // Already in a language folder (our own redirects pass through here too).
+        $first = rawurldecode((string) strtok(trim($rel, '/'), '/'));
+        $folders = array_merge(array_map('strval', array_values($urlCodes)), array_map('strval', (array) ($this->variables->target_languages ?? [])));
+        if ($first !== '' && in_array($first, $folders, true)) {
+            return $location;
+        }
+        if (preg_match('#^/(wp-admin|wp-login\.php|wp-json|wp-content|wp-includes|xmlrpc\.php|feed)(/|$)#i', $decodedRel)
+            || preg_match('#/feed/?$#i', $decodedRel)
+            || pathinfo(rtrim($decodedRel, '/'), PATHINFO_EXTENSION) !== '') {
+            return $location;
+        }
+        $slug = $this->slugMap()->forward($decodedRel, $lang, $urlCodes);
+        if ($slug === null) {
+            return $location;
+        }
+        if (in_array($this->getPageUrl('//' . $host . $decodedRel), (array) $this->variables->blockpages_items, true)
+            || $this->isShopSessionPath($decodedRel)) {
+            return $location;
+        }
+
+        $segments = array_filter(explode('/', trim($slug, '/')), 'strlen');
+        $newPath = rtrim($this->translated_lang_prefix, '/') . '/'
+            . ($segments === [] ? '' : implode('/', array_map('rawurlencode', $segments)) . '/');
+        $newPath = $this->applyTrailingSlash($newPath);
+
+        $req = is_string($this->original_request_uri_for_slash_canonical) ? $this->original_request_uri_for_slash_canonical : '';
+        $reqPath = (string) parse_url($req, PHP_URL_PATH);
+        $reqQuery = (string) parse_url($req, PHP_URL_QUERY);
+        $ownQuery = isset($parts['query']) ? (string) $parts['query'] : '';
+        $samePage = ConveyThisSlugMap::key(rawurldecode($newPath)) === ConveyThisSlugMap::key(rawurldecode($reqPath));
+
+        // The target's own parameters first, then the request's that it does
+        // not set. On a redirect to the same page (WordPress tidying the query)
+        // the target's query alone is what WordPress asked for.
+        $pairs = $ownQuery === '' ? [] : explode('&', $ownQuery);
+        if (!$samePage && $reqQuery !== '') {
+            $taken = [];
+            foreach ($pairs as $p) {
+                $taken[urldecode((string) strtok($p, '='))] = true;
+            }
+            $reserved = [];
+            if (isset($GLOBALS['wp']) && is_object($GLOBALS['wp'])) {
+                $reserved = array_merge((array) ($GLOBALS['wp']->public_query_vars ?? []), (array) ($GLOBALS['wp']->private_query_vars ?? []));
+            }
+            foreach (explode('&', $reqQuery) as $p) {
+                $k = urldecode((string) strtok($p, '='));
+                $base = preg_replace('/\[.*$/', '', $k);
+                if ($k === '' || isset($taken[$k]) || in_array($base, $reserved, true)) {
+                    continue;
+                }
+                $pairs[] = $p;
+                $taken[$k] = true;
+            }
+        }
+        $query = implode('&', $pairs);
+        $newRel = $newPath . ($query !== '' ? '?' . $query : '');
+        if ($samePage && $query === $reqQuery) {
+            return $location;   // would send the visitor back to this very address
+        }
+
+        $out = $newRel;
+        if (isset($parts['host'])) {
+            $scheme = isset($parts['scheme']) ? $parts['scheme'] : (is_ssl() ? 'https' : 'http');
+            $out = $scheme . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '') . $newRel;
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $out .= '#' . $parts['fragment'];
+        }
+        // While the site is on 302 (its first week) a rewritten permanent
+        // redirect is sent as 302 too, so browsers do not keep it if the
+        // mode is turned off again.
+        if (in_array((int) $status, [301, 308], true) && $this->slugMap()->redirectStatus($lang, $urlCodes) === 302) {
+            $this->translated_redirect_status = 302;
+        }
+        $this->print_log("* translate_same_site_redirect: $location -> $out");
+        return $out;
+    }
+
+    /** wp_redirect_status filter: the status translate_same_site_redirect() chose. */
+    public function translated_redirect_status($status, $location = '')
+    {
+        if ($this->translated_redirect_status !== null) {
+            $status = $this->translated_redirect_status;
+            $this->translated_redirect_status = null;
+        }
+        return $status;
     }
 
     /** WooCommerce cart, checkout or my-account (and everything under them). */

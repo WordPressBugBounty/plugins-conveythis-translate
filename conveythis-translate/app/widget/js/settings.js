@@ -218,6 +218,21 @@ jQuery(document).ready(function ($) {
             $btn.prop('disabled', false).val('Save Settings');
             if (response.success) {
                 toastr.success('Settings saved successfully');
+                // Rule lists the server left untouched because they had not
+                // loaded when this page opened (see *_loaded in main.php).
+                // A list that did not load starts empty on the page, so it has
+                // rules now only if the user added some: warn just those users.
+                // Users who did not touch the list lost nothing and see nothing.
+                var countRules = function (k) {
+                    if (k === 'glossary') return glossaryRules.length;
+                    try { var v = JSON.parse(data[k] || '[]'); return Array.isArray(v) ? v.length : 0; } catch (err) { return 0; }
+                };
+                var notSaved = ((response.data && response.data.rules_not_saved) || []).filter(function (k) { return countRules(k) > 0; });
+                if (notSaved.length) {
+                    var listNames = {exclusions: 'Excluded pages', glossary: 'Glossary', exclusion_blocks: 'Excluded blocks'};
+                    var names = notSaved.map(function (k) { return listNames[k] || k; }).join(', ');
+                    toastr.warning(names + ': your changes were not saved because the list could not be loaded. Reload the page and make them again.', '', {timeOut: 15000});
+                }
                 if (typeof syncGlossaryLanguageDropdowns === 'function') {
                     syncGlossaryLanguageDropdowns();
                     applyGlossaryFilters();

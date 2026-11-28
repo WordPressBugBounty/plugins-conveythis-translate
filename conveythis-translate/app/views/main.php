@@ -20,6 +20,14 @@ if ( ! defined( 'ABSPATH' ) ) {
             wp_nonce_field('conveythis_ajax_save', 'conveythis_nonce');
             settings_fields('my-plugin-settings-group');
             do_settings_sections('my-plugin-settings-group');
+            // Tells the save handler which rule lists really loaded on this page.
+            // A list that failed to load shows as empty, and saving an empty list
+            // deletes the rules on the API, so the handler skips those.
+            // Kept here, outside .paid-function: settings.js disables the inputs
+            // in those blocks on the Free plan and disabled inputs are not posted.
+            foreach (['exclusions', 'glossary', 'exclusion_blocks'] as $ct_rule_list) {
+                echo '<input type="hidden" name="' . esc_attr($ct_rule_list) . '_loaded" value="' . (!empty($this->variables->rules_loaded[$ct_rule_list]) ? '1' : '0') . '">';
+            }
             ?>
             <div class="main-block">
                 <!--Head block-->

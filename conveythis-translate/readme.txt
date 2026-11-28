@@ -4,7 +4,7 @@ Tags: translate, translation, multilingual, language-switcher, localization
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 271.5
+Stable tag: 271.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,6 +230,11 @@ This plugin relies on the following third-party services. For each one, the data
 **Google sitemap ping** — notifies Google when your translated sitemap changes, so translated pages are discovered and indexed faster. The URL of your translated sitemap is sent to Google's ping endpoint (https://www.google.com/ping) when the sitemap is updated; no personal data is sent. Provided by Google — [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
 
 == Changelog ==
+= 271.6 =
+* Excluded pages stay excluded when ConveyThis cannot be reached.
+* Fixed: saving settings could delete exclusion and glossary rules.
+* One address per page: site redirects stay in the visitor language. Fixed canonical on shop and category pages.
+
 = 271.5 =
 * Translated page addresses: each translated page can now have one address. Older translated addresses of the same page redirect to it, and links, canonical, hreflang and the sitemap use it. Turned on by ConveyThis site by site; nothing changes until it is turned on for your site.
 * When you deactivate the plugin, a short optional question asks why. You can skip it; deactivation is never blocked.
